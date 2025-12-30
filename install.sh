@@ -52,11 +52,19 @@ if command -v atuin &> /dev/null; then
   atuin import auto 2>/dev/null || true
 fi
 
+# Configure iTerm2 if installed
+if [[ -d "/Applications/iTerm.app" ]]; then
+  echo "Configuring iTerm2..."
+  "$DOTFILES_DIR/iterm2/setup-iterm.sh" import 2>/dev/null || \
+  "$DOTFILES_DIR/iterm2/setup-iterm.sh" configure 2>/dev/null || true
+fi
+
 echo ""
 echo "Installation complete!"
 echo ""
 echo "Next steps:"
 echo "  1. Restart your terminal or run: source ~/.zshrc"
 echo "  2. Set up Atuin sync: atuin register (new) or atuin login (existing)"
-echo "  3. Test shell speed: time zsh -i -c exit"
+echo "  3. Configure iTerm2 fonts: ~/dotfiles/iterm2/setup-iterm.sh set-fonts"
+echo "  4. Test shell speed: time zsh -i -c exit"
 echo ""

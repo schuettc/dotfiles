@@ -32,6 +32,8 @@ brew "pipx"           # Python app installer
 # brew "pyenv"        # Python version manager
 
 # Fonts (Nerd Font patched)
+cask "font-fira-code-nerd-font"
+cask "font-meslo-lg-nerd-font"
 cask "font-jetbrains-mono-nerd-font"
 cask "font-monaspace-nerd-font"
 
