@@ -9,5 +9,5 @@ for config in "$XDG_CONFIG_HOME/zsh"/*.zsh(N); do
   [[ -f "$config" ]] && source "$config"
 done
 
-# Starship prompt (must be last)
-eval "$(starship init zsh)"
+# Starship prompt (must be last, only in interactive shells)
+[[ $- == *i* ]] && eval "$(starship init zsh)"
