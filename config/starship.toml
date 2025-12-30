@@ -96,9 +96,9 @@ truncate_to_repo = false
 "GitHub" = " "
 
 [git_branch]
-symbol = ""
+symbol = " "
 style = "bg:yellow fg:crust"
-format = '[ $symbol $branch ]($style)'
+format = '[ $symbol$branch ]($style)'
 truncation_length = 20
 truncation_symbol = "…"
 
@@ -117,7 +117,7 @@ deleted = "✘${count}"
 ignore_submodules = true
 
 [nodejs]
-symbol = ""
+symbol = " "
 style = "bg:green fg:crust"
 format = '[ $symbol $version ]($style)'
 detect_extensions = []
