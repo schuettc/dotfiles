@@ -17,3 +17,7 @@ export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
 
 # Local binaries
 export PATH="$HOME/.local/bin:$PATH"
+
+# VS Code
+[[ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/bin" ]] && \
+  export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
