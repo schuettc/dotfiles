@@ -37,7 +37,7 @@ backup_if_exists "$HOME/.zshrc"
 ln -sf "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
 
 backup_if_exists "$CONFIG_DIR/zsh"
-ln -sf "$DOTFILES_DIR/config/zsh" "$CONFIG_DIR/zsh"
+ln -sfn "$DOTFILES_DIR/config/zsh" "$CONFIG_DIR/zsh"
 
 # Starship
 backup_if_exists "$CONFIG_DIR/starship.toml"
@@ -45,7 +45,7 @@ ln -sf "$DOTFILES_DIR/config/starship.toml" "$CONFIG_DIR/starship.toml"
 
 # Atuin
 backup_if_exists "$CONFIG_DIR/atuin"
-ln -sf "$DOTFILES_DIR/config/atuin" "$CONFIG_DIR/atuin"
+ln -sfn "$DOTFILES_DIR/config/atuin" "$CONFIG_DIR/atuin"
 
 # Import existing shell history into Atuin
 if command -v atuin &> /dev/null; then
