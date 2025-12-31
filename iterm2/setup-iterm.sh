@@ -62,10 +62,14 @@ case "${1:-}" in
     defaults write com.googlecode.iterm2 PrefsCustomFolder -string "$ITERM_DIR"
     defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true
 
+    # Enable anti-aliasing for smooth font rendering (important for MonoLisa)
+    defaults write com.googlecode.iterm2 "Anti Aliased" -bool true
+
     echo "✓ iTerm2 will now sync preferences from: $ITERM_DIR"
+    echo "✓ Anti-aliasing enabled"
     echo ""
-    echo "To save changes back to dotfiles, enable in iTerm2:"
-    echo "  Preferences → General → Preferences → 'Save changes to folder when iTerm2 quits'"
+    echo "To save changes back to dotfiles, set in iTerm2:"
+    echo "  Settings → General → Settings → Save changes: 'Automatically'"
     ;;
 
   set-fonts)

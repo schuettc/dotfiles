@@ -53,10 +53,9 @@ if command -v atuin &> /dev/null; then
   atuin import auto 2>/dev/null || true
 fi
 
-# Configure iTerm2 if installed
+# Configure iTerm2 if installed (use 'configure' to avoid quitting iTerm2)
 if [[ -d "/Applications/iTerm.app" ]]; then
-  echo "Configuring iTerm2..."
-  "$DOTFILES_DIR/iterm2/setup-iterm.sh" import 2>/dev/null || \
+  echo "Configuring iTerm2 to sync from dotfiles..."
   "$DOTFILES_DIR/iterm2/setup-iterm.sh" configure 2>/dev/null || true
 fi
 
