@@ -4,11 +4,10 @@ Terminal configuration with fast shell startup (~98ms), modular zsh config, and 
 
 ## Quick Start
 
-```bash
-# Clone
-git clone https://github.com/schuettc/dotfiles.git ~/dotfiles
+Clone to `~/dotfiles` (recommended):
 
-# Install
+```bash
+git clone https://github.com/schuettc/dotfiles.git ~/dotfiles
 cd ~/dotfiles && ./install.sh
 
 # Configure iTerm2

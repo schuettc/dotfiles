@@ -1,9 +1,7 @@
 # Brewfile - Complete Developer Environment
-# Install with: brew bundle --file=~/dotfiles/Brewfile
+# Install with: brew bundle
 
 # Taps
-tap "homebrew/bundle"
-tap "homebrew/cask-fonts"
 tap "1password/tap"
 
 # ===================

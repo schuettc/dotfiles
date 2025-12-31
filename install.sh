@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-DOTFILES_DIR="$HOME/dotfiles"
+# Get the directory where this script is located
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="$HOME/.config"
 
 echo "Installing dotfiles..."
@@ -65,6 +66,6 @@ echo ""
 echo "Next steps:"
 echo "  1. Restart your terminal or run: source ~/.zshrc"
 echo "  2. Set up Atuin sync: atuin register (new) or atuin login (existing)"
-echo "  3. Configure iTerm2 fonts: ~/dotfiles/iterm2/setup-iterm.sh set-fonts"
+echo "  3. Configure iTerm2 fonts: $DOTFILES_DIR/iterm2/setup-iterm.sh set-fonts"
 echo "  4. Test shell speed: time zsh -i -c exit"
 echo ""
