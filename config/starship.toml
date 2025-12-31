@@ -180,7 +180,7 @@ ignore_base = true
 symbol = "  "
 style = "bg:sapphire fg:crust"
 format = '[$symbol($profile )(\($region\) )]($style)'
-disabled = true
+disabled = false
 
 [time]
 disabled = false

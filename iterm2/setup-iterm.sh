@@ -71,30 +71,61 @@ case "${1:-}" in
   set-fonts)
     echo "Setting iTerm2 fonts..."
 
-    # Set main font to MonoLisa
-    defaults write com.googlecode.iterm2 "Normal Font" -string "MonoLisa-Regular 13"
+    # Check if MonoLisa is installed, fall back to FiraCode Nerd Font
+    if system_profiler SPFontsDataType 2>/dev/null | grep -q "MonoLisa"; then
+      MAIN_FONT="MonoLisa-Regular 13"
+      echo "  Using MonoLisa as main font"
+    else
+      MAIN_FONT="FiraCodeNerdFont-Regular 13"
+      echo "  MonoLisa not found, using FiraCode Nerd Font"
+    fi
 
-    # Enable non-ASCII font
+    defaults write com.googlecode.iterm2 "Normal Font" -string "$MAIN_FONT"
+
+    # Enable non-ASCII font for Nerd Font icons
     defaults write com.googlecode.iterm2 "Use Non-ASCII Font" -bool true
-
-    # Set non-ASCII font to a Nerd Font
     defaults write com.googlecode.iterm2 "Non Ascii Font" -string "FiraCodeNerdFontComplete-Regular 13"
 
     echo "✓ Fonts configured"
-    echo "  Main: MonoLisa Regular 13"
+    echo "  Main: $MAIN_FONT"
     echo "  Non-ASCII: FiraCode Nerd Font 13"
     echo ""
     echo "Restart iTerm2 to apply changes."
     ;;
 
+  set-preferences)
+    echo "Applying recommended iTerm2 preferences..."
+
+    # Anti-aliasing (smooth text rendering)
+    defaults write com.googlecode.iterm2 "Anti Aliased" -bool true
+
+    # Option key as Meta (Esc+) for proper terminal keybindings
+    defaults write com.googlecode.iterm2 "LeftOptionKey" -int 2
+
+    # Scrollback buffer (100k lines)
+    defaults write com.googlecode.iterm2 "Scrollback Lines" -int 100000
+
+    # Disable audible bell
+    defaults write com.googlecode.iterm2 "Silence Bell" -bool true
+
+    echo "✓ Preferences applied:"
+    echo "  - Anti-aliasing enabled"
+    echo "  - Left Option key set to Esc+ (Meta)"
+    echo "  - Scrollback buffer: 100,000 lines"
+    echo "  - Audible bell disabled"
+    echo ""
+    echo "Restart iTerm2 to apply changes."
+    ;;
+
   *)
-    echo "Usage: $0 {export|import|configure|set-fonts}"
+    echo "Usage: $0 {export|import|configure|set-fonts|set-preferences}"
     echo ""
     echo "Commands:"
-    echo "  export     - Export current iTerm2 settings to dotfiles"
-    echo "  import     - Import settings from dotfiles (new machine)"
-    echo "  configure  - Set iTerm2 to sync with dotfiles folder"
-    echo "  set-fonts  - Configure MonoLisa + Nerd Font fallback"
+    echo "  export          - Export current iTerm2 settings to dotfiles"
+    echo "  import          - Import settings from dotfiles (new machine)"
+    echo "  configure       - Set iTerm2 to sync with dotfiles folder"
+    echo "  set-fonts       - Configure fonts (MonoLisa or FiraCode fallback)"
+    echo "  set-preferences - Apply recommended settings (anti-alias, scrollback, etc)"
     echo ""
     echo "Recommended setup on current machine:"
     echo "  1. ./setup-iterm.sh export"
@@ -102,7 +133,7 @@ case "${1:-}" in
     echo ""
     echo "On a new machine:"
     echo "  1. ./setup-iterm.sh import"
-    echo "  or"
-    echo "  1. ./setup-iterm.sh configure"
+    echo "  2. ./setup-iterm.sh set-fonts"
+    echo "  3. ./setup-iterm.sh set-preferences"
     ;;
 esac
