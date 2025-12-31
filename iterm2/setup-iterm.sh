@@ -100,21 +100,24 @@ case "${1:-}" in
   set-preferences)
     echo "Applying recommended iTerm2 preferences..."
 
+    PLIST=~/Library/Preferences/com.googlecode.iterm2.plist
+
     # Anti-aliasing (smooth text rendering)
     defaults write com.googlecode.iterm2 "Anti Aliased" -bool true
 
-    # Option key as Meta (Esc+) for proper terminal keybindings
-    defaults write com.googlecode.iterm2 "LeftOptionKey" -int 2
+    # Option key as Esc+ for proper terminal keybindings (Alt+C, etc.)
+    # This is a per-profile setting, so we use PlistBuddy
+    /usr/libexec/PlistBuddy -c "Set ':New Bookmarks':0:'Option Key Sends' 2" "$PLIST" 2>/dev/null || true
 
-    # Scrollback buffer (100k lines)
-    defaults write com.googlecode.iterm2 "Scrollback Lines" -int 100000
+    # Scrollback buffer (100k lines) - per-profile setting
+    /usr/libexec/PlistBuddy -c "Set ':New Bookmarks':0:'Scrollback Lines' 100000" "$PLIST" 2>/dev/null || true
 
-    # Disable audible bell
-    defaults write com.googlecode.iterm2 "Silence Bell" -bool true
+    # Disable audible bell - per-profile setting
+    /usr/libexec/PlistBuddy -c "Set ':New Bookmarks':0:'Silence Bell' true" "$PLIST" 2>/dev/null || true
 
     echo "✓ Preferences applied:"
     echo "  - Anti-aliasing enabled"
-    echo "  - Left Option key set to Esc+ (Meta)"
+    echo "  - Left Option key set to Esc+ (for Alt+C, etc.)"
     echo "  - Scrollback buffer: 100,000 lines"
     echo "  - Audible bell disabled"
     echo ""
