@@ -20,11 +20,17 @@ $c\
 $rust\
 $golang\
 $nodejs\
+$deno\
+$bun\
 $php\
 $java\
 $kotlin\
 $haskell\
 $python\
+$ruby\
+$lua\
+$terraform\
+$kubernetes\
 [](fg:green bg:sapphire)\
 $docker_context\
 $conda\
@@ -54,21 +60,21 @@ style = "bg:surface0 fg:text"
 format = '[ $symbol ]($style)'
 
 [os.symbols]
-Windows = ""
+Windows = "󰖳"
 Ubuntu = "󰕈"
-SUSE = ""
+SUSE = "󰴵"
 Raspbian = "󰐿"
 Mint = "󰣭"
 Macos = "󰀵"
-Manjaro = ""
+Manjaro = "󰴵"
 Linux = "󰌽"
 Gentoo = "󰣨"
 Fedora = "󰣛"
-Alpine = ""
-Amazon = ""
-Android = ""
+Alpine = "󰴵"
+Amazon = "󰸏"
+Android = "󰀲"
 Arch = "󰣇"
-CentOS = ""
+CentOS = "󰴵"
 Debian = "󰣚"
 Redhat = "󱄛"
 RedHatEnterprise = "󱄛"
@@ -96,7 +102,7 @@ truncate_to_repo = false
 "GitHub" = " "
 
 [git_branch]
-symbol = " "
+symbol = "󰊢 "
 style = "bg:yellow fg:crust"
 format = '[ $symbol$branch ]($style)'
 truncation_length = 20
@@ -117,7 +123,7 @@ deleted = "✘${count}"
 ignore_submodules = true
 
 [nodejs]
-symbol = " "
+symbol = "󰎙"
 style = "bg:green fg:crust"
 format = '[ $symbol $version ]($style)'
 detect_extensions = []
@@ -125,59 +131,92 @@ detect_files = ['package.json', '.node-version']
 detect_folders = ['node_modules']
 
 [c]
-symbol = " "
+symbol = "󰙱"
 style = "bg:green fg:crust"
 format = '[ $symbol $version ]($style)'
 
 [rust]
-symbol = ""
+symbol = "󱘗"
 style = "bg:green fg:crust"
 format = '[ $symbol $version ]($style)'
 
 [golang]
-symbol = ""
+symbol = "󰟓"
 style = "bg:green fg:crust"
 format = '[ $symbol $version ]($style)'
 
 [php]
-symbol = ""
+symbol = "󰌟"
 style = "bg:green fg:crust"
 format = '[ $symbol $version ]($style)'
 
 [java]
-symbol = " "
+symbol = "󰌄"
 style = "bg:green fg:crust"
 format = '[ $symbol $version ]($style)'
 
 [kotlin]
-symbol = ""
+symbol = "󱈙"
 style = "bg:green fg:crust"
 format = '[ $symbol $version ]($style)'
 
 [haskell]
-symbol = ""
+symbol = "󰲒"
 style = "bg:green fg:crust"
 format = '[ $symbol $version ]($style)'
 
 [python]
-symbol = ""
+symbol = "󰌠"
 style = "bg:green fg:crust"
 format = '[ $symbol $version (\($virtualenv\)) ]($style)'
 
+[ruby]
+symbol = "󰴭"
+style = "bg:green fg:crust"
+format = '[ $symbol $version ]($style)'
+
+[lua]
+symbol = "󰢱"
+style = "bg:green fg:crust"
+format = '[ $symbol $version ]($style)'
+
+[deno]
+symbol = "󰛦"
+style = "bg:green fg:crust"
+format = '[ $symbol $version ]($style)'
+
+[bun]
+symbol = "󰤇"
+style = "bg:green fg:crust"
+format = '[ $symbol $version ]($style)'
+
+[terraform]
+symbol = "󱁢"
+style = "bg:green fg:crust"
+format = '[ $symbol $version ]($style)'
+detect_files = ['.terraform.lock.hcl']
+detect_folders = []
+detect_extensions = ['tf', 'tfvars']
+
+[kubernetes]
+symbol = "󱃾"
+style = "bg:green fg:crust"
+format = '[ $symbol $context ]($style)'
+disabled = false
+detect_files = []
+detect_folders = []
+detect_env_vars = ['KUBECONFIG']
+contexts = []
+
 [docker_context]
-symbol = ""
+symbol = "󰡨"
 style = "bg:sapphire fg:crust"
 format = '[ $symbol $context ]($style)'
 only_with_files = true
 
-[conda]
-symbol = "  "
-style = "bg:sapphire fg:crust"
-format = '[$symbol$environment ]($style)'
-ignore_base = true
 
 [aws]
-symbol = "  "
+symbol = "󰸏 "
 style = "bg:sapphire fg:crust"
 format = '[$symbol($profile )(\($region\) )]($style)'
 disabled = false
