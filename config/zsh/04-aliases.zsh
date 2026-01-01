@@ -25,8 +25,8 @@ command -v lazygit &> /dev/null && alias lg='lazygit'
 # AWS
 export AWS_PAGER=""
 
-# Claude
-alias claude="$HOME/.claude/local/claude"
+# Claude (only if installed)
+[[ -x "$HOME/.local/bin/claude" ]] && alias claude="$HOME/.local/bin/claude"
 
 # Quick navigation
 alias ..='cd ..'
