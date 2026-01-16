@@ -108,14 +108,14 @@ case "${1:-}" in
     # Scrollback buffer (100k lines) - per-profile setting
     /usr/libexec/PlistBuddy -c "Set ':New Bookmarks':0:'Scrollback Lines' 100000" "$PLIST" 2>/dev/null || true
 
-    # Disable audible bell - per-profile setting
-    /usr/libexec/PlistBuddy -c "Set ':New Bookmarks':0:'Silence Bell' true" "$PLIST" 2>/dev/null || true
+    # Enable audible bell - useful for Claude Code notifications
+    /usr/libexec/PlistBuddy -c "Set ':New Bookmarks':0:'Silence Bell' false" "$PLIST" 2>/dev/null || true
 
     echo "✓ Preferences applied:"
     echo "  - Anti-aliasing enabled"
     echo "  - Left Option key set to Esc+ (for Alt+C, etc.)"
     echo "  - Scrollback buffer: 100,000 lines"
-    echo "  - Audible bell disabled"
+    echo "  - Audible bell enabled (for Claude Code notifications)"
     echo ""
     echo "Restart iTerm2 to apply changes."
     ;;
