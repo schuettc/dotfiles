@@ -50,6 +50,28 @@ atuin login  # or: atuin register
 | `./iterm2/setup-iterm.sh set-fonts` | Configure fonts (MonoLisa or FiraCode fallback) |
 | `./iterm2/setup-iterm.sh set-preferences` | Apply recommended settings |
 
+### Claude Code Integration
+
+The install script automatically configures [Claude Code](https://claude.ai/code) with:
+
+- **Status line** - Rich context display at the bottom of Claude Code
+- **Session directory** - `~/.claude/sessions/` for feature context tracking
+- **Permissions** - Auto-approves session file writes (no prompts)
+
+**Status line format:**
+```
+🤖 Opus 4.5 │ 🟡 73% │ 📂 my-project │ 🌿 main
+```
+
+| Part | Description |
+|------|-------------|
+| 🤖 / 💡 | Model name or current feature (from [feature-workflow plugin](https://github.com/schuettc/claude-code-plugins)) |
+| 🟢 🟡 🔴 | Context window usage (green < 50%, yellow 50-80%, red > 80%) |
+| 📂 | Working directory |
+| 🌿 | Git branch |
+
+This makes it easy to identify which feature you're working on and monitor session health.
+
 ## Structure
 
 ```
@@ -65,8 +87,10 @@ atuin login  # or: atuin register
 │   │   ├── 04-aliases.zsh     # Modern tool aliases
 │   │   └── 05-completions.zsh # Shell completions
 │   ├── starship.toml      # Prompt configuration
-│   └── atuin/
-│       └── config.toml    # History sync settings
+│   ├── atuin/
+│   │   └── config.toml    # History sync settings
+│   └── claude/
+│       └── statusline.sh  # Claude Code status line script
 └── iterm2/
     ├── setup-iterm.sh     # iTerm2 configuration script
     └── com.googlecode.iterm2.plist  # Preferences backup
