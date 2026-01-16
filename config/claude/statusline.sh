@@ -13,10 +13,7 @@ CURRENT_DIR=$(echo "$input" | jq -r '.workspace.current_dir // ""')
 USAGE=$(echo "$input" | jq -r '.context_window.current_usage')
 if [[ "$USAGE" != "null" && "$CONTEXT_SIZE" != "0" ]]; then
   INPUT_TOKENS=$(echo "$USAGE" | jq -r '.input_tokens // 0')
-  CACHE_CREATE=$(echo "$USAGE" | jq -r '.cache_creation_input_tokens // 0')
-  CACHE_READ=$(echo "$USAGE" | jq -r '.cache_read_input_tokens // 0')
-  CURRENT=$((INPUT_TOKENS + CACHE_CREATE + CACHE_READ))
-  CONTEXT_PCT=$((CURRENT * 100 / CONTEXT_SIZE))
+  CONTEXT_PCT=$((INPUT_TOKENS * 100 / CONTEXT_SIZE))
 else
   CONTEXT_PCT=0
 fi
