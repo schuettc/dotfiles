@@ -60,14 +60,14 @@ cask "1password-cli"      # 1Password CLI (op)
 cask "font-fira-code-nerd-font"
 cask "font-meslo-lg-nerd-font"
 cask "font-jetbrains-mono-nerd-font"
-cask "font-monaspace-nerd-font"
+cask "font-monaspice-nerd-font"
 
 # ===================
 # Apps
 # ===================
 cask "iterm2"             # Terminal
 cask "visual-studio-code" # Editor
-cask "docker"             # Docker Desktop
+cask "docker-desktop"     # Docker Desktop
 
 # ===================
 # Optional (uncomment if needed)

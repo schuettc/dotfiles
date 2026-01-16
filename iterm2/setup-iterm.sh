@@ -44,11 +44,7 @@ case "${1:-}" in
       exit 1
     fi
 
-    # Quit iTerm2 if running
-    osascript -e 'tell application "iTerm2" to quit' 2>/dev/null || true
-    sleep 1
-
-    # Import preferences
+    # Import preferences (user must restart iTerm2 manually)
     cp "$ITERM_DIR/com.googlecode.iterm2.plist" ~/Library/Preferences/
 
     echo "✓ Imported preferences"

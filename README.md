@@ -4,22 +4,26 @@ Terminal configuration with fast shell startup (~98ms), modular zsh config, and 
 
 ## Quick Start
 
-Clone to `~/dotfiles` (recommended):
-
+**1. Clone and install:**
 ```bash
 git clone https://github.com/schuettc/dotfiles.git ~/dotfiles
 cd ~/dotfiles && ./install.sh
+```
 
-# Configure iTerm2
+**2. Configure iTerm2:**
+```bash
 ./iterm2/setup-iterm.sh import
 ./iterm2/setup-iterm.sh set-fonts
 ./iterm2/setup-iterm.sh set-preferences
-
-# Set up shell history sync (optional)
-atuin login  # or: atuin register
-
-# Restart terminal
 ```
+
+**3. Set up shell history sync (optional):**
+```bash
+atuin login
+```
+Or register a new account: `atuin register`
+
+**4. Restart your terminal**
 
 ## What's Included
 
