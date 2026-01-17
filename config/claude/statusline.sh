@@ -10,12 +10,12 @@ CONTEXT_SIZE=$(echo "$input" | jq -r '.context_window.context_window_size // 0')
 CURRENT_DIR=$(echo "$input" | jq -r '.workspace.current_dir // ""')
 
 # Calculate context usage percentage
-USAGE=$(echo "$input" | jq -r '.context_window.current_usage')
-if [[ "$USAGE" != "null" && "$CONTEXT_SIZE" != "0" ]]; then
-  INPUT_TOKENS=$(echo "$USAGE" | jq -r '.input_tokens // 0')
-  CONTEXT_PCT=$((INPUT_TOKENS * 100 / CONTEXT_SIZE))
-else
-  CONTEXT_PCT=0
+CONTEXT_PCT=0
+if [[ "$CONTEXT_SIZE" -gt 0 ]] 2>/dev/null; then
+  INPUT_TOKENS=$(echo "$input" | jq -r '.context_window.current_usage.input_tokens // 0')
+  if [[ "$INPUT_TOKENS" -gt 0 ]] 2>/dev/null; then
+    CONTEXT_PCT=$((INPUT_TOKENS * 100 / CONTEXT_SIZE))
+  fi
 fi
 
 # Ensure sessions directory exists
