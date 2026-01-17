@@ -1,0 +1,7 @@
+# Claude Code local/session data
+config/claude/local/
+config/claude/statsig/
+config/claude/todos/
+
+# OS files
+.DS_Store
