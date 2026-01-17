@@ -67,27 +67,21 @@ mkdir -p "$HOME/.claude/sessions"
 backup_if_exists "$CONFIG_DIR/claude"
 ln -sfn "$DOTFILES_DIR/config/claude" "$CONFIG_DIR/claude"
 
-# Merge Claude settings (preserves existing settings, adds our config)
+# Merge Claude settings (preserves existing settings, adds/updates our config)
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 if [[ -f "$CLAUDE_SETTINGS" ]]; then
-  # Check if our settings are already present
-  if ! grep -q "statusLine" "$CLAUDE_SETTINGS" 2>/dev/null; then
-    echo "Adding Claude Code status line config..."
-    # Use jq to merge settings if available
-    if command -v jq &> /dev/null; then
-      TEMP_FILE=$(mktemp)
-      jq '. + {
-        "statusLine": {
-          "type": "command",
-          "command": "~/.config/claude/statusline.sh"
-        },
-        "permissions": (.permissions // {}) + {
-          "allow": ((.permissions.allow // []) + ["Bash(*/.claude/sessions/*)"] | unique)
-        }
-      }' "$CLAUDE_SETTINGS" > "$TEMP_FILE" && mv "$TEMP_FILE" "$CLAUDE_SETTINGS"
-    else
-      echo "  Note: Install jq for automatic settings merge, or add manually."
-    fi
+  echo "Updating Claude Code status line config..."
+  # Use jq to merge settings if available
+  if command -v jq &> /dev/null; then
+    TEMP_FILE=$(mktemp)
+    jq '.statusLine = {
+      "type": "command",
+      "command": "~/.config/claude/statusline.sh"
+    } | .permissions = (.permissions // {}) + {
+      "allow": ((.permissions.allow // []) + ["Bash(*/.claude/sessions/*)"] | unique)
+    }' "$CLAUDE_SETTINGS" > "$TEMP_FILE" && mv "$TEMP_FILE" "$CLAUDE_SETTINGS"
+  else
+    echo "  Note: Install jq for automatic settings merge, or add manually."
   fi
 else
   # Create new settings file
