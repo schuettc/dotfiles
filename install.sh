@@ -53,10 +53,16 @@ if command -v atuin &> /dev/null; then
   atuin import auto 2>/dev/null || true
 fi
 
-# Configure iTerm2 if installed (use 'configure' to avoid quitting iTerm2)
-if [[ -d "/Applications/iTerm.app" ]]; then
-  echo "Configuring iTerm2 to sync from dotfiles..."
-  "$DOTFILES_DIR/iterm2/setup-iterm.sh" configure 2>/dev/null || true
+# Ghostty config (used by cmux)
+echo "Linking Ghostty config..."
+mkdir -p "$CONFIG_DIR/ghostty"
+backup_if_exists "$CONFIG_DIR/ghostty/config"
+ln -sf "$DOTFILES_DIR/config/ghostty/config" "$CONFIG_DIR/ghostty/config"
+
+# cmux CLI symlink (for use outside cmux terminals)
+if [[ -d "/Applications/cmux.app" ]]; then
+  echo "Setting up cmux CLI..."
+  sudo ln -sf "/Applications/cmux.app/Contents/Resources/bin/cmux" /usr/local/bin/cmux
 fi
 
 # Claude Code setup
@@ -79,6 +85,8 @@ if [[ -f "$CLAUDE_SETTINGS" ]]; then
       "command": "~/.config/claude/statusline.sh"
     } | .permissions = (.permissions // {}) + {
       "allow": ((.permissions.allow // []) + ["Bash(*/.claude/sessions/*)"] | unique)
+    } | .hooks = (.hooks // {}) + {
+      "Notification": [{"hooks": [{"type": "command", "command": "~/.config/claude/cmux-notify.sh", "async": true}]}]
     }' "$CLAUDE_SETTINGS" > "$TEMP_FILE" && mv "$TEMP_FILE" "$CLAUDE_SETTINGS"
   else
     echo "  Note: Install jq for automatic settings merge, or add manually."
@@ -95,6 +103,19 @@ else
     "allow": [
       "Bash(*/.claude/sessions/*)"
     ]
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.config/claude/cmux-notify.sh",
+            "async": true
+          }
+        ]
+      }
+    ]
   }
 }
 EOF
@@ -104,8 +125,7 @@ echo ""
 echo "Installation complete!"
 echo ""
 echo "Next steps:"
-echo "  1. Restart your terminal or run: source ~/.zshrc"
+echo "  1. Open cmux (or restart your terminal) and run: source ~/.zshrc"
 echo "  2. Set up Atuin sync: atuin register (new) or atuin login (existing)"
-echo "  3. Configure iTerm2 fonts: $DOTFILES_DIR/iterm2/setup-iterm.sh set-fonts"
-echo "  4. Test shell speed: time zsh -i -c exit"
+echo "  3. Test shell speed: time zsh -i -c exit"
 echo ""

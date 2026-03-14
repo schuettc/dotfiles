@@ -21,9 +21,9 @@ fi
 # Ensure sessions directory exists
 mkdir -p ~/.claude/sessions
 
-# Write session mapping for this iTerm tab
-if [[ -n "$ITERM_SESSION_ID" ]]; then
-  echo "$SESSION_ID" > ~/.claude/sessions/iterm-${ITERM_SESSION_ID}.session
+# Write session mapping for cmux workspace
+if [[ -n "$CMUX_WORKSPACE_ID" ]]; then
+  echo "$SESSION_ID" > ~/.claude/sessions/cmux-${CMUX_WORKSPACE_ID}.session
 fi
 
 # Read feature name if set
@@ -32,10 +32,44 @@ if [[ -f ~/.claude/sessions/${SESSION_ID}.feature ]]; then
   FEATURE=$(cat ~/.claude/sessions/${SESSION_ID}.feature)
 fi
 
-# Get git branch
+# Get git info
 GIT_BRANCH=""
+GIT_MODIFIED=0
+GIT_STAGED=0
+GIT_UNTRACKED=0
+GIT_AHEAD=0
+GIT_BEHIND=0
+GIT_STASHES=0
+GIT_CONFLICTS=0
+
 if git rev-parse --git-dir > /dev/null 2>&1; then
   GIT_BRANCH=$(git branch --show-current 2>/dev/null)
+
+  # Get file status counts using porcelain format for reliability
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    xy="${line:0:2}"
+    case "$xy" in
+      "??") ((GIT_UNTRACKED++)) ;;
+      "UU"|"AA"|"DD"|"AU"|"UA"|"DU"|"UD") ((GIT_CONFLICTS++)) ;;
+      *)
+        # First char = staged status, second = unstaged
+        [[ "${xy:0:1}" != " " && "${xy:0:1}" != "?" ]] && ((GIT_STAGED++))
+        [[ "${xy:1:1}" != " " && "${xy:1:1}" != "?" ]] && ((GIT_MODIFIED++))
+        ;;
+    esac
+  done < <(git status --porcelain 2>/dev/null)
+
+  # Get ahead/behind counts
+  UPSTREAM=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)
+  if [[ -n "$UPSTREAM" ]]; then
+    AHEAD_BEHIND=$(git rev-list --left-right --count HEAD...@{upstream} 2>/dev/null)
+    GIT_AHEAD=$(echo "$AHEAD_BEHIND" | cut -f1)
+    GIT_BEHIND=$(echo "$AHEAD_BEHIND" | cut -f2)
+  fi
+
+  # Get stash count
+  GIT_STASHES=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
 fi
 
 # Get folder name from current dir
@@ -70,9 +104,51 @@ if [[ -n "$FOLDER_NAME" ]]; then
   PARTS+=("📂 $FOLDER_NAME")
 fi
 
-# Git branch
+# Git info
 if [[ -n "$GIT_BRANCH" ]]; then
-  PARTS+=("🌿 $GIT_BRANCH")
+  GIT_PARTS=("🌿 $GIT_BRANCH")
+
+  # Ahead/behind remote
+  if [[ "$GIT_AHEAD" -gt 0 || "$GIT_BEHIND" -gt 0 ]]; then
+    SYNC=""
+    [[ "$GIT_AHEAD" -gt 0 ]] && SYNC+="↑$GIT_AHEAD"
+    [[ "$GIT_BEHIND" -gt 0 ]] && SYNC+="↓$GIT_BEHIND"
+    GIT_PARTS+=("$SYNC")
+  fi
+
+  # Conflicts (show prominently if any)
+  if [[ "$GIT_CONFLICTS" -gt 0 ]]; then
+    GIT_PARTS+=("⚠️ ${GIT_CONFLICTS} conflicts")
+  fi
+
+  # File changes: staged, modified, untracked
+  CHANGES=""
+  [[ "$GIT_STAGED" -gt 0 ]] && CHANGES+="●$GIT_STAGED "
+  [[ "$GIT_MODIFIED" -gt 0 ]] && CHANGES+="✚$GIT_MODIFIED "
+  [[ "$GIT_UNTRACKED" -gt 0 ]] && CHANGES+="…$GIT_UNTRACKED"
+  CHANGES=$(echo "$CHANGES" | sed 's/ $//')
+  [[ -n "$CHANGES" ]] && GIT_PARTS+=("$CHANGES")
+
+  # Stashes
+  if [[ "$GIT_STASHES" -gt 0 ]]; then
+    GIT_PARTS+=("📦$GIT_STASHES")
+  fi
+
+  # Join git parts with spaces
+  PARTS+=("${GIT_PARTS[*]}")
+fi
+
+# Push context to cmux sidebar
+if [[ -n "$CMUX_SOCKET_PATH" ]]; then
+  LABEL="${FEATURE:-$MODEL}"
+  if [[ "$CONTEXT_PCT" -gt 80 ]]; then
+    COLOR="#f38ba8"  # red
+  elif [[ "$CONTEXT_PCT" -gt 50 ]]; then
+    COLOR="#f9e2af"  # yellow
+  else
+    COLOR="#a6e3a1"  # green
+  fi
+  cmux set-status "claude" "${LABEL} · ${CONTEXT_PCT}%" --color "$COLOR" 2>/dev/null &
 fi
 
 # Join with separator

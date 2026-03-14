@@ -14,3 +14,8 @@ if command -v fzf &> /dev/null && [[ $- == *i* ]]; then
   export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
   export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
 fi
+
+# GitHub CLI - export token for HTTPS authentication
+if command -v gh &> /dev/null; then
+  export GITHUB_TOKEN=$(gh auth token 2>/dev/null)
+fi

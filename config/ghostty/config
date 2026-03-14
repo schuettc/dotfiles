@@ -1,0 +1,47 @@
+# Ghostty Configuration (used by cmux)
+
+# ===================
+# Fonts
+# ===================
+font-family = MonoLisa
+font-family-bold = MonoLisa
+font-family-italic = MonoLisa
+font-family-bold-italic = MonoLisa
+font-size = 13
+
+# Nerd Font icons (FiraCode fallback for glyphs)
+font-codepoint-map = U+E000-U+F8FF=FiraCode Nerd Font
+font-codepoint-map = U+F0000-U+FFFFF=FiraCode Nerd Font
+
+# Font rendering
+font-thicken = true
+
+# ===================
+# Terminal Behavior
+# ===================
+scrollback-limit = 100000
+mouse-hide-while-typing = true
+copy-on-select = clipboard
+confirm-close-surface = false
+
+# Option key as Alt (for terminal keybindings like Alt+C)
+macos-option-as-alt = left
+
+# ===================
+# Theme
+# ===================
+theme = catppuccin-mocha
+
+# ===================
+# Split Panes
+# ===================
+# Dim unfocused splits so the active pane stands out
+unfocused-split-opacity = 0.85
+# Catppuccin mocha surface0 for dividers
+split-divider-color = #313244
+
+# ===================
+# Window
+# ===================
+window-padding-x = 4
+window-padding-y = 4

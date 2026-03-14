@@ -1,6 +1,6 @@
 # dotfiles
 
-Terminal configuration with fast shell startup (~98ms), modular zsh config, and modern CLI tools.
+Terminal configuration with fast shell startup (~98ms), modular zsh config, modern CLI tools, and Claude Code integration — all running in [cmux](https://cmux.dev).
 
 ## Quick Start
 
@@ -10,27 +10,24 @@ git clone https://github.com/schuettc/dotfiles.git ~/dotfiles
 cd ~/dotfiles && ./install.sh
 ```
 
-**2. Configure iTerm2:**
-```bash
-./iterm2/setup-iterm.sh import
-./iterm2/setup-iterm.sh set-fonts
-./iterm2/setup-iterm.sh set-preferences
-```
-
-**3. Set up shell history sync (optional):**
+**2. Set up shell history sync (optional):**
 ```bash
 atuin login
 ```
 Or register a new account: `atuin register`
 
-**4. Restart your terminal**
+**3. Open cmux and start working**
 
 ## What's Included
 
+### Terminal: cmux + Ghostty
+
+[cmux](https://cmux.dev) is a native macOS terminal built on Ghostty, designed for AI coding agents. The Ghostty config (`config/ghostty/config`) sets up fonts, theme, scrollback, and key mappings.
+
 ### Shell Configuration
-- **Modular zsh** - configs split into numbered files in `config/zsh/`
-- **Lazy-loaded NVM** - Node available immediately, NVM loads on demand
-- **Starship prompt** - two-line prompt with git status, language versions, AWS profile
+- **Modular zsh** — configs split into numbered files in `config/zsh/`
+- **Lazy-loaded NVM** — Node available immediately, NVM loads on demand
+- **Starship prompt** — two-line prompt with git status, language versions, AWS profile
 
 ### Modern CLI Tools (via Brewfile)
 | Tool | Replaces | Purpose |
@@ -40,27 +37,18 @@ Or register a new account: `atuin register`
 | ripgrep | grep | Fast search |
 | fd | find | Fast file finding |
 | zoxide | cd | Smart directory jumping |
-| fzf | - | Fuzzy finder |
+| fzf | — | Fuzzy finder |
 | delta | diff | Syntax-highlighted git diffs |
-| lazygit | - | Git TUI |
+| lazygit | — | Git TUI |
 | atuin | history | Shell history with sync |
-
-### iTerm2 Configuration
-| Command | Purpose |
-|---------|---------|
-| `./iterm2/setup-iterm.sh export` | Save current settings to dotfiles |
-| `./iterm2/setup-iterm.sh import` | Load settings from dotfiles |
-| `./iterm2/setup-iterm.sh configure` | Set iTerm2 to sync with this folder |
-| `./iterm2/setup-iterm.sh set-fonts` | Configure fonts (MonoLisa or FiraCode fallback) |
-| `./iterm2/setup-iterm.sh set-preferences` | Apply recommended settings |
 
 ### Claude Code Integration
 
-The install script automatically configures [Claude Code](https://claude.ai/code) with:
+The install script configures [Claude Code](https://claude.ai/code) with:
 
-- **Status line** - Rich context display at the bottom of Claude Code
-- **Session directory** - `~/.claude/sessions/` for feature context tracking
-- **Permissions** - Auto-approves session file writes (no prompts)
+- **Status line** — model, context usage, git info, working directory
+- **cmux notifications** — Claude Code events surface in cmux's sidebar and desktop notifications
+- **Session tracking** — sessions mapped to cmux workspaces
 
 **Status line format:**
 ```
@@ -69,12 +57,10 @@ The install script automatically configures [Claude Code](https://claude.ai/code
 
 | Part | Description |
 |------|-------------|
-| 🤖 / 💡 | Model name or current feature (from [feature-workflow plugin](https://github.com/schuettc/claude-code-plugins)) |
+| 🤖 / 💡 | Model name or current feature |
 | 🟢 🟡 🔴 | Context window usage (green < 50%, yellow 50-80%, red > 80%) |
 | 📂 | Working directory |
-| 🌿 | Git branch |
-
-This makes it easy to identify which feature you're working on and monitor session health.
+| 🌿 | Git branch with ahead/behind, conflicts, staged/modified/untracked counts |
 
 ## Structure
 
@@ -84,6 +70,8 @@ This makes it easy to identify which feature you're working on and monitor sessi
 ├── Brewfile               # Homebrew packages and casks
 ├── install.sh             # One-command setup
 ├── config/
+│   ├── ghostty/
+│   │   └── config         # Terminal config (fonts, theme, behavior)
 │   ├── zsh/
 │   │   ├── 01-paths.zsh       # PATH setup
 │   │   ├── 02-nvm-lazy.zsh    # Lazy NVM loading
@@ -94,10 +82,8 @@ This makes it easy to identify which feature you're working on and monitor sessi
 │   ├── atuin/
 │   │   └── config.toml    # History sync settings
 │   └── claude/
-│       └── statusline.sh  # Claude Code status line script
-└── iterm2/
-    ├── setup-iterm.sh     # iTerm2 configuration script
-    └── com.googlecode.iterm2.plist  # Preferences backup
+│       ├── statusline.sh  # Claude Code status line
+│       └── cmux-notify.sh # Claude Code → cmux notifications
 ```
 
 ## Customization
@@ -106,7 +92,10 @@ This makes it easy to identify which feature you're working on and monitor sessi
 Edit `config/zsh/04-aliases.zsh`
 
 ### Changing the prompt
-Edit `config/starship.toml` - see [starship.rs/config](https://starship.rs/config/)
+Edit `config/starship.toml` — see [starship.rs/config](https://starship.rs/config/)
+
+### Changing terminal settings
+Edit `config/ghostty/config` — cmux reads keybindings from this file
 
 ### Adding Homebrew packages
 Edit `Brewfile`, then run `brew bundle`
@@ -115,4 +104,3 @@ Edit `Brewfile`, then run `brew bundle`
 
 - macOS
 - [Homebrew](https://brew.sh)
-- iTerm2 (installed via Brewfile if missing)

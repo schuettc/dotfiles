@@ -3,6 +3,7 @@
 
 # Taps
 tap "1password/tap"
+tap "manaflow-ai/cmux"
 
 # ===================
 # Shell & Prompt
@@ -65,7 +66,7 @@ cask "font-monaspice-nerd-font"
 # ===================
 # Apps
 # ===================
-cask "iterm2"             # Terminal
+cask "cmux"               # Terminal (Ghostty-based, built for AI agents)
 cask "visual-studio-code" # Editor
 cask "docker-desktop"     # Docker Desktop
 

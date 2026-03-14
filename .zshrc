@@ -11,3 +11,9 @@ done
 
 # Starship prompt (must be last, only in interactive shells)
 [[ $- == *i* ]] && eval "$(starship init zsh)"
+
+# opencode
+export PATH=/Users/courtschuett/.opencode/bin:$PATH
+
+# Added by Antigravity
+export PATH="/Users/courtschuett/.antigravity/antigravity/bin:$PATH"
