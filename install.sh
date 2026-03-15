@@ -59,6 +59,25 @@ mkdir -p "$CONFIG_DIR/ghostty"
 backup_if_exists "$CONFIG_DIR/ghostty/config"
 ln -sf "$DOTFILES_DIR/config/ghostty/config" "$CONFIG_DIR/ghostty/config"
 
+# Upgrade to MonoLisa if available (commercial font, not installed by Brewfile)
+if fc-list : family | grep -q "MonoLisa"; then
+  echo "  MonoLisa font detected, upgrading Ghostty font config..."
+  GHOSTTY_CFG="$CONFIG_DIR/ghostty/config"
+  # Replace symlink with a copy so we can patch without modifying the repo
+  cp "$DOTFILES_DIR/config/ghostty/config" "$GHOSTTY_CFG"
+  sed -i '' "s/^font-family = .*/font-family = MonoLisa/" "$GHOSTTY_CFG"
+  sed -i '' "s/^font-family-bold = .*/font-family-bold = MonoLisa/" "$GHOSTTY_CFG"
+  sed -i '' "s/^font-family-italic = .*/font-family-italic = MonoLisa/" "$GHOSTTY_CFG"
+  sed -i '' "s/^font-family-bold-italic = .*/font-family-bold-italic = MonoLisa/" "$GHOSTTY_CFG"
+  # Add Nerd Font fallback for icon glyphs since MonoLisa doesn't include them
+  sed -i '' '/^font-size/a\
+\
+# Nerd Font icons (fallback for glyphs)\
+font-codepoint-map = U+E000-U+F8FF=FiraCode Nerd Font\
+font-codepoint-map = U+F0000-U+FFFFF=FiraCode Nerd Font' "$GHOSTTY_CFG"
+fi
+
+
 # cmux CLI symlink (for use outside cmux terminals)
 if [[ -d "/Applications/cmux.app" ]]; then
   echo "Setting up cmux CLI..."
