@@ -5,3 +5,7 @@ config/claude/todos/
 
 # OS files
 .DS_Store
+
+# Local backups (e.g. config files archived before a rewrite)
+*.bak
+*.bak.*

@@ -1,0 +1,10 @@
+# yazi keymap — defaults are good; we only add quality-of-life tweaks here.
+# Full keymap reference: https://yazi-rs.github.io/docs/configuration/keymap
+
+[mgr]
+prepend_keymap = [
+  # `q` quits yazi (closes the tmux pane), matching the usage guide.
+  { on = "q", run = "quit", desc = "Quit yazi" },
+  # Quick toggle hidden files.
+  { on = ".", run = "hidden toggle", desc = "Toggle hidden files" },
+]

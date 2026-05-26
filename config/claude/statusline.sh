@@ -18,18 +18,10 @@ if [[ "$CONTEXT_SIZE" -gt 0 ]] 2>/dev/null; then
   fi
 fi
 
-# Ensure sessions directory exists
-mkdir -p ~/.claude/sessions
-
-# Write session mapping for cmux workspace
-if [[ -n "$CMUX_WORKSPACE_ID" ]]; then
-  echo "$SESSION_ID" > ~/.claude/sessions/cmux-${CMUX_WORKSPACE_ID}.session
-fi
-
 # Read feature name if set
 FEATURE=""
-if [[ -f ~/.claude/sessions/${SESSION_ID}.feature ]]; then
-  FEATURE=$(cat ~/.claude/sessions/${SESSION_ID}.feature)
+if [[ -f ~/.claude/feature-context ]]; then
+  FEATURE=$(cat ~/.claude/feature-context)
 fi
 
 # Get git info

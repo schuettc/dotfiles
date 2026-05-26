@@ -53,40 +53,38 @@ if command -v atuin &> /dev/null; then
   atuin import auto 2>/dev/null || true
 fi
 
-# Ghostty config (used by cmux)
+# Ghostty config
 echo "Linking Ghostty config..."
 mkdir -p "$CONFIG_DIR/ghostty"
 backup_if_exists "$CONFIG_DIR/ghostty/config"
 ln -sf "$DOTFILES_DIR/config/ghostty/config" "$CONFIG_DIR/ghostty/config"
 
-# Upgrade to MonoLisa if available (commercial font, not installed by Brewfile)
-if fc-list : family | grep -q "MonoLisa"; then
-  echo "  MonoLisa font detected, upgrading Ghostty font config..."
-  GHOSTTY_CFG="$CONFIG_DIR/ghostty/config"
-  # If it's a symlink, replace with a copy so we can patch without modifying the repo
-  if [ -L "$GHOSTTY_CFG" ]; then
-    cp -L "$GHOSTTY_CFG" "$GHOSTTY_CFG.tmp" && mv "$GHOSTTY_CFG.tmp" "$GHOSTTY_CFG"
-  fi
-  # Patch font-family lines in-place
-  sed -i '' "s/^font-family = .*/font-family = MonoLisa/" "$GHOSTTY_CFG"
-  sed -i '' "s/^font-family-bold = .*/font-family-bold = MonoLisa/" "$GHOSTTY_CFG"
-  sed -i '' "s/^font-family-italic = .*/font-family-italic = MonoLisa/" "$GHOSTTY_CFG"
-  sed -i '' "s/^font-family-bold-italic = .*/font-family-bold-italic = MonoLisa/" "$GHOSTTY_CFG"
-  # Add Nerd Font fallback for icon glyphs if not already present
-  if ! grep -q "font-codepoint-map" "$GHOSTTY_CFG"; then
-    sed -i '' '/^font-size/a\
-\
-# Nerd Font icons (fallback for glyphs)\
-font-codepoint-map = U+E000-U+F8FF=FiraCode Nerd Font\
-font-codepoint-map = U+F0000-U+FFFFF=FiraCode Nerd Font' "$GHOSTTY_CFG"
-  fi
+# tmux config
+echo "Linking tmux config..."
+backup_if_exists "$HOME/.tmux.conf"
+ln -sf "$DOTFILES_DIR/.tmux.conf" "$HOME/.tmux.conf"
+
+# yazi config (file explorer)
+echo "Linking yazi config..."
+backup_if_exists "$CONFIG_DIR/yazi"
+ln -sfn "$DOTFILES_DIR/config/yazi" "$CONFIG_DIR/yazi"
+
+# Install TPM (tmux plugin manager) and bootstrap declared plugins.
+# `~/.tmux/plugins/tpm` is where TPM lives; the .tmux.conf above declares
+# tmux-sensible, tmux-resurrect, and tmux-continuum.
+if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
+  echo "Cloning TPM..."
+  git clone --depth 1 https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
 fi
-
-
-# cmux CLI symlink (for use outside cmux terminals)
-if [[ -d "/Applications/cmux.app" ]]; then
-  echo "Setting up cmux CLI..."
-  sudo ln -sf "/Applications/cmux.app/Contents/Resources/bin/cmux" /usr/local/bin/cmux
+if command -v tmux &> /dev/null; then
+  echo "Installing tmux plugins..."
+  # install_plugins reads TMUX_PLUGIN_MANAGER_PATH from a running tmux
+  # server's global env. Kill any stale server (likely with old config),
+  # spin up a fresh one to load the current .tmux.conf, then install.
+  tmux kill-server 2>/dev/null || true
+  tmux new-session -d -s _bootstrap_install 2>/dev/null || true
+  "$HOME/.tmux/plugins/tpm/bin/install_plugins" 2>/dev/null || true
+  tmux kill-server 2>/dev/null || true
 fi
 
 # Claude Code setup
@@ -97,26 +95,32 @@ mkdir -p "$HOME/.claude/sessions"
 backup_if_exists "$CONFIG_DIR/claude"
 ln -sfn "$DOTFILES_DIR/config/claude" "$CONFIG_DIR/claude"
 
-# Merge Claude settings (preserves existing settings, adds/updates our config)
+# Merge Claude settings (preserves existing settings, adds/updates our config).
+# Hooks: Notification + Stop both fire claude-notify.sh (macOS notif + tmux bell).
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+CLAUDE_HOOK_BLOCK='{"hooks":[{"type":"command","command":"~/.config/claude/claude-notify.sh","async":true}]}'
+
 if [[ -f "$CLAUDE_SETTINGS" ]]; then
-  echo "Updating Claude Code status line config..."
-  # Use jq to merge settings if available
+  echo "Updating Claude Code settings (statusline + hooks)..."
   if command -v jq &> /dev/null; then
     TEMP_FILE=$(mktemp)
-    jq '.statusLine = {
-      "type": "command",
-      "command": "~/.config/claude/statusline.sh"
-    } | .permissions = (.permissions // {}) + {
-      "allow": ((.permissions.allow // []) + ["Bash(*/.claude/sessions/*)"] | unique)
-    } | .hooks = (.hooks // {}) + {
-      "Notification": [{"hooks": [{"type": "command", "command": "~/.config/claude/cmux-notify.sh", "async": true}]}]
-    }' "$CLAUDE_SETTINGS" > "$TEMP_FILE" && mv "$TEMP_FILE" "$CLAUDE_SETTINGS"
+    jq --argjson hook "$CLAUDE_HOOK_BLOCK" '
+      .statusLine = {
+        "type": "command",
+        "command": "~/.config/claude/statusline.sh"
+      } |
+      .permissions = (.permissions // {}) + {
+        "allow": ((.permissions.allow // []) + ["Bash(*/.claude/sessions/*)"] | unique)
+      } |
+      .hooks = (.hooks // {}) + {
+        "Notification": [$hook],
+        "Stop":         [$hook]
+      }
+    ' "$CLAUDE_SETTINGS" > "$TEMP_FILE" && mv "$TEMP_FILE" "$CLAUDE_SETTINGS"
   else
     echo "  Note: Install jq for automatic settings merge, or add manually."
   fi
 else
-  # Create new settings file
   cat > "$CLAUDE_SETTINGS" << 'EOF'
 {
   "statusLine": {
@@ -130,15 +134,10 @@ else
   },
   "hooks": {
     "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.config/claude/cmux-notify.sh",
-            "async": true
-          }
-        ]
-      }
+      {"hooks": [{"type": "command", "command": "~/.config/claude/claude-notify.sh", "async": true}]}
+    ],
+    "Stop": [
+      {"hooks": [{"type": "command", "command": "~/.config/claude/claude-notify.sh", "async": true}]}
     ]
   }
 }
@@ -149,7 +148,9 @@ echo ""
 echo "Installation complete!"
 echo ""
 echo "Next steps:"
-echo "  1. Open cmux (or restart your terminal) and run: source ~/.zshrc"
-echo "  2. Set up Atuin sync: atuin register (new) or atuin login (existing)"
-echo "  3. Test shell speed: time zsh -i -c exit"
+echo "  1. Open Ghostty (cmd+space → \"Ghostty\") and run: source ~/.zshrc"
+echo "  2. Run \`proj\` and pick a project to spin up your first workspace."
+echo "  3. Inside a project, cmd+T spawns more terminals (auto-joins tmux)."
+echo "  4. Set up Atuin sync (optional): atuin register / atuin login"
+echo "  5. Read docs/terminal-usage.md for the day-to-day cheat sheet."
 echo ""

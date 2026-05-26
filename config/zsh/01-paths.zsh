@@ -21,3 +21,11 @@ export PATH="$HOME/.local/bin:$PATH"
 # VS Code
 [[ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/bin" ]] && \
   export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
+
+# Default editor (used by yazi, git commit, crontab, etc.).
+# `--wait` is required so commands that block on the editor (git commit) only
+# return after the VS Code window is closed.
+if command -v code &> /dev/null; then
+  export EDITOR='code --wait'
+  export VISUAL='code --wait'
+fi

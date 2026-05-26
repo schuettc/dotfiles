@@ -3,11 +3,15 @@
 # ===================
 # Fonts
 # ===================
-font-family = JetBrainsMono Nerd Font Mono
-font-family-bold = JetBrainsMono Nerd Font Mono
-font-family-italic = JetBrainsMono Nerd Font Mono
-font-family-bold-italic = JetBrainsMono Nerd Font Mono
+font-family = MonoLisa
+font-family-bold = MonoLisa
+font-family-italic = MonoLisa
+font-family-bold-italic = MonoLisa
 font-size = 13
+
+# Nerd Font icons (fallback for glyphs)
+font-codepoint-map = U+E000-U+F8FF=FiraCode Nerd Font
+font-codepoint-map = U+F0000-U+FFFFF=FiraCode Nerd Font
 
 # Font rendering
 font-thicken = true
@@ -26,7 +30,7 @@ macos-option-as-alt = left
 # ===================
 # Theme
 # ===================
-theme = catppuccin-mocha
+theme = Catppuccin Mocha
 
 # ===================
 # Split Panes
@@ -41,3 +45,67 @@ split-divider-color = #313244
 # ===================
 window-padding-x = 4
 window-padding-y = 4
+
+# ===================
+# Session / Working Directory
+# ===================
+# New tabs/splits inherit the current pane's working dir (cmux behavior)
+window-inherit-working-directory = true
+window-inherit-font-size = true
+# Restore window layout on launch (closest analog to cmux session restore)
+window-save-state = always
+# Confirm quit only if there's an unsaved/running process
+quit-after-last-window-closed = false
+
+# ===================
+# Keybindings (cmux-style)
+# ===================
+# Tabs
+keybind = cmd+t=new_tab
+keybind = cmd+w=close_surface
+keybind = cmd+shift+t=undo
+# Splits
+keybind = cmd+d=new_split:right
+keybind = cmd+shift+d=new_split:down
+# Move between splits
+keybind = cmd+alt+left=goto_split:left
+keybind = cmd+alt+right=goto_split:right
+keybind = cmd+alt+up=goto_split:up
+keybind = cmd+alt+down=goto_split:down
+# Zoom active split
+keybind = cmd+shift+enter=toggle_split_zoom
+# Reload config
+keybind = cmd+shift+comma=reload_config
+# Paste: only handle text; let image clipboard data pass through to the inner
+# app (e.g. Claude Code). Workaround for Ghostty discussion #10099.
+keybind = performable:cmd+v=paste_from_clipboard
+keybind = performable:ctrl+v=paste_from_clipboard
+
+# Newline (without submitting) for Claude Code prompts.
+# By default Ghostty sends bare \r for Ctrl+Enter / Shift+Enter, which
+# Claude interprets as Enter → submit. Sending a literal \n instead makes
+# Claude insert a new line in the prompt.
+keybind = ctrl+enter=text:\n
+keybind = shift+enter=text:\n
+
+# ===================
+# Bell / attention behavior
+# ===================
+# claude-notify.sh writes BEL to the pane TTY when Claude wants attention
+# (Notification hook) or finishes a turn (Stop hook). tmux forwards it
+# to Ghostty, which applies these `bell-features`:
+#
+# Defaults (on, kept as-is):
+#   attention - bounces the Dock icon once until Ghostty regains focus
+#   title     - prepends a 🔔 emoji to the alerted tab/window title until
+#               the tab is re-focused or you type into it
+#
+# Defaults (off, kept as-is):
+#   system    - on macOS this plays the system alert beep (we don't want
+#               a beep on every Stop hook)
+#   audio     - custom sound (no audio file configured anyway)
+#
+# We add `border` so the alerted pane also gets a colored border until
+# you interact with it — useful when Ghostty has focus but a different
+# tab is showing.
+bell-features = border

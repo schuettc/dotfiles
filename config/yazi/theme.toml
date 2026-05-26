@@ -1,0 +1,5 @@
+# yazi theme — Catppuccin Mocha (matches Ghostty + tmux status bar)
+# The actual colors come from the flavor package in ~/.config/yazi/flavors/.
+[flavor]
+dark = "catppuccin-mocha"
+light = "catppuccin-mocha"

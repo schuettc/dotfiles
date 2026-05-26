@@ -3,7 +3,6 @@
 
 # Taps
 tap "1password/tap"
-tap "manaflow-ai/cmux"
 
 # ===================
 # Shell & Prompt
@@ -26,6 +25,8 @@ brew "lazygit"            # Git TUI
 brew "tlrc"               # Simplified man pages (tldr client)
 brew "htop"               # Better top
 brew "tree"               # Directory tree view
+brew "tmux"               # Terminal multiplexer (sessions, splits, persistence)
+brew "yazi"               # TUI file manager (right-pane explorer)
 
 # ===================
 # Data Processing
@@ -66,8 +67,8 @@ cask "font-monaspice-nerd-font"
 # ===================
 # Apps
 # ===================
-cask "cmux"               # Terminal (Ghostty-based, built for AI agents)
-cask "visual-studio-code" # Editor
+cask "ghostty"            # Terminal emulator (native, GPU-accelerated)
+cask "visual-studio-code" # Editor ($EDITOR for yazi + git commit)
 cask "docker-desktop"     # Docker Desktop
 
 # ===================
