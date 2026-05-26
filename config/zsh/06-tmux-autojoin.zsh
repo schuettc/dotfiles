@@ -33,11 +33,10 @@ __auto_join_project() {
   # Need tmux.
   command -v tmux >/dev/null 2>&1 || return 0
 
-  # Project roots — must match the roots used by proj().
-  local roots=(
-    "$HOME/GitHub/schuettc"
-    "$HOME/learning-with-court"
-  )
+  # Project roots from ~/.config/proj/roots (shared with proj()).
+  # Silent no-op if unconfigured — first-run setup happens via `proj`.
+  __proj_load_roots || return 0
+  local roots=("${PROJ_ROOTS[@]}")
 
   # Find which root contains $PWD and extract the project name.
   local proj_name="" root rel

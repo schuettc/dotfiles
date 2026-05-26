@@ -49,9 +49,20 @@ alias reload='source ~/.zshrc'
 # Usage:
 #   proj             # pick from fzf; new sessions = shell + yazi
 #   proj --claude    # same, but auto-launch claude in the left pane
+#   proj --edit      # open ~/.config/proj/roots in $EDITOR
+#
+# Project roots are configured per-machine in ~/.config/proj/roots.
+# First run prompts to create the file (see __proj_init_roots).
 proj() {
   command -v fzf >/dev/null || { echo "fzf not installed"; return 1; }
   command -v fd  >/dev/null || { echo "fd not installed"; return 1; }
+
+  if [[ "$1" == "--edit" ]]; then
+    local cfg="${XDG_CONFIG_HOME:-$HOME/.config}/proj/roots"
+    mkdir -p "${cfg:h}"
+    "${EDITOR:-vi}" "$cfg"
+    return
+  fi
 
   local auto_claude=0
   if [[ "$1" == "--claude" ]]; then
@@ -59,24 +70,35 @@ proj() {
     shift
   fi
 
-  local project_dirs=(
-    "$HOME/GitHub/schuettc"
-    "$HOME/learning-with-court"
-  )
+  if ! __proj_load_roots; then
+    if [[ -t 0 && -t 1 ]]; then
+      __proj_init_roots || { echo "Cancelled. Run \`proj --edit\` to set roots later." >&2; return 1; }
+    else
+      echo "No project roots configured. Run \`proj\` interactively or edit ~/.config/proj/roots." >&2
+      return 1
+    fi
+  fi
+  local project_dirs=("${PROJ_ROOTS[@]}")
 
-  local existing
-  existing=$(tmux ls -F '#{session_name}' 2>/dev/null | sed 's/^/[session] /')
-
-  local choice
-  choice=$(
-    {
-      [[ -n "$existing" ]] && print -- "$existing"
-      for d in "${project_dirs[@]}"; do
-        [[ -d "$d" ]] && fd --type d --max-depth 1 . "$d"
-      done
-    } | awk 'NF' | fzf --prompt='project › ' --height=60% --reverse
-  )
-  [[ -z "$choice" ]] && return
+  local choice existing
+  while true; do
+    existing=$(tmux ls -F '#{session_name}' 2>/dev/null | sed 's/^/[session] /')
+    choice=$(
+      {
+        [[ -n "$existing" ]] && print -- "$existing"
+        for d in "${project_dirs[@]}"; do
+          [[ -d "$d" ]] && fd --type d --max-depth 1 . "$d"
+        done
+        print -- "[+ add new project root…]"
+      } | awk 'NF' | fzf --prompt='project › ' --height=60% --reverse
+    )
+    [[ -z "$choice" ]] && return
+    if [[ "$choice" == "[+ add new project root…]" ]]; then
+      __proj_add_root && project_dirs=("${PROJ_ROOTS[@]}")
+      continue
+    fi
+    break
+  done
 
   if [[ "$choice" == "[session] "* ]]; then
     local name="${choice#\[session\] }"
@@ -135,10 +157,11 @@ pt() {
   fi
 
   local proj_name="$1"
-  local roots=(
-    "$HOME/GitHub/schuettc"
-    "$HOME/learning-with-court"
-  )
+  if ! __proj_load_roots; then
+    echo "No project roots configured. Run \`proj\` to set them up." >&2
+    return 1
+  fi
+  local roots=("${PROJ_ROOTS[@]}")
 
   # If no name given, try to detect from cwd.
   if [[ -z "$proj_name" ]]; then
