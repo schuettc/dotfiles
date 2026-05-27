@@ -42,19 +42,16 @@ if [[ -n "${TMUX_PANE:-}" ]]; then
 fi
 
 # ─── Build the in-Claude status line ─────────────────────────────────
+# Context % is intentionally NOT printed here — it's shown in tmux's
+# status-right (via bin/tmux-claude-context.sh reading the state file
+# we just wrote). Avoiding the duplication keeps the two displays from
+# disagreeing during a turn.
 PARTS=()
 
 if [[ -n "$FEATURE" ]]; then
   PARTS+=("💡 $FEATURE")
 else
   PARTS+=("🤖 $MODEL")
-fi
-
-if [[ "$CONTEXT_PCT" -gt 0 ]]; then
-  if   [[ "$CONTEXT_PCT" -gt 80 ]]; then PARTS+=("🔴 ${CONTEXT_PCT}%")
-  elif [[ "$CONTEXT_PCT" -gt 50 ]]; then PARTS+=("🟡 ${CONTEXT_PCT}%")
-  else                                    PARTS+=("🟢 ${CONTEXT_PCT}%")
-  fi
 fi
 
 [[ -n "$FOLDER_NAME" ]] && PARTS+=("📂 $FOLDER_NAME")
