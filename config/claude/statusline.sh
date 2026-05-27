@@ -14,16 +14,13 @@
 input=$(cat)
 
 # ─── Parse JSON ──────────────────────────────────────────────────────
+# Claude pre-computes the cumulative context-window usage percentage in
+# `.context_window.used_percentage`. (Don't compute from
+# `current_usage.input_tokens` — that's only the *new* tokens this turn,
+# typically 1–2 due to prompt caching.)
 MODEL=$(echo "$input"        | jq -r '.model.display_name // "Claude"')
-CONTEXT_SIZE=$(echo "$input" | jq -r '.context_window.context_window_size // 0')
-INPUT_TOKENS=$(echo "$input" | jq -r '.context_window.current_usage.input_tokens // 0')
+CONTEXT_PCT=$(echo "$input"  | jq -r '.context_window.used_percentage // 0')
 CURRENT_DIR=$(echo "$input"  | jq -r '.workspace.current_dir // ""')
-
-# Calculate context usage percentage.
-CONTEXT_PCT=0
-if [[ "$CONTEXT_SIZE" -gt 0 ]] 2>/dev/null && [[ "$INPUT_TOKENS" -gt 0 ]] 2>/dev/null; then
-  CONTEXT_PCT=$((INPUT_TOKENS * 100 / CONTEXT_SIZE))
-fi
 
 FOLDER_NAME=""
 [[ -n "$CURRENT_DIR" ]] && FOLDER_NAME=$(basename "$CURRENT_DIR")
