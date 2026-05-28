@@ -21,7 +21,11 @@ __proj_load_roots() {
     line="${line#"${line%%[![:space:]]*}"}"
     line="${line%"${line##*[![:space:]]}"}"
     [[ -z "$line" || "$line" == \#* ]] && continue
-    expanded="${(e)~line}"
+    # Expand a leading ~ to $HOME, then expand any $VARs. (The ${(e)~...}
+    # form does NOT expand a leading tilde when the value comes from a
+    # variable, so do it explicitly.)
+    expanded="${line/#\~/$HOME}"
+    expanded="${(e)expanded}"
     [[ -d "$expanded" ]] && PROJ_ROOTS+=("$expanded")
   done < "$config_file"
 
@@ -42,7 +46,8 @@ __proj_add_root() {
   IFS= read -r new </dev/tty || return 1
   [[ -z "$new" ]] && return 1
 
-  local expanded="${(e)~new}"
+  local expanded="${new/#\~/$HOME}"
+  expanded="${(e)expanded}"
   if [[ ! -d "$expanded" ]]; then
     printf "Directory does not exist: %s\nCreate it? [y/N]: " "$expanded"
     local yn
