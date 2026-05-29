@@ -1,61 +1,50 @@
 #!/bin/bash
-# Claude Code hook dispatcher — bridges Claude Code events to macOS,
-# Ghostty, and tmux. Replaces the cmux-specific cmux-notify.sh.
+# Claude Code hook dispatcher — rings the tmux bell for the exact Claude
+# pane so the status-left attention banner (bin/tmux-attention.sh), the
+# tmux window indicator, and Ghostty's tab 🔔 / border light up.
 #
-# Hooks wired (see ~/.claude/settings.json):
-#   Notification  → macOS notification + tmux pane bell (urgent: input needed)
-#   Stop          → tmux pane bell only (quiet: turn finished)
-#   SessionStart  → set tmux pane title to "claude" (visibility)
-#   SessionEnd    → clear tmux pane title (visibility)
+# Hooks wired (see ~/.claude/settings.json), run SYNCHRONOUSLY:
+#   Notification → Claude is waiting for input
+#   Stop         → Claude finished a turn
+# Both just ring the bell. No macOS notification, no Dock bounce.
 #
-# Hook input is a JSON blob on stdin. The `hook_name` field selects the
-# branch below.
+# Claude Code runs hooks in a STRIPPED environment ($TMUX / $TMUX_PANE are
+# unset), so we can't target the pane via env. Instead we walk this hook's
+# process ancestry (hook → claude → pane shell) until a PID matches a
+# tmux pane's #{pane_pid}, then ring exactly that pane. Running the hook
+# synchronously (not async) keeps the ancestry intact — async reparents
+# the hook and the walk fails. No cwd fallback: ringing the wrong/too-many
+# panes (every same-dir session) is worse than ringing none.
+#
+# tmux commands work without $TMUX because they use the default socket.
 
 set -u
 
-# Read the hook payload off stdin.
 input=$(cat)
-# Claude Code sends the event under `hook_event_name`. Accept the older
-# `hook_name` too, just in case.
 hook_name=$(printf '%s' "$input" | jq -r '.hook_event_name // .hook_name // ""' 2>/dev/null || echo "")
 
-# ─── Helpers ───────────────────────────────────────────────────────────
-
-# Ring the tmux pane bell by writing BEL to the pane's tty. tmux's
-# monitor-bell setting (configured in ~/.tmux.conf) turns this into a
-# visual indicator in the window list.
 ring_tmux_bell() {
-  [[ -z "${TMUX_PANE:-}" ]] && return 0
-  local pty
-  pty=$(tmux display-message -p -t "$TMUX_PANE" '#{pane_tty}' 2>/dev/null) || return 0
-  [[ -n "$pty" ]] && printf '\a' >> "$pty" 2>/dev/null || true
-}
+  command -v tmux >/dev/null 2>&1 || return 0
 
-# Set / clear the tmux pane title so `tmux ls -F '#{pane_title}'` and
-# the status bar can show where Claude is running.
-set_pane_title() {
-  [[ -z "${TMUX_PANE:-}" ]] && return 0
-  tmux select-pane -t "$TMUX_PANE" -T "${1:-}" 2>/dev/null || true
-}
+  local panes
+  panes=$(tmux list-panes -aF '#{pane_pid} #{pane_tty}' 2>/dev/null) || return 0
+  [[ -z "$panes" ]] && return 0
 
-# ─── Dispatch ──────────────────────────────────────────────────────────
-# Both Notification and Stop just ring the tmux pane bell. tmux's
-# monitor-bell turns that into the status-left attention banner
-# (bin/tmux-attention.sh) + the window-status indicator, and Ghostty
-# adds a 🔔 to the tab title + a pane border flash (bell-features).
-# No macOS notification, no Dock bounce — purely in-terminal cues.
+  local pid="$$" guard=0 tty
+  while [[ -n "$pid" && "$pid" != 0 && "$pid" != 1 && $guard -lt 30 ]]; do
+    tty=$(printf '%s\n' "$panes" | awk -v p="$pid" '$1==p { print $2; exit }')
+    if [[ -n "$tty" ]]; then
+      printf '\a' >> "$tty" 2>/dev/null || true
+      return 0
+    fi
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+    guard=$((guard + 1))
+  done
+  return 0
+}
 
 case "$hook_name" in
-  Notification|Stop)
-    ring_tmux_bell
-    ;;
-
-  SessionStart|SessionEnd)
-    # No-op: Claude Code sets its own pane title via OSC 2 ("✳ Claude
-    # Code"). Trying to set it from a hook is a race we lose because
-    # Claude re-emits the title on every render.
-    :
-    ;;
+  Notification|Stop) ring_tmux_bell ;;
 esac
 
 exit 0

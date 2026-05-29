@@ -98,7 +98,7 @@ ln -sfn "$DOTFILES_DIR/config/claude" "$CONFIG_DIR/claude"
 # Merge Claude settings (preserves existing settings, adds/updates our config).
 # Hooks: Notification + Stop both fire claude-notify.sh (macOS notif + tmux bell).
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
-CLAUDE_HOOK_BLOCK='{"hooks":[{"type":"command","command":"~/.config/claude/claude-notify.sh","async":true}]}'
+CLAUDE_HOOK_BLOCK='{"hooks":[{"type":"command","command":"~/.config/claude/claude-notify.sh"}]}'
 
 if [[ -f "$CLAUDE_SETTINGS" ]]; then
   echo "Updating Claude Code settings (statusline + hooks)..."
@@ -134,10 +134,10 @@ else
   },
   "hooks": {
     "Notification": [
-      {"hooks": [{"type": "command", "command": "~/.config/claude/claude-notify.sh", "async": true}]}
+      {"hooks": [{"type": "command", "command": "~/.config/claude/claude-notify.sh"}]}
     ],
     "Stop": [
-      {"hooks": [{"type": "command", "command": "~/.config/claude/claude-notify.sh", "async": true}]}
+      {"hooks": [{"type": "command", "command": "~/.config/claude/claude-notify.sh"}]}
     ]
   }
 }
