@@ -282,3 +282,50 @@ proj-clean() {
   for s in $reap; do tmux kill-session -t "$s" 2>/dev/null; done
   echo "Reaped ${#reap[@]} idle session(s): ${(j:, :)reap}"
 }
+
+# Clear the attention banner (sessions with a pending bell flag).
+#
+# Usage:
+#   bell-clear        # dismiss: cycle the client through each flagged
+#                     #   session so tmux clears its bell flag, then return
+#                     #   to where you started. Sessions are kept alive.
+#   bell-clear -k     # kill: tear down the flagged sessions entirely
+#                     #   (use when they're finished/closed, not just unread)
+#
+# tmux only clears window_bell_flag when an attached client views the
+# window, so "dismiss" mode briefly switches your client through them
+# (you'll see a flash). Must be run from inside tmux for dismiss mode.
+bell-clear() {
+  local kill_them=0
+  [[ "$1" == "-k" || "$1" == "--kill" ]] && kill_them=1
+
+  local -a flagged
+  flagged=(${(f)"$(tmux list-windows -a -F '#{window_bell_flag} #{session_name}' 2>/dev/null | awk '$1==1{print $2}' | sort -u)"})
+
+  if (( ${#flagged[@]} == 0 )); then
+    echo "No bell flags to clear."
+    return 0
+  fi
+
+  if (( kill_them )); then
+    local s
+    for s in $flagged; do tmux kill-session -t "$s" 2>/dev/null; done
+    echo "Killed ${#flagged[@]} flagged session(s): ${(j:, :)flagged}"
+    return 0
+  fi
+
+  if [[ -z "$TMUX" ]]; then
+    echo "Run bell-clear from inside tmux (dismiss mode switches your client)." >&2
+    echo "Or use 'bell-clear -k' to kill the flagged sessions from anywhere." >&2
+    return 1
+  fi
+
+  local origin s
+  origin=$(tmux display-message -p '#{session_name}')
+  for s in $flagged; do
+    tmux switch-client -t "$s" 2>/dev/null
+    sleep 0.1
+  done
+  tmux switch-client -t "$origin" 2>/dev/null
+  echo "Dismissed ${#flagged[@]} bell flag(s): ${(j:, :)flagged}"
+}
