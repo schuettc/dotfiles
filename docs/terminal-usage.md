@@ -167,6 +167,34 @@ blocking** — the terminal pane stays fully interactive.
 
 ---
 
+## Cleaning up sessions
+
+**Closing a Ghostty tab does NOT kill the tmux session** — it only
+detaches. The session keeps running in the background (that's what lets
+you reattach and what `tmux-continuum` restores after a reboot). The
+side effect: detached sessions accumulate, especially the `-2`/`-3`
+sub-sessions.
+
+To reap the leftovers:
+
+```bash
+proj-clean        # kill every session whose panes are all idle
+                  # (just a shell or yazi — no claude, editor, or server)
+proj-clean -n     # dry run: show what WOULD be killed, kill nothing
+```
+
+It never touches a session running Claude (or vim/node/etc.), and never
+the session you're currently attached to. Run it whenever `tmux ls`
+gets cluttered. (If you want it automatic, you can add `proj-clean` to
+your shell startup — but note it'll reap any idle session you'd
+detached on purpose, so most people run it manually.)
+
+To kill one specific session by hand:
+
+```bash
+tmux kill-session -t now-playing-3
+```
+
 ## Switching projects
 
 Multiple projects run simultaneously as separate tmux sessions. You don't
