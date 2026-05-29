@@ -228,3 +228,57 @@ tat() {
     tmux new-session -A -s "$name"
   fi
 }
+
+# Reap idle tmux sessions — ones whose panes are ALL "idle" (just a shell
+# or yazi), i.e. no Claude, no editor, no dev server, nothing running.
+# Closing a Ghostty tab only detaches; the session lingers. This cleans
+# up the leftovers without touching anything doing real work.
+#
+# Usage:
+#   proj-clean        # reap idle sessions
+#   proj-clean -n     # dry run: list what WOULD be reaped, kill nothing
+#
+# Never kills the session you're currently attached to. A pane running
+# `claude` shows up as its version (e.g. 2.1.156), which is not in the
+# idle list, so Claude sessions are always preserved.
+proj-clean() {
+  local dry=0
+  [[ "$1" == "-n" || "$1" == "--dry-run" ]] && dry=1
+
+  # Commands that count as "idle" (session reapable if every pane is one).
+  local -a idle_cmds=(zsh bash fish sh yazi)
+
+  local current=""
+  [[ -n "$TMUX" ]] && current=$(tmux display-message -p '#{session_name}' 2>/dev/null)
+
+  local -a sessions reap cmds
+  local s c busy
+  sessions=(${(f)"$(tmux list-sessions -F '#{session_name}' 2>/dev/null)"})
+
+  for s in $sessions; do
+    [[ -z "$s" || "$s" == "$current" ]] && continue
+    cmds=(${(f)"$(tmux list-panes -t "$s" -F '#{pane_current_command}' 2>/dev/null)"})
+    busy=0
+    for c in $cmds; do
+      # (Ie) = exact-match reverse index; 0 means "not in idle_cmds".
+      if (( ${idle_cmds[(Ie)$c]} == 0 )); then
+        busy=1; break
+      fi
+    done
+    (( busy )) || reap+=("$s")
+  done
+
+  if (( ${#reap[@]} == 0 )); then
+    echo "No idle sessions to clean."
+    return 0
+  fi
+
+  if (( dry )); then
+    echo "Would reap ${#reap[@]} idle session(s):"
+    printf '  %s\n' "${reap[@]}"
+    return 0
+  fi
+
+  for s in $reap; do tmux kill-session -t "$s" 2>/dev/null; done
+  echo "Reaped ${#reap[@]} idle session(s): ${(j:, :)reap}"
+}
