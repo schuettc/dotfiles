@@ -38,33 +38,15 @@ set_pane_title() {
   tmux select-pane -t "$TMUX_PANE" -T "${1:-}" 2>/dev/null || true
 }
 
-# Show a macOS notification (Notification Center). Uses osascript so no
-# external dependencies are required.
-macos_notify() {
-  local title="$1" body="$2"
-  # Escape double quotes for AppleScript string literals.
-  title=${title//\"/\\\"}
-  body=${body//\"/\\\"}
-  osascript -e "display notification \"$body\" with title \"$title\" sound name \"Funk\"" \
-    >/dev/null 2>&1 || true
-}
-
 # ─── Dispatch ──────────────────────────────────────────────────────────
+# Both Notification and Stop just ring the tmux pane bell. tmux's
+# monitor-bell turns that into the status-left attention banner
+# (bin/tmux-attention.sh) + the window-status indicator, and Ghostty
+# adds a 🔔 to the tab title + a pane border flash (bell-features).
+# No macOS notification, no Dock bounce — purely in-terminal cues.
 
 case "$hook_name" in
-  Notification)
-    # Payload shape: { message, notification_type, cwd, ... }
-    body=$(printf '%s' "$input" | jq -r '.message // "Claude needs your attention"')
-    cwd=$(printf '%s'  "$input" | jq -r '.cwd // ""')
-    proj=$(basename "$cwd" 2>/dev/null)
-    title="Claude · ${proj:-Code}"
-    macos_notify "$title" "$body"
-    ring_tmux_bell
-    ;;
-
-  Stop)
-    # Quiet: just ring the pane bell so the window indicator lights up,
-    # but no popup (every turn would be noisy).
+  Notification|Stop)
     ring_tmux_bell
     ;;
 

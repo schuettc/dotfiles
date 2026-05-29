@@ -95,17 +95,16 @@ keybind = shift+enter=text:\n
 # (Notification hook) or finishes a turn (Stop hook). tmux forwards it
 # to Ghostty, which applies these `bell-features`:
 #
-# Defaults (on, kept as-is):
-#   attention - bounces the Dock icon once until Ghostty regains focus
-#   title     - prepends a 🔔 emoji to the alerted tab/window title until
-#               the tab is re-focused or you type into it
+#   title     - prepends a 🔔 to the alerted tab/window title until the
+#               tab is re-focused or you type into it
+#   border    - colored border on the alerted pane until you interact
 #
-# Defaults (off, kept as-is):
-#   system    - on macOS this plays the system alert beep (we don't want
-#               a beep on every Stop hook)
-#   audio     - custom sound (no audio file configured anyway)
+# Disabled on purpose:
+#   attention - would bounce the Dock icon; we don't want the Dock cue
+#   system    - macOS alert beep
+#   audio     - custom sound
 #
-# We add `border` so the alerted pane also gets a colored border until
-# you interact with it — useful when Ghostty has focus but a different
-# tab is showing.
-bell-features = border
+# All alerting is purely in-terminal: the tmux status-left banner
+# (bin/tmux-attention.sh) plus these tab/border cues. No Dock bounce,
+# no macOS notification.
+bell-features = title,border,no-attention,no-system,no-audio
