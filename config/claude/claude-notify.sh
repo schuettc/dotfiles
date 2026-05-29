@@ -15,7 +15,9 @@ set -u
 
 # Read the hook payload off stdin.
 input=$(cat)
-hook_name=$(printf '%s' "$input" | jq -r '.hook_name // ""' 2>/dev/null || echo "")
+# Claude Code sends the event under `hook_event_name`. Accept the older
+# `hook_name` too, just in case.
+hook_name=$(printf '%s' "$input" | jq -r '.hook_event_name // .hook_name // ""' 2>/dev/null || echo "")
 
 # ─── Helpers ───────────────────────────────────────────────────────────
 
@@ -51,8 +53,11 @@ macos_notify() {
 
 case "$hook_name" in
   Notification)
-    title=$(printf '%s' "$input" | jq -r '.notification.title // "Claude Code"')
-    body=$(printf '%s'  "$input" | jq -r '.notification.body  // "Claude needs your attention"')
+    # Payload shape: { message, notification_type, cwd, ... }
+    body=$(printf '%s' "$input" | jq -r '.message // "Claude needs your attention"')
+    cwd=$(printf '%s'  "$input" | jq -r '.cwd // ""')
+    proj=$(basename "$cwd" 2>/dev/null)
+    title="Claude · ${proj:-Code}"
     macos_notify "$title" "$body"
     ring_tmux_bell
     ;;
