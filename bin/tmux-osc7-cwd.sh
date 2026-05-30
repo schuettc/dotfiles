@@ -12,12 +12,16 @@
 # is invisible. Safe by construction: only writes to a real /dev tty.
 #
 # Usage (from a tmux hook):
-#   tmux-osc7-cwd.sh "#{client_tty}" "#{pane_current_path}"
+#   tmux-osc7-cwd.sh "#{client_tty}" "#{pane_current_path}" "#{host}"
+#
+# Host comes from tmux's #{host} format, not `hostname` — the hook runs with a
+# minimal PATH where `hostname` may not resolve.
 
 set -u
 
 tty="${1:-}"
 dir="${2:-}"
+host="${3:-}"
 
 # Guard: only ever write to an actual terminal device. If tmux didn't expand
 # #{client_tty} (no client in the hook's context) this won't match and we
@@ -28,6 +32,7 @@ case "$tty" in
 esac
 [ -n "$dir" ] && [ -d "$dir" ] || exit 0
 
-# OSC 7: ESC ] 7 ; file://HOST/PATH BEL. The hostname must match Ghostty's so
-# it treats the path as local (and won't inherit a remote ssh cwd).
-printf '\033]7;file://%s%s\007' "$(hostname)" "$dir" > "$tty" 2>/dev/null || true
+# OSC 7: ESC ] 7 ; file://HOST/PATH BEL. The host should match Ghostty's so it
+# treats the path as local (and won't inherit a remote ssh cwd). Empty host
+# (file:///path) is also accepted as local by most terminals.
+printf '\033]7;file://%s%s\007' "$host" "$dir" > "$tty" 2>/dev/null || true
