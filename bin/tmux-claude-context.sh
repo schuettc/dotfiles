@@ -17,16 +17,30 @@ set -u
 pane_id="${1:-}"
 [[ -z "$pane_id" ]] && exit 0
 
-state_dir="${TMPDIR:-/tmp}/claude-status"
+# Liveness gate: only show the indicator if this pane is actually running
+# Claude. A Claude pane's current command is the version string (e.g.
+# "2.1.156") or "claude". This beats guessing from file age — statusline.sh
+# only rewrites the state file at each turn boundary, so during a long turn
+# the file looks "stale" while Claude is very much alive. If the command
+# isn't Claude, the pane moved on → no icon.
+cmd=$(tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null)
+[[ "$cmd" == claude || "$cmd" =~ ^[0-9]+\.[0-9]+ ]] || exit 0
+
+# Stable path: $HOME/.cache is identical for the Claude process (even when
+# its sandbox sets a different $TMPDIR) and for tmux — so both sides agree.
+state_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-status"
 state_key="${pane_id//[^a-zA-Z0-9]/_}"
 state_file="$state_dir/$state_key"
 
 [[ -f "$state_file" ]] || exit 0
 
-# Stale check: 10 minutes since last update → Claude probably exited.
+# Orphan backstop (paranoia only — liveness already proved Claude is running
+# in this pane). Just suppresses a genuinely ancient file (>7 days), e.g. left
+# by a long-dead session whose pane id got reused. A multi-hour idle gap is
+# normal (work overnight, resume) and must NOT hide the indicator.
 updated=$(awk -F= '$1=="updated"{print $2}' "$state_file" 2>/dev/null)
 now=$(date +%s)
-if [[ -n "$updated" ]] && (( now - updated > 600 )); then
+if [[ -n "$updated" ]] && (( now - updated > 604800 )); then
   exit 0
 fi
 

@@ -33,7 +33,7 @@ FEATURE=""
 # Keyed by TMUX_PANE so multiple Claude sessions don't clobber each other.
 # Sanitized for the filesystem (TMUX_PANE looks like "%47").
 if [[ -n "${TMUX_PANE:-}" ]]; then
-  state_dir="${TMPDIR:-/tmp}/claude-status"
+  state_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-status"
   mkdir -p "$state_dir" 2>/dev/null
   state_key="${TMUX_PANE//[^a-zA-Z0-9]/_}"
   printf 'context_pct=%d\nmodel=%s\nupdated=%d\n' \
