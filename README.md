@@ -1,6 +1,8 @@
 # dotfiles
 
-Terminal configuration with fast shell startup (~98ms), modular zsh config, modern CLI tools, and Claude Code integration — all running in [cmux](https://cmux.dev).
+Terminal configuration with fast shell startup (~98ms), modular zsh config,
+modern CLI tools, and a project-workspace workflow built on **Ghostty + tmux +
+yazi** with Claude Code integration.
 
 ## Quick Start
 
@@ -12,17 +14,49 @@ cd ~/dotfiles && ./install.sh
 
 **2. Set up shell history sync (optional):**
 ```bash
-atuin login
+atuin login        # or: atuin register
 ```
-Or register a new account: `atuin register`
 
-**3. Open cmux and start working**
+**3. Open Ghostty, then:**
+```bash
+proj               # pick a project → spawns a workspace (shell + yazi)
+```
+
+See [`docs/terminal-usage.md`](docs/terminal-usage.md) for the day-to-day
+cheat sheet, and [`docs/setup-notes.md`](docs/setup-notes.md) for the full
+design rationale behind the migration off cmux.
 
 ## What's Included
 
-### Terminal: cmux + Ghostty
+### Terminal stack: Ghostty + tmux + yazi
 
-[cmux](https://cmux.dev) is a native macOS terminal built on Ghostty, designed for AI coding agents. The Ghostty config (`config/ghostty/config`) sets up fonts, theme, scrollback, and key mappings.
+- **[Ghostty](https://ghostty.org)** — native, GPU-accelerated terminal
+  emulator. Config in `config/ghostty/config` (MonoLisa font, Catppuccin
+  Mocha, keybinds, image-paste workaround, Ctrl+Enter newline).
+- **tmux** — multiplexer providing session persistence (via
+  tmux-resurrect + tmux-continuum), splits, and detach/reattach. Config in
+  `.tmux.conf`.
+- **[yazi](https://yazi-rs.github.io)** — TUI file explorer that lives in a
+  right-side pane. Config in `config/yazi/`.
+
+### The workspace workflow
+
+One **project = one Ghostty window**. Each tab in that window attaches to its
+own tmux session (`mlb-dk`, `mlb-dk-2`, …) with a shell + yazi layout. Shell
+helpers (in `config/zsh/04-aliases.zsh`):
+
+| Command | What it does |
+|---------|--------------|
+| `proj` | fzf picker → attach to or spawn a project workspace (shell + yazi) |
+| `proj --claude` | same, but auto-launch `claude` in the left pane |
+| `pt [name]` | spawn another terminal in a project (next `name-N` session) |
+| `tat <name>` | attach-or-create a named session |
+| `proj-clean` | reap idle sessions (shell/yazi only — no Claude/editor/server) |
+| `bell-clear` | dismiss the attention banner (`-k` to kill flagged sessions) |
+
+⌘T in a project window auto-joins a new tmux session for that project (via
+`config/zsh/06-tmux-autojoin.zsh`). Project roots are configured per-machine
+in `~/.config/proj/roots` (not tracked; first `proj` run sets it up).
 
 ### Shell Configuration
 - **Modular zsh** — configs split into numbered files in `config/zsh/`
@@ -42,65 +76,79 @@ Or register a new account: `atuin register`
 | lazygit | — | Git TUI |
 | atuin | history | Shell history with sync |
 
+### tmux status bar
+
+The status bar surfaces, for the focused pane:
+
+- **left** — an attention banner (`⚠ N: session1, session2`) listing any
+  session whose Claude finished a turn / is waiting for input and that you
+  haven't visited yet. Clears when you switch to the session.
+- **right** — current git branch + dirty count, the Claude context-window %
+  (`⌬ 49%`, green/yellow/red) when the focused pane is running Claude, and
+  the date/time.
+
+The branch/context indicators come from the helpers in `bin/`.
+
 ### Claude Code Integration
 
 The install script configures [Claude Code](https://claude.ai/code) with:
 
-- **Status line** — model, context usage, git info, working directory
-- **cmux notifications** — Claude Code events surface in cmux's sidebar and desktop notifications
-- **Session tracking** — sessions mapped to cmux workspaces
-
-**Status line format:**
-```
-🤖 Opus 4.5 │ 🟡 73% │ 📂 my-project │ 🌿 main
-```
-
-| Part | Description |
-|------|-------------|
-| 🤖 / 💡 | Model name or current feature |
-| 🟢 🟡 🔴 | Context window usage (green < 50%, yellow 50-80%, red > 80%) |
-| 📂 | Working directory |
-| 🌿 | Git branch with ahead/behind, conflicts, staged/modified/untracked counts |
+- **Status line** (`config/claude/statusline.sh`) — model + working directory.
+  (Context % and git status are shown in the **tmux** status bar instead, to
+  avoid duplication.)
+- **Attention bell** (`config/claude/claude-notify.sh`) — the `Notification`
+  and `Stop` hooks ring the tmux bell for the exact Claude pane, which drives
+  the status-left attention banner and a 🔔 on the Ghostty tab. Purely
+  in-terminal — no macOS notification, no Dock bounce.
 
 ## Structure
 
 ```
 ~/dotfiles/
 ├── .zshrc                 # Minimal loader, sources config/zsh/*
+├── .tmux.conf             # tmux config (prefix C-a, plugins, status bar)
 ├── Brewfile               # Homebrew packages and casks
 ├── install.sh             # One-command setup
+├── bin/
+│   ├── tmux-git-status.sh      # branch + dirty count for status-right
+│   ├── tmux-claude-context.sh  # Claude context % for status-right
+│   └── tmux-attention.sh       # attention banner for status-left
 ├── config/
-│   ├── ghostty/
-│   │   └── config         # Terminal config (fonts, theme, behavior)
+│   ├── ghostty/config     # Terminal config (fonts, theme, keybinds)
+│   ├── yazi/              # File-explorer config (Catppuccin Mocha)
 │   ├── zsh/
-│   │   ├── 01-paths.zsh       # PATH setup
-│   │   ├── 02-nvm-lazy.zsh    # Lazy NVM loading
-│   │   ├── 03-tools.zsh       # Atuin, zoxide, fzf init
-│   │   ├── 04-aliases.zsh     # Modern tool aliases
-│   │   └── 05-completions.zsh # Shell completions
+│   │   ├── 01-paths.zsh        # PATH + EDITOR (code --wait)
+│   │   ├── 02-nvm-lazy.zsh     # Lazy NVM loading
+│   │   ├── 03-tools.zsh        # Atuin, zoxide, fzf init
+│   │   ├── 03-proj-roots.zsh   # project-roots loader (proj/pt)
+│   │   ├── 04-aliases.zsh      # aliases + proj/pt/tat/proj-clean/bell-clear
+│   │   ├── 05-completions.zsh  # Shell completions
+│   │   └── 06-tmux-autojoin.zsh # ⌘T → auto-join project tmux session
 │   ├── starship.toml      # Prompt configuration
-│   ├── atuin/
-│   │   └── config.toml    # History sync settings
+│   ├── atuin/config.toml  # History sync settings
 │   └── claude/
-│       ├── statusline.sh  # Claude Code status line
-│       └── cmux-notify.sh # Claude Code → cmux notifications
+│       ├── statusline.sh      # Claude Code status line (model + dir)
+│       └── claude-notify.sh   # Notification/Stop hooks → tmux bell
+└── docs/
+    ├── terminal-usage.md  # day-to-day cheat sheet
+    ├── terminal-setup.md  # install tutorial
+    └── setup-notes.md     # design rationale / running log
 ```
 
 ## Customization
 
-### Adding aliases
-Edit `config/zsh/04-aliases.zsh`
-
-### Changing the prompt
-Edit `config/starship.toml` — see [starship.rs/config](https://starship.rs/config/)
-
-### Changing terminal settings
-Edit `config/ghostty/config` — cmux reads keybindings from this file
-
-### Adding Homebrew packages
-Edit `Brewfile`, then run `brew bundle`
+| To change… | Edit |
+|------------|------|
+| Aliases / workspace commands | `config/zsh/04-aliases.zsh` |
+| Project root directories | `proj --edit` (writes `~/.config/proj/roots`) |
+| The prompt | `config/starship.toml` ([starship.rs/config](https://starship.rs/config/)) |
+| Terminal settings / keybinds | `config/ghostty/config` |
+| tmux behavior / status bar | `.tmux.conf` |
+| Homebrew packages | `Brewfile`, then `brew bundle` |
 
 ## Requirements
 
 - macOS
 - [Homebrew](https://brew.sh)
+- MonoLisa font (paid; not in Brewfile) — without it Ghostty falls back to a
+  default monospace. Install your `.ttf`s into `~/Library/Fonts/` first.

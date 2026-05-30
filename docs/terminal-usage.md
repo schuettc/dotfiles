@@ -131,6 +131,16 @@ Top of the window: tmux status bar showing the session name and time.
 > The bottom row is one literal key after a `Ctrl-A`. You don't hold
 > `Ctrl-A` while you press the second key. Press, release, then press.
 
+### Claude Code — multi-line prompts
+
+| What you want | Keys |
+|---|---|
+| Submit the prompt | `Enter` |
+| **Insert a newline without submitting** | `Ctrl+Enter` or `Shift+Enter` |
+
+These are Ghostty keybinds (`config/ghostty/config`) — Ghostty sends a
+literal newline instead of the carriage return Claude treats as submit.
+
 ### yazi — keys (no prefix needed)
 
 You're *inside* yazi when the right pane shows the file listing. These

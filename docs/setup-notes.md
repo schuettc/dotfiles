@@ -8,6 +8,13 @@ work is verified.
 > Status: **in progress** — system under construction. See `terminal-setup.md`
 > for the polished version once it exists.
 
+> ⚠️ **This is a chronological journal, not a spec.** Later entries supersede
+> earlier ones. Notably: the early "Claude integration" entry describes a
+> macOS notification (osascript) + Dock bounce — both were **removed** later
+> (see "Drop macOS notification + Dock bounce"). The shipped behavior is a
+> tmux bell only, targeted at the exact pane via process-ancestry walk. For
+> the current truth, read `README.md` / `terminal-usage.md`, not this log.
+
 ---
 
 ## Stack at a glance
