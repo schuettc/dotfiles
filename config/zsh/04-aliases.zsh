@@ -38,21 +38,143 @@ alias c='clear'
 alias h='history'
 alias reload='source ~/.zshrc'
 
-# ─── tmux + projects ──────────────────────────────────────────────────────
-# Project session picker.
+# ─── tmux + projects (worktree-aware) ──────────────────────────────────────
+# Project session picker. Two fzf steps, no flags to remember:
+#   1. pick a project (or jump straight to a live session)
+#   2. pick what to work on — and the BRANCH decides isolation:
+#        • the default branch (main/dev — whatever the clone has checked out)
+#          → "home base" session in the primary clone (read / coordinate)
+#        • ANY other branch (existing or new) → proj transparently creates a
+#          git worktree at <repo>/.worktrees/<branch> and opens the session
+#          THERE, so parallel work never collides in a single tree.
+#   You think in branches; proj handles every `git worktree` mechanic.
 #
-# Lists active tmux sessions and project directories, then either attaches
-# to an existing session or spawns a new one with the workspace layout:
-#   left  ~70% — empty shell (run claude / vim / anything yourself)
-#   right ~30% — yazi file explorer
+# Layout for every session: claude-or-shell on the left, yazi (30%) on the right.
 #
 # Usage:
-#   proj             # pick from fzf; new sessions = shell + yazi
-#   proj --claude    # same, but auto-launch claude in the left pane
-#   proj --edit      # open ~/.config/proj/roots in $EDITOR
+#   proj            # default branch = home base, any other branch = worktree
+#   proj --claude   # same, but auto-launch claude in the left pane
+#   proj --edit     # open ~/.config/proj/roots in $EDITOR
 #
-# Project roots are configured per-machine in ~/.config/proj/roots.
-# First run prompts to create the file (see __proj_init_roots).
+# Worktrees live at <repo>/.worktrees/<branch>, ignored via .git/info/exclude
+# (the repo's tracked .gitignore is untouched). A <repo>/.worktreeinclude file
+# (gitignore syntax) lists gitignored paths (e.g. .env) to copy into each new
+# worktree. The tmux status bar shows the branch, so you always see which
+# worktree a session is in. Project roots: ~/.config/proj/roots (see proj --edit).
+
+# Create-or-attach a tmux session named $1 in dir $2 with the standard layout
+# (claude-or-shell left + yazi right). $3=1 auto-launches claude. Uses "=name"
+# exact-match targets so prefix-sharing names (proj vs proj/branch) don't clash.
+__proj_launch() {
+  local name="$1" dir="$2" auto_claude="${3:-0}"
+  cd "$dir"
+  if ! tmux has-session -t "=$name" 2>/dev/null; then
+    if (( auto_claude )) && command -v claude >/dev/null; then
+      tmux new-session -d -s "$name" -c "$dir" "claude"
+    else
+      tmux new-session -d -s "$name" -c "$dir"
+    fi
+    tmux split-window -h -l 30% -t "=$name" -c "$dir" yazi
+    tmux select-pane -t "=$name":0.0
+  fi
+  if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
+}
+
+# Copy gitignored paths listed in <primary>/.worktreeinclude into a new worktree.
+__proj_copy_includes() {
+  local primary="$1" wt="$2" inc="$1/.worktreeinclude"
+  [[ -f "$inc" ]] || return 0
+  local line m rel
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    for m in "$primary"/${~line}(N); do
+      rel="${m#$primary/}"
+      mkdir -p "$wt/${rel:h}"
+      cp -R "$m" "$wt/$rel"
+    done
+  done < "$inc"
+}
+
+# Ensure a worktree exists for <branch> in <primary>; echo its path (or fail).
+__proj_ensure_worktree() {
+  local primary="$1" branch="$2" wt existing base excl
+  # Already checked out in some worktree? Reuse it — turns git's "branch
+  # already checked out" error into a jump to that worktree.
+  existing=$(git -C "$primary" worktree list --porcelain 2>/dev/null \
+    | awk -v b="refs/heads/$branch" '/^worktree /{w=substr($0,10)} /^branch /{if($2==b)print w}')
+  [[ -n "$existing" ]] && { print -r -- "$existing"; return 0; }
+
+  wt="$primary/.worktrees/$branch"
+  [[ -d "$wt" ]] && { print -r -- "$wt"; return 0; }
+
+  # Ignore .worktrees/ locally, without touching the repo's tracked .gitignore.
+  excl="$primary/.git/info/exclude"
+  [[ -f "$excl" ]] && ! grep -qxF '.worktrees/' "$excl" 2>/dev/null && print -- '.worktrees/' >> "$excl"
+
+  mkdir -p "${wt:h}"
+  if git -C "$primary" show-ref --verify --quiet "refs/heads/$branch"; then
+    git -C "$primary" worktree add "$wt" "$branch" >/dev/null 2>&1 || return 1
+  else
+    # New branch: base off dev if it exists, else origin/dev, else current HEAD.
+    if   git -C "$primary" show-ref --verify --quiet refs/heads/dev;          then base=dev
+    elif git -C "$primary" show-ref --verify --quiet refs/remotes/origin/dev; then base=origin/dev
+    else base=$(git -C "$primary" symbolic-ref --short HEAD 2>/dev/null); fi
+    git -C "$primary" worktree add "$wt" -b "$branch" "$base" >/dev/null 2>&1 || return 1
+  fi
+  __proj_copy_includes "$primary" "$wt"
+  print -r -- "$wt"
+}
+
+# Build the Screen-2 list for a project: live sessions, home base, worktrees,
+# other branches, and the new/prune actions. Glyphs make rows parseable.
+__proj_worktree_list() {
+  local primary="$1" project="$2" default_branch="$3" b
+  tmux ls -F '#{session_name}' 2>/dev/null \
+    | awk -v p="$project" '$0==p || index($0,p"/")==1 {print "● "$0}'
+  print -r -- "🏠 ${default_branch}  (home base · primary clone)"
+  local -a wt_branches all_branches
+  wt_branches=(${(f)"$(git -C "$primary" worktree list --porcelain 2>/dev/null \
+    | awk '/^branch /{sub("refs/heads/","",$2); print $2}')"})
+  for b in $wt_branches; do
+    [[ "$b" == "$default_branch" ]] && continue
+    print -r -- "▸ ${b}  (worktree)"
+  done
+  all_branches=(${(f)"$(git -C "$primary" for-each-ref --format='%(refname:short)' refs/heads 2>/dev/null)"})
+  for b in $all_branches; do
+    [[ "$b" == "$default_branch" ]] && continue
+    (( ${wt_branches[(Ie)$b]} )) && continue
+    print -r -- "▸ ${b}  (branch)"
+  done
+  print -r -- "+ new branch…"
+  print -r -- "+ prune worktrees…"
+}
+
+# Interactive removal of worktrees (and their sessions). Never force-removes —
+# trees with uncommitted/untracked work are kept and reported.
+__proj_prune_worktrees() {
+  local primary="$1" project="$2"
+  local -a paths
+  paths=(${(f)"$(git -C "$primary" worktree list --porcelain 2>/dev/null | awk '/^worktree /{print substr($0,10)}')"})
+  paths=(${paths:#$primary})    # never offer the primary clone
+  (( ${#paths[@]} == 0 )) && { echo "No worktrees to prune."; return 0; }
+  local picks
+  picks=$(printf '%s\n' "${paths[@]}" | fzf --multi --reverse --height=60% \
+            --prompt='prune › ' --header='Tab=select, Enter=remove. Trees with uncommitted work are kept.')
+  [[ -z "$picks" ]] && return 0
+  local wt rel
+  for wt in ${(f)picks}; do
+    rel="${wt#$primary/.worktrees/}"
+    tmux kill-session -t "=$project/$rel" 2>/dev/null
+    if git -C "$primary" worktree remove "$wt" 2>/dev/null; then
+      echo "removed $wt"
+    else
+      echo "kept $wt (uncommitted/untracked) — force: git -C \"$primary\" worktree remove --force \"$wt\"" >&2
+    fi
+  done
+  git -C "$primary" worktree prune 2>/dev/null
+}
+
 proj() {
   command -v fzf >/dev/null || { echo "fzf not installed"; return 1; }
   command -v fd  >/dev/null || { echo "fd not installed"; return 1; }
@@ -80,6 +202,7 @@ proj() {
   fi
   local project_dirs=("${PROJ_ROOTS[@]}")
 
+  # ── Screen 1: pick a project (or jump straight to a live session) ──
   local choice existing
   while true; do
     existing=$(tmux ls -F '#{session_name}' 2>/dev/null | sed 's/^/[session] /')
@@ -101,39 +224,58 @@ proj() {
   done
 
   if [[ "$choice" == "[session] "* ]]; then
-    local name="${choice#\[session\] }"
-    # cd into the project dir before attaching, so the outer shell reports
-    # the right cwd via OSC 7 → Ghostty knows it for future ⌘T tabs.
-    local exist_dir
-    exist_dir=$(tmux display-message -p -t "$name" '#{pane_current_path}' 2>/dev/null)
-    [[ -n "$exist_dir" ]] && [[ -d "$exist_dir" ]] && cd "$exist_dir"
-    if [[ -n "$TMUX" ]]; then tmux switch-client -t "$name"
-    else tmux attach -t "$name"; fi
+    local name="${choice#\[session\] }" exist_dir
+    exist_dir=$(tmux display-message -p -t "=$name" '#{pane_current_path}' 2>/dev/null)
+    [[ -n "$exist_dir" && -d "$exist_dir" ]] && cd "$exist_dir"
+    if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
     return
   fi
 
-  local dir="$choice"
-  local name="${dir:t}"          # zsh: basename
-  # cd before tmux takes over — this fires OSC 7 so Ghostty knows the
-  # project dir, which makes ⌘T inherit cwd correctly and the workspace
-  # auto-join hook fire on the next new tab.
-  cd "$dir"
-  if tmux has-session -t "$name" 2>/dev/null; then
-    if [[ -n "$TMUX" ]]; then tmux switch-client -t "$name"
-    else tmux attach -t "$name"; fi
-  else
-    # Spawn the session. Left pane launches claude (or shell with --bare).
-    # The yazi pane spawns to the right.
-    if (( auto_claude )) && command -v claude >/dev/null; then
-      tmux new-session -d -s "$name" -c "$dir" "claude"
-    else
-      tmux new-session -d -s "$name" -c "$dir"
-    fi
-    tmux split-window -h -l 30% -t "$name" -c "$dir" yazi
-    tmux select-pane -t "$name":0.0
-    if [[ -n "$TMUX" ]]; then tmux switch-client -t "$name"
-    else tmux attach -t "$name"; fi
+  local primary="$choice" project="${choice:t}"
+
+  # Non-git dir → plain home-base session, no worktree machinery.
+  if ! git -C "$primary" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    __proj_launch "$project" "$primary" "$auto_claude"
+    return
   fi
+
+  # ── Screen 2: pick a branch / worktree — the branch decides isolation. ──
+  local default_branch
+  default_branch=$(git -C "$primary" symbolic-ref --short HEAD 2>/dev/null)
+  local pick
+  pick=$(__proj_worktree_list "$primary" "$project" "$default_branch" \
+           | fzf --prompt="$project › " --height=60% --reverse)
+  [[ -z "$pick" ]] && return
+
+  case "$pick" in
+    "● "*)
+      local name="${pick#● }" d
+      d=$(tmux display-message -p -t "=$name" '#{pane_current_path}' 2>/dev/null)
+      [[ -n "$d" && -d "$d" ]] && cd "$d"
+      if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
+      ;;
+    "🏠 "*)
+      # Default branch → home base in the primary clone.
+      __proj_launch "$project" "$primary" "$auto_claude"
+      ;;
+    "+ new branch…")
+      printf "New branch (off dev): "
+      local nb; IFS= read -r nb </dev/tty || return
+      [[ -z "$nb" ]] && return
+      local wt; wt=$(__proj_ensure_worktree "$primary" "$nb") \
+        || { echo "Could not create worktree for $nb" >&2; return 1; }
+      __proj_launch "$project/$nb" "$wt" "$auto_claude"
+      ;;
+    "+ prune worktrees…")
+      __proj_prune_worktrees "$primary" "$project"
+      ;;
+    "▸ "*)
+      local branch="${pick#▸ }"; branch="${branch%% *}"
+      local wt; wt=$(__proj_ensure_worktree "$primary" "$branch") \
+        || { echo "Could not open worktree for $branch" >&2; return 1; }
+      __proj_launch "$project/$branch" "$wt" "$auto_claude"
+      ;;
+  esac
 }
 
 # Project Tab — spawn a new terminal in a project workspace, with the same

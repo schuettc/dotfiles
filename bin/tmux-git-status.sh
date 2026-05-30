@@ -28,10 +28,27 @@ branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || \
 # Count uncommitted changes (staged + unstaged + untracked).
 dirty=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 
+# Primary-clone warning. If THIS pane is in the primary clone (not a linked
+# worktree) AND linked worktrees exist, flag it: editing the shared tree while
+# parallel work is live is the collision trap. Nudge toward `proj` (which puts
+# a branch in its own worktree). In a linked worktree the git-dir differs from
+# the common git-dir; in the primary clone they're the same.
+# A linked worktree's git-dir path contains "/worktrees/"; the primary clone's
+# does not. (Avoids macOS /var↔/private/var symlink mismatches from comparing
+# absolute paths.)
+wt_flag=""
+case "$(git rev-parse --git-dir 2>/dev/null)" in
+  */worktrees/*) : ;;   # linked worktree — never flag
+  ?*)                   # primary clone
+    wt_count=$(git worktree list --porcelain 2>/dev/null | grep -c '^worktree ')
+    [ "${wt_count:-0}" -gt 1 ] && wt_flag=' #[fg=#1e1e2e,bg=#fab387,bold] ⚠ primary #[default]'
+    ;;
+esac
+
 if [ "$dirty" = "0" ]; then
   # Clean: green branch glyph + name.
-  printf '#[fg=#a6e3a1] %s#[default]' "$branch"
+  printf '#[fg=#a6e3a1] %s#[default]%s' "$branch" "$wt_flag"
 else
   # Dirty: yellow branch + peach count dot.
-  printf '#[fg=#f9e2af] %s #[fg=#fab387,bold]●%s#[default]' "$branch" "$dirty"
+  printf '#[fg=#f9e2af] %s #[fg=#fab387,bold]●%s#[default]%s' "$branch" "$dirty" "$wt_flag"
 fi
