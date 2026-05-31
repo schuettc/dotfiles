@@ -47,12 +47,18 @@ __auto_join_project() {
       break
     fi
   done
-  [[ -z "$proj_name" ]] && return 0
+  # Not inside a known project (e.g. the tab opened at ~). Rather than leave a
+  # bare shell, drop into the proj picker so a new terminal still gets you into
+  # a project in one step. Esc in the picker → normal shell (escape hatch).
+  if [[ -z "$proj_name" ]]; then
+    command -v proj >/dev/null 2>&1 && proj
+    return 0
+  fi
 
-  # The *main* session (no suffix) is created by `proj`, with the
-  # shell+yazi layout. If it doesn't exist, don't spawn a tab — the user
-  # hasn't opened this workspace yet. They should run `proj` to start it.
+  # In a project dir, but its workspace isn't open yet. `proj` is the entry
+  # point for creating it — launch the picker instead of a bare shell.
   if ! tmux has-session -t "$proj_name" 2>/dev/null; then
+    command -v proj >/dev/null 2>&1 && proj
     return 0
   fi
 
