@@ -87,9 +87,9 @@ __auto_join_project() {
     (( n > 50 )) && return 0
   done
 
-  # Add the yazi pane on the right — matches proj()'s layout.
-  tmux split-window -h -l 30% -t "$target" -c "$proj_dir" yazi 2>/dev/null
-  tmux select-pane -t "$target":0.0 2>/dev/null
+  # Add the yazi pane on the right. -d keeps focus on the left (usable) pane —
+  # without it the new yazi pane steals focus.
+  tmux split-window -h -l 30% -d -t "$target" -c "$proj_dir" yazi 2>/dev/null
 
   # Replace the current shell with a tmux client attached to the new
   # session. `exec` ensures detach (prefix d) closes the Ghostty tab

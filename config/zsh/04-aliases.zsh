@@ -78,12 +78,12 @@ __proj_launch() {
     # session target and is NOT valid for split-window/select-pane (they want a
     # pane), and ":0.0" is wrong under base-index 1. Pane ids (%NN) are global
     # and unambiguous, so this works regardless of name (slashes ok) or indexing.
+    # Split off the yazi pane with -d so focus STAYS on the left (usable) pane.
+    # Target the left pane by id (%NN) — "=name"/slashed names break split's
+    # pane target. -d avoids the broken select-pane ":0.0" under base-index 1.
     local left
     left=$(tmux list-panes -t "$name" -F '#{pane_id}' 2>/dev/null | head -1)
-    if [[ -n "$left" ]]; then
-      tmux split-window -h -l 30% -t "$left" -c "$dir" yazi
-      tmux select-pane -t "$left"
-    fi
+    [[ -n "$left" ]] && tmux split-window -h -l 30% -d -t "$left" -c "$dir" yazi
   fi
   if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
 }
@@ -366,9 +366,9 @@ pt() {
     (( n > 50 )) && { echo "too many sessions" >&2; return 1; }
   done
 
-  # Add the yazi pane on the right (30% width) — matches proj()'s layout.
-  tmux split-window -h -l 30% -t "$target" -c "$proj_dir" yazi
-  tmux select-pane -t "$target":0.0
+  # Add the yazi pane on the right (30%). -d keeps focus on the left (usable)
+  # pane — without it, the new yazi pane would steal focus.
+  tmux split-window -h -l 30% -d -t "$target" -c "$proj_dir" yazi
 
   if [[ -n "$TMUX" ]]; then
     tmux switch-client -t "$target"
