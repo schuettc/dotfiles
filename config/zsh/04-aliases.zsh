@@ -74,8 +74,16 @@ __proj_launch() {
     else
       tmux new-session -d -s "$name" -c "$dir"
     fi
-    tmux split-window -h -l 30% -t "=$name" -c "$dir" yazi
-    tmux select-pane -t "=$name":0.0
+    # Split + select by PANE ID, not "=name": the "=" exact-match prefix is a
+    # session target and is NOT valid for split-window/select-pane (they want a
+    # pane), and ":0.0" is wrong under base-index 1. Pane ids (%NN) are global
+    # and unambiguous, so this works regardless of name (slashes ok) or indexing.
+    local left
+    left=$(tmux list-panes -t "$name" -F '#{pane_id}' 2>/dev/null | head -1)
+    if [[ -n "$left" ]]; then
+      tmux split-window -h -l 30% -t "$left" -c "$dir" yazi
+      tmux select-pane -t "$left"
+    fi
   fi
   if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
 }
@@ -129,22 +137,32 @@ __proj_ensure_worktree() {
 # Build the Screen-2 list for a project: live sessions, home base, worktrees,
 # other branches, and the new/prune actions. Glyphs make rows parseable.
 __proj_worktree_list() {
-  local primary="$1" project="$2" default_branch="$3" b
-  tmux ls -F '#{session_name}' 2>/dev/null \
-    | awk -v p="$project" '$0==p || index($0,p"/")==1 {print "● "$0}'
-  print -r -- "🏠 ${default_branch}  (home base · primary clone)"
+  local primary="$1" project="$2" default_branch="$3" b s
+  # ── jump to a running session ──  (● = already open)
+  local -a live live_branches
+  live=(${(f)"$(tmux ls -F '#{session_name}' 2>/dev/null | awk -v p="$project" '$0==p || index($0,p"/")==1')"})
+  for s in $live; do
+    print -r -- "● ${s}"
+    [[ "$s" == "$project/"* ]] && live_branches+=("${s#$project/}")   # branch already has a session
+  done
+  # ── home base = the primary clone (read / coordinate), on whatever it's checked out ──
+  print -r -- "🏠 primary clone — on ${default_branch}"
+  # ── open a worktree on a branch ──  (skip the default branch = home base, and
+  #    any branch that already has a live session shown above)
   local -a wt_branches all_branches
   wt_branches=(${(f)"$(git -C "$primary" worktree list --porcelain 2>/dev/null \
     | awk '/^branch /{sub("refs/heads/","",$2); print $2}')"})
   for b in $wt_branches; do
     [[ "$b" == "$default_branch" ]] && continue
+    (( ${live_branches[(Ie)$b]} )) && continue
     print -r -- "▸ ${b}  (worktree)"
   done
   all_branches=(${(f)"$(git -C "$primary" for-each-ref --format='%(refname:short)' refs/heads 2>/dev/null)"})
   for b in $all_branches; do
     [[ "$b" == "$default_branch" ]] && continue
     (( ${wt_branches[(Ie)$b]} )) && continue
-    print -r -- "▸ ${b}  (branch)"
+    (( ${live_branches[(Ie)$b]} )) && continue
+    print -r -- "▸ ${b}  (branch → new worktree)"
   done
   print -r -- "+ new branch…"
   print -r -- "+ prune worktrees…"
