@@ -336,7 +336,7 @@ pt() {
   fi
 
   if [[ -z "$proj_name" ]]; then
-    echo "usage: pt [--bare] <project>     (or run from inside a project dir)" >&2
+    echo "usage: pt [--claude] <project>     (or run from inside a project dir)" >&2
     return 1
   fi
 
