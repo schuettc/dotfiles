@@ -78,14 +78,34 @@ __proj_launch() {
     # session target and is NOT valid for split-window/select-pane (they want a
     # pane), and ":0.0" is wrong under base-index 1. Pane ids (%NN) are global
     # and unambiguous, so this works regardless of name (slashes ok) or indexing.
-    # Split off the yazi pane with -d so focus STAYS on the left (usable) pane.
-    # Target the left pane by id (%NN) — "=name"/slashed names break split's
-    # pane target. -d avoids the broken select-pane ":0.0" under base-index 1.
+    #
+    # yazi ALWAYS probes the terminal at startup (XTVERSION + DA1), even when it
+    # already knows the emulator — see yazi-emulator/src/emulator.rs::detect().
+    # tmux delivers the terminal's responses (which are input) to whatever pane
+    # is FOCUSED. So yazi must stay focused while it probes, or the responses
+    # leak into the shell as escape-code garbage (`>|ghostty 1.3.1…;…c`). Split
+    # WITHOUT -d so yazi is focused, let it read its own responses, then return
+    # focus to the left pane after ~0.5s via a detached job (so we never block
+    # the switch-client/attach below, and the timer survives it).
     local left
     left=$(tmux list-panes -t "$name" -F '#{pane_id}' 2>/dev/null | head -1)
-    [[ -n "$left" ]] && tmux split-window -h -l 30% -d -t "$left" -c "$dir" yazi
+    if [[ -n "$left" ]]; then
+      tmux split-window -h -l 30% -t "$left" -c "$dir" yazi
+      ( sleep 0.5; tmux select-pane -t "$left" 2>/dev/null ) &!
+    fi
   fi
   if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
+}
+
+# Spawn an ADDITIONAL session for a project that already has a home base: find
+# the next free <project>-N (N≥2, matching pt/auto-join numbering) and launch it
+# in <dir> with the standard shell+yazi layout. $3=1 auto-launches claude.
+__proj_launch_numbered() {
+  local project="$1" dir="$2" auto_claude="${3:-0}" n=2
+  while tmux has-session -t "=${project}-${n}" 2>/dev/null; do
+    (( n++ )); (( n > 50 )) && { echo "too many sessions" >&2; return 1; }
+  done
+  __proj_launch "${project}-${n}" "$dir" "$auto_claude"
 }
 
 # Copy gitignored paths listed in <primary>/.worktreeinclude into a new worktree.
@@ -147,6 +167,8 @@ __proj_worktree_list() {
   done
   # ── home base = the primary clone (read / coordinate), on whatever it's checked out ──
   print -r -- "🏠 primary clone — on ${default_branch}"
+  # ── extra workspace in the primary clone (project-2, -3, …) ──
+  print -r -- "+ new session here"
   # ── open a worktree on a branch ──  (skip the default branch = home base, and
   #    any branch that already has a live session shown above)
   local -a wt_branches all_branches
@@ -276,6 +298,11 @@ proj() {
       # Default branch → home base in the primary clone.
       __proj_launch "$project" "$primary" "$auto_claude"
       ;;
+    "+ new session here")
+      # Additional workspace in the primary clone (project-2, -3, …) — never
+      # attaches to the existing home base.
+      __proj_launch_numbered "$project" "$primary" "$auto_claude"
+      ;;
     "+ new branch…")
       printf "New branch (off dev): "
       local nb; IFS= read -r nb </dev/tty || return
@@ -366,9 +393,14 @@ pt() {
     (( n > 50 )) && { echo "too many sessions" >&2; return 1; }
   done
 
-  # Add the yazi pane on the right (30%). -d keeps focus on the left (usable)
-  # pane — without it, the new yazi pane would steal focus.
-  tmux split-window -h -l 30% -d -t "$target" -c "$proj_dir" yazi
+  # Add the yazi pane on the right (30%). yazi always probes the terminal at
+  # startup and tmux routes the responses to the focused pane (see __proj_launch
+  # for the full explanation), so keep yazi focused while it probes, then return
+  # focus to the left pane after ~0.5s via a detached job.
+  local left
+  left=$(tmux list-panes -t "$target" -F '#{pane_id}' 2>/dev/null | head -1)
+  tmux split-window -h -l 30% -t "$left" -c "$proj_dir" yazi
+  ( sleep 0.5; tmux select-pane -t "$left" 2>/dev/null ) &!
 
   if [[ -n "$TMUX" ]]; then
     tmux switch-client -t "$target"
