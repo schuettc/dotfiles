@@ -49,8 +49,19 @@ window-padding-y = 4
 # ===================
 # Session / Working Directory
 # ===================
-# New tabs/splits inherit the current pane's working dir (cmux behavior)
-window-inherit-working-directory = true
+# New TAB (⌘T) and new SPLIT inherit the current pane's working dir; a new
+# WINDOW (⌘N) opens fresh at $HOME instead. Ghostty has three independent
+# inherit toggles — set them explicitly so window vs tab behavior is clear.
+# NOTE: Ghostty has no inline comments — keep notes on their own lines, never
+# trailing a value (the `#` would be parsed as part of the value).
+# ⌘N (new window) → home (~)
+window-inherit-working-directory = false
+# ⌘T (new tab) → current pwd
+tab-inherit-working-directory = true
+# new split → current pwd
+split-inherit-working-directory = true
+# where a non-inheriting window lands
+working-directory = home
 window-inherit-font-size = true
 # Restore window layout on launch (closest analog to cmux session restore)
 window-save-state = always
