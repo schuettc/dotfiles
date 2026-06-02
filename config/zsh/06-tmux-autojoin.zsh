@@ -47,11 +47,10 @@ __auto_join_project() {
       break
     fi
   done
-  # Not inside a known project (e.g. the tab opened at ~). Rather than leave a
-  # bare shell, drop into the proj picker so a new terminal still gets you into
-  # a project in one step. Esc in the picker → normal shell (escape hatch).
+  # Not inside a known project (e.g. a new ⌘N window opens at ~). Leave a plain
+  # shell at the current dir — don't force the proj picker. Run `proj` yourself
+  # when you actually want to jump into a project.
   if [[ -z "$proj_name" ]]; then
-    command -v proj >/dev/null 2>&1 && proj
     return 0
   fi
 
@@ -93,9 +92,15 @@ __auto_join_project() {
     (( n > 50 )) && return 0
   done
 
-  # Add the yazi pane on the right. -d keeps focus on the left (usable) pane —
-  # without it the new yazi pane steals focus.
-  tmux split-window -h -l 30% -d -t "$target" -c "$proj_dir" yazi 2>/dev/null
+  # Add the yazi pane on the right. yazi always probes the terminal at startup
+  # and tmux routes the responses to the focused pane (see __proj_launch), so
+  # keep yazi focused while it probes, then return focus to the left pane after
+  # ~0.5s via a detached job. The subshell is forked before the `exec tmux
+  # attach` below, so the timer survives the exec and still fires.
+  local left
+  left=$(tmux list-panes -t "$target" -F '#{pane_id}' 2>/dev/null | head -1)
+  tmux split-window -h -l 30% -t "$left" -c "$proj_dir" yazi 2>/dev/null
+  ( sleep 0.5; tmux select-pane -t "$left" 2>/dev/null ) &!
 
   # Replace the current shell with a tmux client attached to the new
   # session. `exec` ensures detach (prefix d) closes the Ghostty tab
