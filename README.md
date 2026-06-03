@@ -41,13 +41,19 @@ design rationale behind the migration off cmux.
 
 ### The workspace workflow
 
-One **project = one Ghostty window**. Each tab in that window attaches to its
-own tmux session (`mlb-dk`, `mlb-dk-2`, …) with a shell + yazi layout. Shell
-helpers (in `config/zsh/04-aliases.zsh`):
+One **project workspace = one Ghostty window**. `proj` is a two-screen,
+worktree-aware picker: Screen 1 picks a project (or jumps to a live session);
+Screen 2 picks what to work on, and **the branch decides isolation** — the
+default branch opens the project's primary clone (home base, for reading /
+coordinating), any other branch transparently opens a git worktree at
+`<repo>/.worktrees/<branch>` so parallel work never collides in one tree. Each
+tab in a window attaches to its own tmux session (`<project>`, `<project>-2`, …
+for the primary clone; `<project>/<branch>` for a worktree) with a shell + yazi
+layout. Shell helpers (in `config/zsh/04-aliases.zsh`):
 
 | Command | What it does |
 |---------|--------------|
-| `proj` | fzf picker → attach to or spawn a project workspace (shell + yazi) |
+| `proj` | two-screen picker → enter/create a workspace; choose home base or a branch (own worktree) |
 | `proj --claude` | same, but auto-launch `claude` in the left pane |
 | `pt [name]` | spawn another terminal in a project (next `name-N` session) |
 | `tat <name>` | attach-or-create a named session |
@@ -55,8 +61,11 @@ helpers (in `config/zsh/04-aliases.zsh`):
 | `bell-clear` | dismiss the attention banner (`-k` to kill flagged sessions) |
 
 ⌘T in a project window auto-joins a new tmux session for that project (via
-`config/zsh/06-tmux-autojoin.zsh`). Project roots are configured per-machine
-in `~/.config/proj/roots` (not tracked; first `proj` run sets it up).
+`config/zsh/06-tmux-autojoin.zsh`); ⌘N opens a fresh window at `$HOME`, outside
+any project. Project roots are configured per-machine in `~/.config/proj/roots`
+(not tracked; first `proj` run sets it up). The full worktree workflow — the
+Screen-2 rows, `.worktreeinclude`, pruning, and the `⚠ primary` status-bar cue
+— is in [`docs/terminal-usage.md`](docs/terminal-usage.md).
 
 ### Shell Configuration
 - **Modular zsh** — configs split into numbered files in `config/zsh/`
@@ -83,7 +92,9 @@ The status bar surfaces, for the focused pane:
 - **left** — an attention banner (`⚠ N: session1, session2`) listing any
   session whose Claude finished a turn / is waiting for input and that you
   haven't visited yet. Clears when you switch to the session.
-- **right** — current git branch + dirty count, the Claude context-window %
+- **right** — current git branch + dirty count, a peach `⚠ primary` badge
+  when the focused pane is in a project's primary clone while linked worktrees
+  exist (the cue to go work in a worktree), the Claude context-window %
   (`⌬ 49%`, green/yellow/red) when the focused pane is running Claude, and
   the date/time.
 
