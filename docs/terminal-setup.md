@@ -95,12 +95,17 @@ A typical `~/.config/proj/roots`:
 ### 2. Open your first workspace
 
 ```bash
-proj                 # fzf picker → choose a project
+proj                 # two-screen fzf picker
 ```
 
-This spawns a tmux session named after the project, with a shell on the left
-(~70%) and yazi on the right (~30%). That Ghostty window is now the
-"workspace" for that project.
+`proj` is a two-screen picker: **Screen 1** picks a project (or jumps to a
+live session); **Screen 2** (git repos only) picks what to work on — the
+**home base** (`🏠 primary clone — on <branch>`) or a branch, which opens in
+its own git worktree. Picking a non-default branch transparently creates a
+worktree at `<repo>/.worktrees/<branch>`. Either way you land in a tmux
+session with a shell on the left (~70%) and yazi on the right (~30%), and that
+Ghostty window becomes the "workspace." See
+[`terminal-usage.md`](terminal-usage.md) for the full worktree workflow.
 
 To auto-launch Claude in the left pane instead of an empty shell:
 
@@ -110,10 +115,15 @@ proj --claude
 
 ### 3. Add more terminals to the workspace
 
-Inside a project's Ghostty window, press **⌘T**. The zsh auto-join hook
-detects the project and spawns the next session (`<project>-2`, `-3`, …) with
-the same shell+yazi layout. Each tab is an independent tmux session — run
-`claude` (or anything) in whichever you like.
+Inside a project's Ghostty window, press **⌘T**. The new tab inherits the
+project cwd (`tab-inherit-working-directory = true` in `config/ghostty/config`)
+and the zsh auto-join hook detects the project and spawns the next session
+(`<project>-2`, `-3`, …) with the same shell+yazi layout. Each tab is an
+independent tmux session — run `claude` (or anything) in whichever you like.
+
+By contrast, **⌘N (new window)** opens fresh at `$HOME`
+(`window-inherit-working-directory = false`, `working-directory = home`) —
+*outside* any project. Run `proj` there to enter or create a workspace.
 
 If ⌘T ever lands at `$HOME` instead of the project (e.g., OSC 7 didn't
 propagate), use the manual fallback: `pt` (from inside the project dir) or
