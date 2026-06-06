@@ -1,0 +1,8 @@
+# Force LF line endings on checkout for everyone. A teammate whose git has
+# core.autocrlf=true would otherwise get CRLF, which breaks shell shebangs
+# (`#!/bin/bash\r` → "bad interpreter", exit 126) and other unix tooling.
+* text=auto eol=lf
+
+# Shell scripts are always LF and executable-by-intent.
+*.sh   text eol=lf
+bin/*  text eol=lf

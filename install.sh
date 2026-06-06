@@ -155,7 +155,11 @@ SWIFTBAR_A11Y_NOTE=""
 if [[ -d "/Applications/SwiftBar.app" ]]; then
   # Point SwiftBar at the tracked plugin folder, launch it at login, start it now.
   defaults write com.ameba.SwiftBar PluginDirectory "$DOTFILES_DIR/config/swiftbar/plugins"
-  osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/SwiftBar.app", hidden:false}' >/dev/null 2>&1 || true
+  # Add to Login Items only if not already there (idempotent — a re-run was
+  # adding a duplicate SwiftBar entry every time).
+  if ! osascript -e 'tell application "System Events" to get name of every login item' 2>/dev/null | grep -q "SwiftBar"; then
+    osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/SwiftBar.app", hidden:false}' >/dev/null 2>&1 || true
+  fi
   open -a SwiftBar >/dev/null 2>&1 || true
   # The one step that CAN'T be automated: macOS Accessibility (TCC) is SIP-
   # protected, so click-to-focus (un-minimize + raise a window) needs SwiftBar

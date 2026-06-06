@@ -51,7 +51,7 @@ case "$hook_name" in
     # hook's process ancestry to find its pane's session, since hooks run with
     # $TMUX unset. Cleared automatically when you switch to that session.
     ring_tmux_bell
-    "$HOME/dotfiles/bin/claude-attn" raise-pid "$$" 2>/dev/null || true
+    "$HOME/.local/bin/claude-attn" raise-pid "$$" 2>/dev/null || true
     ;;
   Stop)
     # Turn finished → in-terminal bell only. No attention flag: with many
