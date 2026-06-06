@@ -127,6 +127,39 @@ the project has no worktrees at all.
 > flags the pane only when its git-dir is *not* under `/worktrees/` **and**
 > `git worktree list` shows more than one tree.
 
+## Knowing when Claude needs you
+
+When Claude Code is **blocked waiting for your input** (a permission prompt or a
+question — its `Notification` hook), the session is flagged for attention and
+surfaced three ways at once, **no sound**:
+
+- **🔔 in the title** — the session's Ghostty tab, the ⌘-Tab switcher, and the
+  Dock-icon window list all show `🔔 <project>`, so you can see *which* terminal
+  is waiting.
+- **Menu-bar badge** — a SwiftBar item (top-right) shows a red bell + a count;
+  its dropdown lists the waiting sessions.
+- **Click to jump** — clicking a session in that dropdown un-minimizes and
+  brings its Ghostty window to the front. (One-time setup: SwiftBar must be
+  granted Accessibility — see `terminal-setup.md`. Activating Ghostty also raises
+  its *other* windows above other apps; that's macOS, not a bug — the target
+  lands on top and focused.)
+
+The flag **clears automatically** the moment you switch to / focus that session
+(the `pane-focus-in` hook). Turn-end (`Stop`) is intentionally quieter — just the
+in-terminal bell, *not* a menu-bar flag — so a dozen parallel sessions don't keep
+half the bar lit.
+
+**Trigger it yourself:** `claude-attn raise` flags the current session from any
+script, hook, or skill (e.g. ping yourself when a long job finishes). The rest of
+the CLI: `claude-attn clear [session]`, `claude-attn list`, `claude-attn focus
+<session>` (bring its window forward).
+
+> **Caveats.** Click-to-focus works for sessions that are Ghostty **windows**
+> (including minimized). A session living as an **inactive tab** may not raise
+> (the window title only reflects its active tab), and a **detached** session has
+> no window to bring forward at all — but Claude won't be "waiting" in one you've
+> detached.
+
 ## Adding terminals to a workspace
 
 First, the window-vs-tab distinction — they behave differently on purpose

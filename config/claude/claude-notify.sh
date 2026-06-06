@@ -44,7 +44,20 @@ ring_tmux_bell() {
 }
 
 case "$hook_name" in
-  Notification|Stop) ring_tmux_bell ;;
+  Notification)
+    # Claude is blocked waiting for you → ring the in-terminal bell AND raise the
+    # cross-session attention flag: 🔔 in the Ghostty title / Dock menu (via
+    # set-titles-string) + the SwiftBar menu-bar item. `raise-pid` walks this
+    # hook's process ancestry to find its pane's session, since hooks run with
+    # $TMUX unset. Cleared automatically when you switch to that session.
+    ring_tmux_bell
+    "$HOME/dotfiles/bin/claude-attn" raise-pid "$$" 2>/dev/null || true
+    ;;
+  Stop)
+    # Turn finished → in-terminal bell only. No attention flag: with many
+    # parallel sessions, flagging every turn-end would keep half of them lit.
+    ring_tmux_bell
+    ;;
 esac
 
 exit 0

@@ -1,0 +1,103 @@
+#!/bin/bash
+# claude-attn — raise / clear the "this Claude session needs attention" flag.
+#
+# Single source of truth: a per-session tmux option @claude_attn (1 = needs you).
+# That one option drives every visible cue:
+#   • the Ghostty window/tab/Dock-menu title — set-titles-string prepends 🔔
+#     for sessions with @claude_attn set (see ~/.tmux.conf)
+#   • the SwiftBar menu-bar plugin — lists flagged sessions (reads `claude-attn list`)
+#
+# It's deliberately a tiny CLI so ANYTHING can trigger it — the Claude
+# Notification hook (claude-notify.sh), a long-running script, or a skill that
+# wants to ping you when it's done:
+#
+#   claude-attn raise [session]    # flag (default: the current tmux session)
+#   claude-attn clear [session]    # unflag (default: current); no-op if not set
+#   claude-attn list               # print flagged session names, one per line
+#   claude-attn raise-pid <pid>    # flag the session owning <pid> via ancestry
+#                                  # walk — for hooks, which run with $TMUX unset
+#
+# From inside a tmux pane: `claude-attn raise` flags whatever session you're in.
+# From a Claude hook (no $TMUX): `claude-attn raise-pid "$$"`.
+
+set -u
+command -v tmux >/dev/null 2>&1 || exit 0
+
+cmd="${1:-}"
+arg="${2:-}"
+
+cur_session() { tmux display-message -p '#{session_name}' 2>/dev/null; }
+
+# Nudge the visible cues to update immediately instead of on their next timer:
+# tmux redraws titles/status, and SwiftBar re-runs the plugin (no-op if SwiftBar
+# isn't running / installed).
+refresh_cues() {
+  tmux refresh-client 2>/dev/null || true
+  open -g "swiftbar://refreshplugin?name=claude-attn" >/dev/null 2>&1 || true
+}
+
+raise_session() {
+  local s="$1"; [[ -z "$s" ]] && return 0
+  # Skip the churn if it's already flagged.
+  [[ "$(tmux show-options -t "$s" -qv @claude_attn 2>/dev/null)" == "1" ]] && return 0
+  tmux set-option -t "$s" @claude_attn 1 2>/dev/null || return 0
+  refresh_cues
+}
+
+case "$cmd" in
+  raise)
+    raise_session "${arg:-$(cur_session)}"
+    ;;
+  clear)
+    s="${arg:-$(cur_session)}"
+    [[ -z "$s" ]] && exit 0
+    # No-op (and no refresh) if there's nothing flagged — keeps the
+    # pane-focus-in hook cheap, since it fires on every focus change.
+    [[ "$(tmux show-options -t "$s" -qv @claude_attn 2>/dev/null)" == "1" ]] || exit 0
+    tmux set-option -t "$s" -u @claude_attn 2>/dev/null
+    refresh_cues
+    ;;
+  list)
+    tmux list-sessions -F '#{session_name} #{@claude_attn}' 2>/dev/null \
+      | awk '$2 == 1 { print $1 }'
+    ;;
+  raise-pid)
+    pid="$arg"
+    [[ -z "$pid" ]] && exit 0
+    panes=$(tmux list-panes -aF '#{pane_pid} #{session_name}' 2>/dev/null) || exit 0
+    guard=0
+    while [[ -n "$pid" && "$pid" != 0 && "$pid" != 1 && $guard -lt 30 ]]; do
+      s=$(printf '%s\n' "$panes" | awk -v p="$pid" '$1==p { print $2; exit }')
+      if [[ -n "$s" ]]; then raise_session "$s"; exit 0; fi
+      pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+      guard=$((guard + 1))
+    done
+    ;;
+  focus)
+    # Bring the Ghostty window showing this session to the front, then clear its
+    # flag. Ghostty titles each window with the session name (set-titles), maybe
+    # 🔔-prefixed, so we raise the window whose title contains the name. Needs
+    # Accessibility permission for the caller (granted once on first click).
+    s="${arg:-$(cur_session)}"
+    [[ -z "$s" ]] && exit 0
+    osascript >/dev/null 2>&1 <<OSA || true
+tell application "Ghostty" to activate
+tell application "System Events" to tell process "Ghostty"
+  set frontmost to true
+  try
+    set w to (first window whose title contains "${s}")
+    -- un-minimize first: a minimized window can't be raised, it just sits in the Dock
+    set value of attribute "AXMinimized" of w to false
+    perform action "AXRaise" of w
+    set value of attribute "AXMain" of w to true
+  end try
+end tell
+OSA
+    "$0" clear "$s"
+    ;;
+  *)
+    echo "usage: claude-attn {raise|clear|list|focus|raise-pid <pid>} [session]" >&2
+    exit 2
+    ;;
+esac
+exit 0

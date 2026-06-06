@@ -144,6 +144,27 @@ else
 EOF
 fi
 
+# Claude attention indicator: the `claude-attn` CLI (raise/clear/list/focus the
+# per-session @claude_attn flag) + the SwiftBar menu-bar plugin. The Notification
+# hook and any script/skill call `claude-attn raise`; it surfaces as 🔔 in the
+# Ghostty tab/Dock title (set-titles-string, ~/.tmux.conf) and a SwiftBar badge.
+echo "Setting up Claude attention indicator..."
+mkdir -p "$HOME/.local/bin"
+ln -sf "$DOTFILES_DIR/bin/claude-attn" "$HOME/.local/bin/claude-attn"
+SWIFTBAR_A11Y_NOTE=""
+if [[ -d "/Applications/SwiftBar.app" ]]; then
+  # Point SwiftBar at the tracked plugin folder, launch it at login, start it now.
+  defaults write com.ameba.SwiftBar PluginDirectory "$DOTFILES_DIR/config/swiftbar/plugins"
+  osascript -e 'tell application "System Events" to make login item at end with properties {path:"/Applications/SwiftBar.app", hidden:false}' >/dev/null 2>&1 || true
+  open -a SwiftBar >/dev/null 2>&1 || true
+  # The one step that CAN'T be automated: macOS Accessibility (TCC) is SIP-
+  # protected, so click-to-focus (un-minimize + raise a window) needs SwiftBar
+  # granted Accessibility by hand. Flag it in the Next steps below.
+  SWIFTBAR_A11Y_NOTE="grant SwiftBar Accessibility for click-to-focus"
+else
+  echo "  SwiftBar not found — the menu-bar indicator is optional (brew bundle installs it)."
+fi
+
 echo ""
 echo "Installation complete!"
 echo ""
@@ -152,5 +173,12 @@ echo "  1. Open Ghostty (cmd+space → \"Ghostty\") and run: source ~/.zshrc"
 echo "  2. Run \`proj\` and pick a project to spin up your first workspace."
 echo "  3. Inside a project, cmd+T spawns more terminals (auto-joins tmux)."
 echo "  4. Set up Atuin sync (optional): atuin register / atuin login"
-echo "  5. Read docs/terminal-usage.md for the day-to-day cheat sheet."
+if [[ -n "$SWIFTBAR_A11Y_NOTE" ]]; then
+  echo "  5. ⚠ MANUAL: $SWIFTBAR_A11Y_NOTE —"
+  echo "     System Settings → Privacy & Security → Accessibility → enable SwiftBar,"
+  echo "     then quit + reopen SwiftBar. (Can't be automated — macOS TCC is SIP-protected.)"
+  echo "  6. Read docs/terminal-usage.md for the day-to-day cheat sheet."
+else
+  echo "  5. Read docs/terminal-usage.md for the day-to-day cheat sheet."
+fi
 echo ""

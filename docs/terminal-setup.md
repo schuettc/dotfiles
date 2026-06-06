@@ -13,8 +13,9 @@ the design rationale see [`setup-notes.md`](setup-notes.md).
 - **yazi** — a file-explorer pane on the right of each workspace
 - **A workspace workflow** — one Ghostty window per project; each tab is its
   own tmux session; `proj`/`pt` to spawn them; auto-join on ⌘T
-- **Claude Code integration** — an in-terminal attention bell + a tmux
-  status bar showing git status and Claude's context %
+- **Claude Code integration** — a cross-session attention indicator (🔔 in the
+  tab/Dock title + a SwiftBar menu-bar badge when Claude is waiting on you) and a
+  tmux status bar showing git status and Claude's context %
 
 ## Prerequisites
 
@@ -62,6 +63,7 @@ A few things can't be fully automated:
 | **GitHub CLI** | `gh auth login` |
 | **VS Code** | Sign in for Settings Sync if you want your extensions. (`code` is the `$EDITOR` used by yazi + git commit.) |
 | **Claude Code** | First `claude` launch prompts to sign in. |
+| **SwiftBar Accessibility** | One-time, can't be automated (macOS TCC is SIP-protected). The menu-bar 🔔's **click-to-focus** (un-minimize + raise the waiting session's window) needs it: System Settings → Privacy & Security → **Accessibility** → enable **SwiftBar**, then quit + reopen it. The 🔔 badge and titles work *without* this — only click-to-bring-forward needs it. |
 | **1Password** | Sign in to the app + CLI if you use it. |
 
 ## First run
@@ -140,9 +142,11 @@ Run through this checklist:
    → back where you were.
 4. ⌘T inside the window → a new tab auto-joins `<project>-2`; `tmux ls` shows
    both.
-5. Start `claude` in a pane, send a prompt, switch to another tab. When Claude
-   finishes, the originating tab gets a 🔔 and the status-left shows
-   `⚠ 1: <project>`.
+5. Start `claude` in a pane, send a prompt, switch away. When Claude **waits for
+   your input** (the Notification hook), the session's tab/Dock title gets a 🔔
+   and the SwiftBar menu-bar bell turns red with a count — click it in the
+   dropdown to bring that window forward. The flag clears when you switch to the
+   session. (Turn-end still rings the in-terminal bell + `⚠ 1: <project>`.)
 6. Status-right shows the git branch + dirty count, and `⌬ NN%` when the
    focused pane is running Claude.
 7. **Persistence:** `tmux kill-server`, then `tmux attach` → tmux-continuum
@@ -160,6 +164,7 @@ Run through this checklist:
 | `tat <name>` | Attach-or-create a named session |
 | `proj-clean` | Reap idle sessions (shell/yazi only) — `-n` for dry run |
 | `bell-clear` | Dismiss the attention banner — `-k` to kill flagged sessions |
+| `claude-attn raise` | Flag the current session for attention (🔔 + menu-bar badge); `clear` / `list` / `focus <s>` round it out. Any script/hook/skill can call it. |
 
 Key bindings (prefix is `Ctrl-A`): `prefix f` toggle yazi, `prefix d` detach,
 `prefix s` session picker, `prefix h/j/k/l` move between panes,
