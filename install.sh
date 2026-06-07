@@ -1,22 +1,34 @@
 #!/bin/bash
-set -e
+# Resilient by design: we deliberately do NOT `set -e`. One failing step (a flaky
+# brew cask, no network for TPM, …) shouldn't abort the whole install and leave a
+# half-configured machine. Each risky step warns and continues; a summary of
+# warnings prints at the end. Truly fatal problems (no Homebrew) call die().
+# (No `set -u` either — macOS bash 3.2 errors on empty-array expansion under it.)
 
-# Get the directory where this script is located
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="$HOME/.config"
 
+WARNINGS=()
+warn() { printf '  ⚠ %s\n' "$1" >&2; WARNINGS+=("$1"); }
+die()  { printf '\n✗ FATAL: %s\n' "$1" >&2; exit 1; }
+
 echo "Installing dotfiles..."
 
-# Check for Homebrew
+# Homebrew — fatal if we can't get it, since everything else depends on it.
 if ! command -v brew &> /dev/null; then
   echo "Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  eval "$(/opt/homebrew/bin/brew shellenv)"
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
+    || die "Homebrew install failed (network?). Fix and re-run."
+  [[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
+command -v brew &> /dev/null || die "brew not on PATH after install — open a new shell and re-run."
 
-# Install packages from Brewfile
+# Install packages from Brewfile. brew bundle keeps going past a single failed
+# formula/cask and exits non-zero at the end; warn rather than abort so the rest
+# of the setup (symlinks, hooks, …) still happens.
 echo "Installing Homebrew packages..."
-brew bundle --file="$DOTFILES_DIR/Brewfile"
+brew bundle --file="$DOTFILES_DIR/Brewfile" \
+  || warn "Some Homebrew packages failed — re-run 'brew bundle --file=$DOTFILES_DIR/Brewfile' or install them by hand."
 
 # Create config directory if it doesn't exist
 mkdir -p "$CONFIG_DIR"
@@ -74,7 +86,8 @@ ln -sfn "$DOTFILES_DIR/config/yazi" "$CONFIG_DIR/yazi"
 # tmux-sensible, tmux-resurrect, and tmux-continuum.
 if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
   echo "Cloning TPM..."
-  git clone --depth 1 https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+  git clone --depth 1 https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm" \
+    || warn "TPM clone failed (network?) — tmux plugins won't install; re-run later."
 fi
 if command -v tmux &> /dev/null; then
   echo "Installing tmux plugins..."
@@ -104,7 +117,7 @@ if [[ -f "$CLAUDE_SETTINGS" ]]; then
   echo "Updating Claude Code settings (statusline + hooks)..."
   if command -v jq &> /dev/null; then
     TEMP_FILE=$(mktemp)
-    jq --argjson hook "$CLAUDE_HOOK_BLOCK" '
+    if jq --argjson hook "$CLAUDE_HOOK_BLOCK" '
       .statusLine = {
         "type": "command",
         "command": "~/.config/claude/statusline.sh"
@@ -116,7 +129,12 @@ if [[ -f "$CLAUDE_SETTINGS" ]]; then
         "Notification": [$hook],
         "Stop":         [$hook]
       }
-    ' "$CLAUDE_SETTINGS" > "$TEMP_FILE" && mv "$TEMP_FILE" "$CLAUDE_SETTINGS"
+    ' "$CLAUDE_SETTINGS" > "$TEMP_FILE"; then
+      mv "$TEMP_FILE" "$CLAUDE_SETTINGS"
+    else
+      rm -f "$TEMP_FILE"
+      warn "Couldn't merge Claude settings (jq error) — left ~/.claude/settings.json untouched."
+    fi
   else
     echo "  Note: Install jq for automatic settings merge, or add manually."
   fi
@@ -170,7 +188,13 @@ else
 fi
 
 echo ""
-echo "Installation complete!"
+if (( ${#WARNINGS[@]} )); then
+  echo "Installation finished with ${#WARNINGS[@]} warning(s):"
+  for w in "${WARNINGS[@]}"; do echo "  ⚠ $w"; done
+  echo "(Everything else installed — address the above and re-run; install.sh is safe to repeat.)"
+else
+  echo "Installation complete — no warnings."
+fi
 echo ""
 echo "Next steps:"
 echo "  1. Open Ghostty (cmd+space → \"Ghostty\") and run: source ~/.zshrc"

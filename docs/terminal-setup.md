@@ -52,6 +52,39 @@ Then reload your shell:
 source ~/.zshrc      # or just open a fresh Ghostty window
 ```
 
+## If the install fails partway
+
+`install.sh` is **resilient and re-runnable** — it no longer aborts on the first
+error. A failed step (a flaky brew cask, no network for TPM, …) prints a `⚠`
+warning and the install keeps going; a summary of all warnings prints at the end.
+Fix what's listed and just run `./install.sh` again (it's idempotent). Only a
+truly fatal problem — no Homebrew — stops it.
+
+## Uninstall / reset
+
+```bash
+./uninstall.sh           # remove our symlinks + config, restore *.bak backups
+./uninstall.sh --purge   # the above, plus uninstall SwiftBar + delete TPM
+```
+
+`uninstall.sh` undoes what `install.sh` did, conservatively:
+
+- Removes **only** symlinks that point into this dotfiles dir, then restores any
+  `*.bak` backup the install made — it never deletes a real file it didn't
+  create, and leaves foreign symlinks alone.
+- Removes the `~/.local/bin/claude-attn` symlink and the SwiftBar Login Item +
+  plugin-dir preference.
+- Strips the hooks / statusline / permission it merged into
+  `~/.claude/settings.json` (backed up to `settings.json.bak` first), preserving
+  any of your own entries.
+- Leaves Homebrew packages and the SwiftBar **app** installed unless you pass
+  `--purge`.
+
+It does **not** kill your tmux server (you'd lose live sessions) — restart tmux
+or run `tmux source ~/.tmux.conf` afterward to apply the reverted config.
+
+**Reset** = uninstall then reinstall: `./uninstall.sh && ./install.sh`.
+
 ## Post-install (manual, one-time)
 
 A few things can't be fully automated:
