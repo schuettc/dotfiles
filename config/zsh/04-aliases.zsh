@@ -243,6 +243,11 @@ proj() {
   local project_dirs=("${PROJ_ROOTS[@]}")
 
   # ── Screen 1: pick a project (or jump straight to a live session) ──
+  # fd's --no-ignore-vcs (in the picker below): a root may itself be a git repo
+  # that gitignores its project subdirs (e.g. a workspace shell whose .gitignore
+  # lists its independent member repos). Those are still projects, so surface
+  # them. An explicit .fdignore/.ignore in the root still hides entries.
+  # (Comments can't live inside the $( { ... } ) substitution — zsh mis-parses.)
   local choice existing
   while true; do
     existing=$(tmux ls -F '#{session_name}' 2>/dev/null | sed 's/^/[session] /')
@@ -250,7 +255,7 @@ proj() {
       {
         [[ -n "$existing" ]] && print -- "$existing"
         for d in "${project_dirs[@]}"; do
-          [[ -d "$d" ]] && fd --type d --max-depth 1 . "$d"
+          [[ -d "$d" ]] && fd --type d --max-depth 1 --no-ignore-vcs . "$d"
         done
         print -- "[+ add new project root…]"
       } | awk 'NF' | fzf --prompt='project › ' --height=60% --reverse
