@@ -41,24 +41,20 @@ if [[ -n "${TMUX_PANE:-}" ]]; then
     > "$state_dir/$state_key" 2>/dev/null
 fi
 
-# ─── Build the in-Claude status line ─────────────────────────────────
-# Context % is intentionally NOT printed here — it's shown in tmux's
-# status-right (via bin/tmux-claude-context.sh reading the state file
-# we just wrote). Avoiding the duplication keeps the two displays from
-# disagreeing during a turn.
-PARTS=()
-
-if [[ -n "$FEATURE" ]]; then
-  PARTS+=("💡 $FEATURE")
-else
-  PARTS+=("🤖 $MODEL")
+# ─── Print the in-Claude status line ─────────────────────────────────
+# Inside tmux: print NOTHING. Model + context% are shown in tmux's
+# status-right (bin/tmux-claude-context.sh reads the state file written
+# above). An empty line here can't overflow the pane width, so it can't
+# leave the wrapped-status redraw residue Claude's TUI produces under tmux.
+#
+# Outside tmux there's no status bar to carry it, so fall back to a lean,
+# ASCII-only label (no width-2 emoji) — model (or feature) · folder.
+if [[ -z "${TMUX_PANE:-}" ]]; then
+  if [[ -n "$FEATURE" ]]; then
+    printf '%s' "$FEATURE"
+  else
+    printf '%s' "$MODEL"
+  fi
+  [[ -n "$FOLDER_NAME" ]] && printf ' · %s' "$FOLDER_NAME"
+  echo
 fi
-
-[[ -n "$FOLDER_NAME" ]] && PARTS+=("📂 $FOLDER_NAME")
-
-# Print with " │ " separators.
-printf '%s' "${PARTS[0]}"
-for part in "${PARTS[@]:1}"; do
-  printf ' │ %s' "$part"
-done
-echo

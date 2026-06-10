@@ -44,16 +44,23 @@ if [[ -n "$updated" ]] && (( now - updated > 604800 )); then
   exit 0
 fi
 
+model=$(awk -F= '$1=="model"{print $2}' "$state_file" 2>/dev/null)
 pct=$(awk -F= '$1=="context_pct"{print $2}' "$state_file" 2>/dev/null)
-[[ -z "$pct" || ! "$pct" =~ ^[0-9]+$ ]] && exit 0
 
-# Skip if we don't actually have a useful value yet.
-(( pct == 0 )) && exit 0
+# Model label (dim) — moved here from the in-Claude statusline. Shown as soon
+# as we know it, even before context% is meaningful.
+prefix=""
+[[ -n "$model" ]] && prefix="#[fg=#a6adc8]${model}#[default] "
 
-if   (( pct >= 80 )); then
-  printf '#[fg=#f38ba8,bold]⌬ %d%%#[default]' "$pct"
-elif (( pct >= 50 )); then
-  printf '#[fg=#f9e2af]⌬ %d%%#[default]' "$pct"
-else
-  printf '#[fg=#a6e3a1]⌬ %d%%#[default]' "$pct"
+# Context indicator, colored by usage. Omitted until there's a real value.
+ctx=""
+if [[ "$pct" =~ ^[0-9]+$ ]] && (( pct > 0 )); then
+  if   (( pct >= 80 )); then ctx="#[fg=#f38ba8,bold]⌬ ${pct}%#[default]"
+  elif (( pct >= 50 )); then ctx="#[fg=#f9e2af]⌬ ${pct}%#[default]"
+  else                       ctx="#[fg=#a6e3a1]⌬ ${pct}%#[default]"
+  fi
 fi
+
+# Nothing useful to show → stay silent.
+[[ -z "$prefix$ctx" ]] && exit 0
+printf '%s%s' "$prefix" "$ctx"
