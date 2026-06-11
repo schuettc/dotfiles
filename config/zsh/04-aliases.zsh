@@ -157,13 +157,17 @@ __proj_ensure_worktree() {
 # Build the Screen-2 list for a project: live sessions, home base, worktrees,
 # other branches, and the new/prune actions. Glyphs make rows parseable.
 __proj_worktree_list() {
-  local primary="$1" project="$2" default_branch="$3" b s
+  local primary="$1" project="$2" default_branch="$3" b s bare
   # ── jump to a running session ──  (● = already open)
+  # Rows carry the session's task label (@claude_task, set via prefix T) as
+  # "name  — label"; selection parsing strips everything from "  — " on.
   local -a live live_branches
-  live=(${(f)"$(tmux ls -F '#{session_name}' 2>/dev/null | awk -v p="$project" '$0==p || index($0,p"/")==1')"})
+  live=(${(f)"$(tmux ls -F $'#{session_name}\t#{@claude_task}' 2>/dev/null \
+    | awk -F'\t' -v p="$project" '$1==p || index($1,p"/")==1 {printf "%s%s\n", $1, ($2==""?"":"  — "$2)}')"})
   for s in $live; do
     print -r -- "● ${s}"
-    [[ "$s" == "$project/"* ]] && live_branches+=("${s#$project/}")   # branch already has a session
+    bare="${s%%  — *}"
+    [[ "$bare" == "$project/"* ]] && live_branches+=("${bare#$project/}")   # branch already has a session
   done
   # ── home base = the primary clone (read / coordinate), on whatever it's checked out ──
   print -r -- "🏠 primary clone — on ${default_branch}"
@@ -250,7 +254,7 @@ proj() {
   # (Comments can't live inside the $( { ... } ) substitution — zsh mis-parses.)
   local choice existing
   while true; do
-    existing=$(tmux ls -F '#{session_name}' 2>/dev/null | sed 's/^/[session] /')
+    existing=$(tmux ls -F '#{session_name}#{?@claude_task,  — #{@claude_task},}' 2>/dev/null | sed 's/^/[session] /')
     choice=$(
       {
         [[ -n "$existing" ]] && print -- "$existing"
@@ -270,6 +274,7 @@ proj() {
 
   if [[ "$choice" == "[session] "* ]]; then
     local name="${choice#\[session\] }" exist_dir
+    name="${name%%  — *}"   # drop the task-label suffix
     exist_dir=$(tmux display-message -p -t "=$name" '#{pane_current_path}' 2>/dev/null)
     [[ -n "$exist_dir" && -d "$exist_dir" ]] && cd "$exist_dir"
     if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
@@ -295,6 +300,7 @@ proj() {
   case "$pick" in
     "● "*)
       local name="${pick#● }" d
+      name="${name%%  — *}"   # drop the task-label suffix
       d=$(tmux display-message -p -t "=$name" '#{pane_current_path}' 2>/dev/null)
       [[ -n "$d" && -d "$d" ]] && cd "$d"
       if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
