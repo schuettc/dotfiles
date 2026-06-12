@@ -36,9 +36,16 @@ reveal = [
 open = [
   { run = 'open "$@"', desc = "Open with default app", for = "macos" },
 ]
+markedit = [
+  { run = 'open -a MarkEdit "$@"', desc = "MarkEdit", orphan = true, for = "macos" },
+]
 
 [open]
 prepend_rules = [
+  # Markdown → MarkEdit by default (Enter); VS Code still available via `O`.
+  # Must precede the text/* rule below, which would otherwise send .md to `edit`.
+  { name = "*.md",                   use = ["markedit", "edit", "reveal"] },
+  { name = "*.markdown",             use = ["markedit", "edit", "reveal"] },
   { mime = "text/*",                 use = ["edit", "reveal"] },
   { mime = "application/json",       use = ["edit", "reveal"] },
   { mime = "application/javascript", use = ["edit", "reveal"] },
