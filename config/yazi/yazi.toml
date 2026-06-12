@@ -43,9 +43,10 @@ markedit = [
 [open]
 prepend_rules = [
   # Markdown → MarkEdit by default (Enter); VS Code still available via `O`.
-  # Must precede the text/* rule below, which would otherwise send .md to `edit`.
-  { name = "*.md",                   use = ["markedit", "edit", "reveal"] },
-  { name = "*.markdown",             use = ["markedit", "edit", "reveal"] },
+  # Match by `url` (path glob) — `.md` detects as text/plain so mime can't single
+  # it out, and `[open]` rules don't accept `name`. Must precede the text/* rule.
+  { url = "*.md",                    use = ["markedit", "edit", "reveal"] },
+  { url = "*.markdown",              use = ["markedit", "edit", "reveal"] },
   { mime = "text/*",                 use = ["edit", "reveal"] },
   { mime = "application/json",       use = ["edit", "reveal"] },
   { mime = "application/javascript", use = ["edit", "reveal"] },
