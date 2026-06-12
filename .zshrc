@@ -15,11 +15,17 @@ done
 # opencode
 export PATH=/Users/courtschuett/.opencode/bin:$PATH
 
-# Claude Code: force synchronized output (DECSET ?2026) on under tmux. Claude
-# disables sync whenever it detects tmux, so atomic frame updates never happen
-# and heavy streaming leaves stale/garbled input-box frames. Our tmux advertises
-# Sync for Ghostty (terminal-features xterm-ghostty:Sync); this forces Claude to
-# actually emit the markers, so the two halves together render frames atomically.
+# Claude Code: fullscreen (alternate-screen) renderer everywhere. It draws only
+# the visible viewport instead of rendering inline and sharing the terminal with
+# tmux — which is the root cause of the input-box border bleed, scroll tearing,
+# and focus-repaint garble. Owning its own screen sidesteps the whole class.
+# Trade-off: the transcript lives in Claude's own viewport, not tmux scrollback.
+# (Equivalent to running /tui fullscreen in every session.)
+export CLAUDE_CODE_NO_FLICKER=1
+
+# Belt-and-suspenders: emit synchronized-output markers even under tmux (our tmux
+# advertises Sync for Ghostty via terminal-features xterm-ghostty:Sync). Unproven
+# on its own but harmless alongside fullscreen.
 export CLAUDE_CODE_FORCE_SYNC_OUTPUT=1
 
 # Machine-local secrets and overrides (not tracked in git)
