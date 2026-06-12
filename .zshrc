@@ -23,10 +23,5 @@ export PATH=/Users/courtschuett/.opencode/bin:$PATH
 # (Equivalent to running /tui fullscreen in every session.)
 export CLAUDE_CODE_NO_FLICKER=1
 
-# Belt-and-suspenders: emit synchronized-output markers even under tmux (our tmux
-# advertises Sync for Ghostty via terminal-features xterm-ghostty:Sync). Unproven
-# on its own but harmless alongside fullscreen.
-export CLAUDE_CODE_FORCE_SYNC_OUTPUT=1
-
 # Machine-local secrets and overrides (not tracked in git)
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
