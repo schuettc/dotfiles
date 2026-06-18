@@ -1,3 +1,6 @@
+# Dotfiles: one-step update on this machine (pull latest + re-apply). See update.sh.
+alias dotup='~/dotfiles/update.sh'
+
 # Modern replacements (only if tools are installed)
 command -v eza &> /dev/null && alias ls='eza --icons --group-directories-first'
 command -v eza &> /dev/null && alias ll='eza -la --icons --group-directories-first --git'
