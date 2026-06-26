@@ -1,0 +1,35 @@
+/*
+ * MarkEdit custom styles.
+ *
+ * MarkEdit injects this file into the editor webview's <head>. The Markdown
+ * preview (Shift-Cmd-V) is a QuickLook-style overlay rendered into the *same*
+ * document — it just swaps `document.body` to `.quicklook` and wraps the
+ * rendered HTML in `.markdown-body`. So a single stylesheet styles both sides,
+ * scoped by selector:
+ *
+ *   .cm-content   → the raw Markdown you type (CodeMirror)
+ *   .markdown-body → the rendered preview (github-markdown styling)
+ *
+ * The preview's fonts are driven by two CSS custom properties on
+ * `.markdown-body`: `--fontStack-sansSerif` (prose) and `--fontStack-monospace`
+ * (inline code + fenced code blocks). Override those to font the preview
+ * independently of the editor.
+ *
+ * Fonts: MonoLisaCode (monospace, matches Ghostty) for code everywhere;
+ * MonoLisaText (proportional) for rendered prose in the preview.
+ *
+ * Restart MarkEdit after editing — changes are not hot-reloaded.
+ */
+
+/* --- Editor side: raw Markdown source --- */
+.cm-content {
+  font-family: "MonoLisaCode", ui-monospace, SFMono-Regular, Menlo, monospace !important;
+}
+
+/* --- Preview side: rendered HTML --- */
+.markdown-body {
+  /* Prose text → MonoLisa Text (proportional) */
+  --fontStack-sansSerif: "MonoLisaText", -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Inline code + fenced code blocks → MonoLisa Code (monospace) */
+  --fontStack-monospace: "MonoLisaCode", ui-monospace, SFMono-Regular, Menlo, monospace;
+}

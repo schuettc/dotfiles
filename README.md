@@ -31,7 +31,7 @@ design rationale behind the migration off cmux.
 ### Terminal stack: Ghostty + tmux + yazi
 
 - **[Ghostty](https://ghostty.org)** — native, GPU-accelerated terminal
-  emulator. Config in `config/ghostty/config` (MonoLisa font, Catppuccin
+  emulator. Config in `config/ghostty/config` (MonoLisaCode font, Catppuccin
   Mocha, keybinds, image-paste workaround, Ctrl+Enter newline).
 - **tmux** — multiplexer providing session persistence (via
   tmux-resurrect + tmux-continuum), splits, and detach/reattach. Config in
@@ -162,4 +162,7 @@ The install script configures [Claude Code](https://claude.ai/code) with:
 - macOS
 - [Homebrew](https://brew.sh)
 - MonoLisa font (paid; not in Brewfile) — without it Ghostty falls back to a
-  default monospace. Install your `.ttf`s into `~/Library/Fonts/` first.
+  default monospace. Install your `.ttf`s into `~/Library/Fonts/` first. The
+  config expects MonoLisa **3.000+**, whose family is `MonoLisaCode` (v2.x
+  shipped as `MonoLisa`); on 3.000 the variable `MonoLisaCodeUpright.ttf` covers
+  every weight.

@@ -81,6 +81,19 @@ echo "Linking yazi config..."
 backup_if_exists "$CONFIG_DIR/yazi"
 ln -sfn "$DOTFILES_DIR/config/yazi" "$CONFIG_DIR/yazi"
 
+# MarkEdit custom styles (editor + preview fonts).
+# MarkEdit is a sandboxed app; its settings live in the app container, not
+# ~/.config. We only link when the container exists (i.e. MarkEdit is installed),
+# and only when editor.css isn't already our symlink. Restart MarkEdit to apply.
+MARKEDIT_DIR="$HOME/Library/Containers/app.cyan.markedit/Data/Documents"
+if [[ -d "$MARKEDIT_DIR" ]]; then
+  echo "Linking MarkEdit styles..."
+  backup_if_exists "$MARKEDIT_DIR/editor.css"
+  ln -sf "$DOTFILES_DIR/config/markedit/editor.css" "$MARKEDIT_DIR/editor.css"
+else
+  echo "Skipping MarkEdit (not installed)."
+fi
+
 # Install TPM (tmux plugin manager) and bootstrap declared plugins.
 # `~/.tmux/plugins/tpm` is where TPM lives; the .tmux.conf above declares
 # tmux-sensible, tmux-resurrect, and tmux-continuum.

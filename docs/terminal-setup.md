@@ -91,7 +91,7 @@ A few things can't be fully automated:
 
 | Step | Why / how |
 |------|-----------|
-| **MonoLisa font** | Paid font, not in the Brewfile. Drop your `.ttf`s into `~/Library/Fonts/` or Ghostty falls back to a default monospace. |
+| **MonoLisa font** | Paid font, not in the Brewfile. Drop your `.ttf`s into `~/Library/Fonts/` or Ghostty falls back to a default monospace. Needs **3.000+** — its family is `MonoLisaCode` (v2.x was `MonoLisa`), and the variable `MonoLisaCodeUpright.ttf` supplies every weight. |
 | **Atuin sync** | `atuin login` (existing account) or `atuin register` (new) for cross-machine shell history. |
 | **GitHub CLI** | `gh auth login` |
 | **VS Code** | Sign in for Settings Sync if you want your extensions. (`code` is the `$EDITOR` used by yazi + git commit.) |
