@@ -69,6 +69,7 @@ cask "font-monaspice-nerd-font"
 # ===================
 cask "ghostty"            # Terminal emulator (native, GPU-accelerated)
 cask "visual-studio-code" # Editor ($EDITOR for yazi + git commit)
+cask "markedit"           # Markdown editor (custom styles via config/markedit/editor.css)
 cask "docker-desktop"     # Docker Desktop
 cask "swiftbar"           # Menu-bar runner — Claude attention indicator (config/swiftbar/plugins)
 
