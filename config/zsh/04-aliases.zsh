@@ -65,17 +65,78 @@ alias reload='source ~/.zshrc'
 # worktree. The tmux status bar shows the branch, so you always see which
 # worktree a session is in. Project roots: ~/.config/proj/roots (see proj --edit).
 
-# Create-or-attach a tmux session named $1 in dir $2 with the standard layout
-# (claude-or-shell left + yazi right). $3=1 auto-launches claude. Uses "=name"
-# exact-match targets so prefix-sharing names (proj vs proj/branch) don't clash.
+# ─── per-project tmux servers ───────────────────────────────────────────────
+# Every project gets its OWN tmux server (socket "proj-<project>", i.e.
+# `tmux -L proj-<project>`). tmux is single-threaded per server: one pane
+# flooding output (a busy claude, a chatty test run) stalls keystroke handling
+# for EVERY session on that server — with a single shared server that lagged
+# every Ghostty tab on the machine at once. Per-project servers contain the
+# blast radius to the project doing the flooding.
+#
+# Consequences the helpers below absorb:
+#   * switch-client only works WITHIN a server — cross-server jumps detach the
+#     current client and exec an attach on the target server (__proj_goto).
+#   * session listing must enumerate servers (__proj_servers) — including the
+#     legacy shared "default" server, so sessions created before this split
+#     stay reachable until they wind down naturally.
+
+__proj_srv() { print -r -- "proj-$1"; }
+
+# Socket names of all tmux servers with at least one live session. Dead
+# sockets (server already exited) fail the list-sessions probe; skip them.
+__proj_servers() {
+  local d="${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)" s
+  for s in "$d"/*(N=); do
+    tmux -L "${s:t}" list-sessions >/dev/null 2>&1 && print -r -- "${s:t}"
+  done
+}
+
+# Socket name of the server this shell's client is attached to ('' outside
+# tmux). $TMUX is "<socket-path>,<pid>,<session-idx>".
+__proj_cur_server() {
+  [[ -n "${TMUX:-}" ]] && print -r -- "${${TMUX%%,*}:t}"
+}
+
+# Find which server hosts session <name>; prints the socket name, fails if
+# none does.
+__proj_find_server() {
+  local name="$1" s
+  for s in $(__proj_servers); do
+    tmux -L "$s" has-session -t "=$name" 2>/dev/null && { print -r -- "$s"; return 0; }
+  done
+  return 1
+}
+
+# Move this client to session <name> on server <srv>:
+#   outside tmux         → plain attach on that server
+#   inside, same server  → switch-client (instant)
+#   inside, other server → detach and exec the attach in the client's place
+#                          (brief flicker — servers can't share clients, so
+#                          this is the only clean cross-server jump)
+__proj_goto() {
+  local srv="$1" name="$2" cur
+  cur=$(__proj_cur_server)
+  if [[ -z "$cur" ]]; then
+    tmux -L "$srv" attach -t "=$name"
+  elif [[ "$cur" == "$srv" ]]; then
+    tmux switch-client -t "=$name"
+  else
+    tmux detach -E "tmux -L '$srv' attach -t '=$name'"
+  fi
+}
+
+# Create-or-attach a tmux session named $2 on server $1 in dir $3 with the
+# standard layout (claude-or-shell left + yazi right). $4=1 auto-launches
+# claude. Uses "=name" exact-match targets so prefix-sharing names (proj vs
+# proj/branch) don't clash.
 __proj_launch() {
-  local name="$1" dir="$2" auto_claude="${3:-0}"
+  local srv="$1" name="$2" dir="$3" auto_claude="${4:-0}"
   cd "$dir"
-  if ! tmux has-session -t "=$name" 2>/dev/null; then
+  if ! tmux -L "$srv" has-session -t "=$name" 2>/dev/null; then
     if (( auto_claude )) && command -v claude >/dev/null; then
-      tmux new-session -d -s "$name" -c "$dir" "claude"
+      tmux -L "$srv" new-session -d -s "$name" -c "$dir" "claude"
     else
-      tmux new-session -d -s "$name" -c "$dir"
+      tmux -L "$srv" new-session -d -s "$name" -c "$dir"
     fi
     # Split + select by PANE ID, not "=name": the "=" exact-match prefix is a
     # session target and is NOT valid for split-window/select-pane (they want a
@@ -91,13 +152,13 @@ __proj_launch() {
     # focus to the left pane after ~0.5s via a detached job (so we never block
     # the switch-client/attach below, and the timer survives it).
     local left
-    left=$(tmux list-panes -t "$name" -F '#{pane_id}' 2>/dev/null | head -1)
+    left=$(tmux -L "$srv" list-panes -t "$name" -F '#{pane_id}' 2>/dev/null | head -1)
     if [[ -n "$left" ]]; then
-      tmux split-window -h -l 30% -t "$left" -c "$dir" yazi
-      ( sleep 0.5; tmux select-pane -t "$left" 2>/dev/null ) &!
+      tmux -L "$srv" split-window -h -l 30% -t "$left" -c "$dir" yazi
+      ( sleep 0.5; tmux -L "$srv" select-pane -t "$left" 2>/dev/null ) &!
     fi
   fi
-  if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
+  __proj_goto "$srv" "$name"
 }
 
 # Spawn an ADDITIONAL session for a project that already has a home base: find
@@ -105,10 +166,11 @@ __proj_launch() {
 # in <dir> with the standard shell+yazi layout. $3=1 auto-launches claude.
 __proj_launch_numbered() {
   local project="$1" dir="$2" auto_claude="${3:-0}" n=2
-  while tmux has-session -t "=${project}-${n}" 2>/dev/null; do
+  local srv; srv=$(__proj_srv "$project")
+  while tmux -L "$srv" has-session -t "=${project}-${n}" 2>/dev/null; do
     (( n++ )); (( n > 50 )) && { echo "too many sessions" >&2; return 1; }
   done
-  __proj_launch "${project}-${n}" "$dir" "$auto_claude"
+  __proj_launch "$srv" "${project}-${n}" "$dir" "$auto_claude"
 }
 
 # Copy gitignored paths listed in <primary>/.worktreeinclude into a new worktree.
@@ -165,8 +227,11 @@ __proj_worktree_list() {
   # Rows carry the session's task label (@claude_task, set via prefix T) as
   # "name  — label"; selection parsing strips everything from "  — " on.
   local -a live live_branches
-  live=(${(f)"$(tmux ls -F $'#{session_name}\t#{@claude_task}' 2>/dev/null \
-    | awk -F'\t' -v p="$project" '$1==p || index($1,p"/")==1 {printf "%s%s\n", $1, ($2==""?"":"  — "$2)}')"})
+  local lsrv
+  live=(${(f)"$(for lsrv in $(__proj_servers); do
+      tmux -L "$lsrv" ls -F $'#{session_name}\t#{@claude_task}' 2>/dev/null
+    done \
+    | awk -F'\t' -v p="$project" '$1==p || index($1,p"/")==1 {printf "%s%s\n", $1, ($2==""?"":"  — "$2)}' | sort -u)"})
   for s in $live; do
     print -r -- "● ${s}"
     bare="${s%%  — *}"
@@ -209,10 +274,10 @@ __proj_prune_worktrees() {
   picks=$(printf '%s\n' "${paths[@]}" | fzf --multi --reverse --height=60% \
             --prompt='prune › ' --header='Tab=select, Enter=remove. Trees with uncommitted work are kept.')
   [[ -z "$picks" ]] && return 0
-  local wt rel
+  local wt rel ksrv
   for wt in ${(f)picks}; do
     rel="${wt#$primary/.worktrees/}"
-    tmux kill-session -t "=$project/$rel" 2>/dev/null
+    ksrv=$(__proj_find_server "$project/$rel") && tmux -L "$ksrv" kill-session -t "=$project/$rel" 2>/dev/null
     if git -C "$primary" worktree remove "$wt" 2>/dev/null; then
       echo "removed $wt"
     else
@@ -255,9 +320,11 @@ proj() {
   # lists its independent member repos). Those are still projects, so surface
   # them. An explicit .fdignore/.ignore in the root still hides entries.
   # (Comments can't live inside the $( { ... } ) substitution — zsh mis-parses.)
-  local choice existing
+  local choice existing s
   while true; do
-    existing=$(tmux ls -F '#{session_name}#{?@claude_task,  — #{@claude_task},}' 2>/dev/null | sed 's/^/[session] /')
+    existing=$(for s in $(__proj_servers); do
+        tmux -L "$s" ls -F '#{session_name}#{?@claude_task,  — #{@claude_task},}' 2>/dev/null
+      done | sort -u | sed 's/^/[session] /')
     choice=$(
       {
         [[ -n "$existing" ]] && print -- "$existing"
@@ -276,19 +343,21 @@ proj() {
   done
 
   if [[ "$choice" == "[session] "* ]]; then
-    local name="${choice#\[session\] }" exist_dir
+    local name="${choice#\[session\] }" exist_dir srv
     name="${name%%  — *}"   # drop the task-label suffix
-    exist_dir=$(tmux display-message -p -t "=$name" '#{pane_current_path}' 2>/dev/null)
+    srv=$(__proj_find_server "$name") || { echo "session gone: $name" >&2; return 1; }
+    exist_dir=$(tmux -L "$srv" display-message -p -t "=$name" '#{pane_current_path}' 2>/dev/null)
     [[ -n "$exist_dir" && -d "$exist_dir" ]] && cd "$exist_dir"
-    if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
+    __proj_goto "$srv" "$name"
     return
   fi
 
   local primary="$choice" project="${choice:t}"
+  local psrv; psrv=$(__proj_srv "$project")
 
   # Non-git dir → plain home-base session, no worktree machinery.
   if ! git -C "$primary" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    __proj_launch "$project" "$primary" "$auto_claude"
+    __proj_launch "$psrv" "$project" "$primary" "$auto_claude"
     return
   fi
 
@@ -302,15 +371,16 @@ proj() {
 
   case "$pick" in
     "● "*)
-      local name="${pick#● }" d
+      local name="${pick#● }" d srv
       name="${name%%  — *}"   # drop the task-label suffix
-      d=$(tmux display-message -p -t "=$name" '#{pane_current_path}' 2>/dev/null)
+      srv=$(__proj_find_server "$name") || { echo "session gone: $name" >&2; return 1; }
+      d=$(tmux -L "$srv" display-message -p -t "=$name" '#{pane_current_path}' 2>/dev/null)
       [[ -n "$d" && -d "$d" ]] && cd "$d"
-      if [[ -n "$TMUX" ]]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
+      __proj_goto "$srv" "$name"
       ;;
     "🏠 "*)
       # Default branch → home base in the primary clone.
-      __proj_launch "$project" "$primary" "$auto_claude"
+      __proj_launch "$psrv" "$project" "$primary" "$auto_claude"
       ;;
     "+ new session here")
       # Additional workspace in the primary clone (project-2, -3, …) — never
@@ -323,7 +393,7 @@ proj() {
       [[ -z "$nb" ]] && return
       local wt; wt=$(__proj_ensure_worktree "$primary" "$nb") \
         || { echo "Could not create worktree for $nb" >&2; return 1; }
-      __proj_launch "$project/$nb" "$wt" "$auto_claude"
+      __proj_launch "$psrv" "$project/$nb" "$wt" "$auto_claude"
       ;;
     "+ prune worktrees…")
       __proj_prune_worktrees "$primary" "$project"
@@ -332,7 +402,7 @@ proj() {
       local branch="${pick#▸ }"; branch="${branch%% *}"
       local wt; wt=$(__proj_ensure_worktree "$primary" "$branch") \
         || { echo "Could not open worktree for $branch" >&2; return 1; }
-      __proj_launch "$project/$branch" "$wt" "$auto_claude"
+      __proj_launch "$psrv" "$project/$branch" "$wt" "$auto_claude"
       ;;
   esac
 }
@@ -395,13 +465,15 @@ pt() {
   fi
 
   # Find next free <project>-N (race-safe: new-session -d errors if taken).
+  # Sessions live on the project's OWN server (see per-project servers above).
+  local srv; srv=$(__proj_srv "$proj_name")
   local n=2 target
   while true; do
     target="${proj_name}-${n}"
     if (( auto_claude )) && command -v claude >/dev/null; then
-      if tmux new-session -d -s "$target" -c "$proj_dir" "claude" 2>/dev/null; then break; fi
+      if tmux -L "$srv" new-session -d -s "$target" -c "$proj_dir" "claude" 2>/dev/null; then break; fi
     else
-      if tmux new-session -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
+      if tmux -L "$srv" new-session -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
     fi
     n=$((n + 1))
     (( n > 50 )) && { echo "too many sessions" >&2; return 1; }
@@ -412,18 +484,20 @@ pt() {
   # for the full explanation), so keep yazi focused while it probes, then return
   # focus to the left pane after ~0.5s via a detached job.
   local left
-  left=$(tmux list-panes -t "$target" -F '#{pane_id}' 2>/dev/null | head -1)
-  tmux split-window -h -l 30% -t "$left" -c "$proj_dir" yazi
-  ( sleep 0.5; tmux select-pane -t "$left" 2>/dev/null ) &!
+  left=$(tmux -L "$srv" list-panes -t "$target" -F '#{pane_id}' 2>/dev/null | head -1)
+  tmux -L "$srv" split-window -h -l 30% -t "$left" -c "$proj_dir" yazi
+  ( sleep 0.5; tmux -L "$srv" select-pane -t "$left" 2>/dev/null ) &!
 
   if [[ -n "$TMUX" ]]; then
-    tmux switch-client -t "$target"
+    __proj_goto "$srv" "$target"
   else
-    exec tmux attach -t "$target"
+    exec tmux -L "$srv" attach -t "$target"
   fi
 }
 
-# Quick `tat` (tmux attach + create-if-missing) for a named session
+# Quick `tat` (tmux attach + create-if-missing) for a named session.
+# Deliberately stays on the shared default server — it's for ad-hoc scratch
+# sessions, not project workspaces (those get per-project servers via proj/pt).
 # Usage: tat work
 tat() {
   local name="${1:-${PWD:t}}"
@@ -454,24 +528,29 @@ proj-clean() {
   # Commands that count as "idle" (session reapable if every pane is one).
   local -a idle_cmds=(zsh bash fish sh yazi)
 
-  local current=""
-  [[ -n "$TMUX" ]] && current=$(tmux display-message -p '#{session_name}' 2>/dev/null)
+  local cur_srv current=""
+  cur_srv=$(__proj_cur_server)
+  [[ -n "$cur_srv" ]] && current=$(tmux display-message -p '#{session_name}' 2>/dev/null)
 
+  # Sweep every proj server (plus the legacy shared one). reap entries are
+  # "server<TAB>session" so the kill goes to the right server.
   local -a sessions reap cmds
-  local s c busy
-  sessions=(${(f)"$(tmux list-sessions -F '#{session_name}' 2>/dev/null)"})
-
-  for s in $sessions; do
-    [[ -z "$s" || "$s" == "$current" ]] && continue
-    cmds=(${(f)"$(tmux list-panes -t "$s" -F '#{pane_current_command}' 2>/dev/null)"})
-    busy=0
-    for c in $cmds; do
-      # (Ie) = exact-match reverse index; 0 means "not in idle_cmds".
-      if (( ${idle_cmds[(Ie)$c]} == 0 )); then
-        busy=1; break
-      fi
+  local srv s c busy
+  for srv in $(__proj_servers); do
+    sessions=(${(f)"$(tmux -L "$srv" list-sessions -F '#{session_name}' 2>/dev/null)"})
+    for s in $sessions; do
+      [[ -z "$s" ]] && continue
+      [[ "$srv" == "$cur_srv" && "$s" == "$current" ]] && continue
+      cmds=(${(f)"$(tmux -L "$srv" list-panes -t "$s" -F '#{pane_current_command}' 2>/dev/null)"})
+      busy=0
+      for c in $cmds; do
+        # (Ie) = exact-match reverse index; 0 means "not in idle_cmds".
+        if (( ${idle_cmds[(Ie)$c]} == 0 )); then
+          busy=1; break
+        fi
+      done
+      (( busy )) || reap+=("${srv}"$'\t'"${s}")
     done
-    (( busy )) || reap+=("$s")
   done
 
   if (( ${#reap[@]} == 0 )); then
@@ -479,14 +558,18 @@ proj-clean() {
     return 0
   fi
 
+  local e
   if (( dry )); then
     echo "Would reap ${#reap[@]} idle session(s):"
-    printf '  %s\n' "${reap[@]}"
+    for e in $reap; do printf '  %s  (%s)\n' "${e#*$'\t'}" "${e%%$'\t'*}"; done
     return 0
   fi
 
-  for s in $reap; do tmux kill-session -t "$s" 2>/dev/null; done
-  echo "Reaped ${#reap[@]} idle session(s): ${(j:, :)reap}"
+  local -a reaped
+  for e in $reap; do
+    tmux -L "${e%%$'\t'*}" kill-session -t "=${e#*$'\t'}" 2>/dev/null && reaped+=("${e#*$'\t'}")
+  done
+  echo "Reaped ${#reaped[@]} idle session(s): ${(j:, :)reaped}"
 }
 
 # Clear the attention banner (sessions with a pending bell flag).
@@ -505,18 +588,22 @@ bell-clear() {
   local kill_them=0
   [[ "$1" == "-k" || "$1" == "--kill" ]] && kill_them=1
 
+  # Flagged sessions across every proj server, as "server<TAB>session".
   local -a flagged
-  flagged=(${(f)"$(tmux list-windows -a -F '#{window_bell_flag} #{session_name}' 2>/dev/null | awk '$1==1{print $2}' | sort -u)"})
+  local srv
+  flagged=(${(f)"$(for srv in $(__proj_servers); do
+      tmux -L "$srv" list-windows -a -F "#{window_bell_flag} ${srv}"$'\t''#{session_name}' 2>/dev/null
+    done | awk -F'\t' '$1 ~ /^1 /{sub(/^1 /,"",$1); print $1"\t"$2}' | sort -u)"})
 
   if (( ${#flagged[@]} == 0 )); then
     echo "No bell flags to clear."
     return 0
   fi
 
+  local e
   if (( kill_them )); then
-    local s
-    for s in $flagged; do tmux kill-session -t "$s" 2>/dev/null; done
-    echo "Killed ${#flagged[@]} flagged session(s): ${(j:, :)flagged}"
+    for e in $flagged; do tmux -L "${e%%$'\t'*}" kill-session -t "=${e#*$'\t'}" 2>/dev/null; done
+    echo "Killed ${#flagged[@]} flagged session(s): ${(j:, :)${flagged[@]#*$'\t'}}"
     return 0
   fi
 
@@ -526,12 +613,23 @@ bell-clear() {
     return 1
   fi
 
-  local origin s
+  # Dismiss mode can only cycle sessions on THIS client's server — a client
+  # can't view windows on another server. Clear what we can, report the rest.
+  local cur_srv origin s
+  cur_srv=$(__proj_cur_server)
   origin=$(tmux display-message -p '#{session_name}')
-  for s in $flagged; do
-    tmux switch-client -t "$s" 2>/dev/null
-    sleep 0.1
+  local -a cleared skipped
+  for e in $flagged; do
+    srv="${e%%$'\t'*}"; s="${e#*$'\t'}"
+    if [[ "$srv" == "$cur_srv" ]]; then
+      tmux switch-client -t "=$s" 2>/dev/null
+      sleep 0.1
+      cleared+=("$s")
+    else
+      skipped+=("$s ($srv)")
+    fi
   done
-  tmux switch-client -t "$origin" 2>/dev/null
-  echo "Dismissed ${#flagged[@]} bell flag(s): ${(j:, :)flagged}"
+  tmux switch-client -t "=$origin" 2>/dev/null
+  (( ${#cleared[@]} )) && echo "Dismissed ${#cleared[@]} bell flag(s): ${(j:, :)cleared}"
+  (( ${#skipped[@]} )) && echo "On other servers (attach there or bell-clear -k): ${(j:, :)skipped}"
 }

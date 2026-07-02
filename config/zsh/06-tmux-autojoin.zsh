@@ -54,9 +54,17 @@ __auto_join_project() {
     return 0
   fi
 
-  # In a project dir, but its workspace isn't open yet. `proj` is the entry
+  # Each project has its own tmux server (socket proj-<name>) so a flooding
+  # pane can only lag its own project — see "per-project tmux servers" in
+  # 04-aliases.zsh. New sessions always go on the project server; the legacy
+  # shared server is only consulted to decide whether the workspace is open.
+  local srv; srv=$(__proj_srv "$proj_name")
+
+  # In a project dir, but its workspace isn't open yet (on either the project
+  # server or, transitionally, the legacy shared server). `proj` is the entry
   # point for creating it — launch the picker instead of a bare shell.
-  if ! tmux has-session -t "$proj_name" 2>/dev/null; then
+  if ! tmux -L "$srv" has-session -t "$proj_name" 2>/dev/null \
+     && ! tmux has-session -t "$proj_name" 2>/dev/null; then
     command -v proj >/dev/null 2>&1 && proj
     return 0
   fi
@@ -84,9 +92,9 @@ __auto_join_project() {
   while true; do
     target="${proj_name}-${n}"
     if [[ -n "$launch_cmd" ]]; then
-      if tmux new-session -d -s "$target" -c "$proj_dir" "$launch_cmd" 2>/dev/null; then break; fi
+      if tmux -L "$srv" new-session -d -s "$target" -c "$proj_dir" "$launch_cmd" 2>/dev/null; then break; fi
     else
-      if tmux new-session -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
+      if tmux -L "$srv" new-session -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
     fi
     n=$((n + 1))
     (( n > 50 )) && return 0
@@ -98,14 +106,14 @@ __auto_join_project() {
   # ~0.5s via a detached job. The subshell is forked before the `exec tmux
   # attach` below, so the timer survives the exec and still fires.
   local left
-  left=$(tmux list-panes -t "$target" -F '#{pane_id}' 2>/dev/null | head -1)
-  tmux split-window -h -l 30% -t "$left" -c "$proj_dir" yazi 2>/dev/null
-  ( sleep 0.5; tmux select-pane -t "$left" 2>/dev/null ) &!
+  left=$(tmux -L "$srv" list-panes -t "$target" -F '#{pane_id}' 2>/dev/null | head -1)
+  tmux -L "$srv" split-window -h -l 30% -t "$left" -c "$proj_dir" yazi 2>/dev/null
+  ( sleep 0.5; tmux -L "$srv" select-pane -t "$left" 2>/dev/null ) &!
 
   # Replace the current shell with a tmux client attached to the new
   # session. `exec` ensures detach (prefix d) closes the Ghostty tab
   # cleanly instead of dropping back to a stranded shell.
-  exec tmux attach -t "$target"
+  exec tmux -L "$srv" attach -t "$target"
 }
 
 # Fire at shell startup. The autoload+precmd dance isn't needed; we want
