@@ -8,16 +8,10 @@ yazi** with Claude Code integration.
 
 **1. Clone and install:**
 ```bash
-git clone https://github.com/schuettc/dotfiles.git ~/dotfiles
-cd ~/dotfiles && ./install.sh
+git clone https://github.com/schuettc/dotfiles.git ~/dotfiles && cd ~/dotfiles && ./install.sh
 ```
 
-**2. Set up shell history sync (optional):**
-```bash
-atuin login        # or: atuin register
-```
-
-**3. Open Ghostty, then:**
+**2. Open Ghostty, then:**
 ```bash
 proj               # pick a project → spawns a workspace (shell + yazi)
 ```
@@ -123,11 +117,14 @@ The install script configures [Claude Code](https://claude.ai/code) with:
 ├── bin/
 │   ├── tmux-git-status.sh      # branch + dirty count for status-right
 │   ├── tmux-claude-context.sh  # Claude context % for status-right
-│   └── tmux-attention.sh       # attention banner for status-left
+│   ├── tmux-attention.sh       # attention banner for status-left
+│   ├── tmux-session-color.sh   # stable name-hashed session color
+│   └── claude-attn             # raise/clear the Claude attention flag
 ├── config/
 │   ├── ghostty/config     # Terminal config (fonts, theme, keybinds)
 │   ├── yazi/              # File-explorer config (Catppuccin Mocha)
 │   ├── zsh/
+│   │   ├── 00-terminal.zsh      # OSC 7 cwd reporting (Ghostty new-tab dir)
 │   │   ├── 01-paths.zsh        # PATH + EDITOR (code --wait)
 │   │   ├── 02-nvm-lazy.zsh     # Lazy NVM loading
 │   │   ├── 03-tools.zsh        # Atuin, zoxide, fzf init
