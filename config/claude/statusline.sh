@@ -1,7 +1,7 @@
 #!/bin/bash
 # Claude Code Status Line.
 #
-# Runs once per Claude turn. Two responsibilities:
+# Runs once per Claude turn. Three responsibilities:
 #   1. Print the status line shown at the bottom of the Claude UI
 #      (model · context % · folder). Git status is intentionally omitted
 #      — tmux already shows branch + dirty count and the duplication was
@@ -10,6 +10,8 @@
 #      current context % for the focused Claude pane. The file is keyed
 #      by the inherited TMUX_PANE env var; bin/tmux-claude-context.sh
 #      reads it from the tmux side.
+#   3. Sync a custom Claude session name (/rename) into the tmux
+#      session's @claude_task label so it shows on every surface.
 
 input=$(cat)
 
@@ -39,6 +41,23 @@ if [[ -n "${TMUX_PANE:-}" ]]; then
   printf 'context_pct=%d\nmodel=%s\nupdated=%d\n' \
     "$CONTEXT_PCT" "$MODEL" "$(date +%s)" \
     > "$state_dir/$state_key" 2>/dev/null
+fi
+
+# ─── Sync Claude session rename → tmux task label ────────────────────
+# Claude includes `session_name` in the statusline JSON only when the
+# session has a custom name (/rename or --name); auto-derived names
+# never appear here. Copy it into the session-scoped @claude_task
+# option — the same label `prefix T` sets — so a rename shows up in
+# status-left, Ghostty tab titles, and the proj picker automatically.
+# Set-never-clear: an unnamed session leaves manual labels alone.
+# Plain `tmux` + inherited $TMUX reaches the right per-project server.
+SESSION_NAME=$(echo "$input" | jq -r '.session_name // ""')
+if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
+  current_label=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task 2>/dev/null)
+  if [[ "$SESSION_NAME" != "$current_label" ]]; then
+    tmux set-option -t "$TMUX_PANE" @claude_task "$SESSION_NAME" 2>/dev/null
+    tmux refresh-client -S 2>/dev/null
+  fi
 fi
 
 # ─── Print the in-Claude status line ─────────────────────────────────
