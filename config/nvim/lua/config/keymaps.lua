@@ -1,0 +1,3 @@
+-- Keymaps are automatically loaded on the VeryLazy event.
+-- LazyVim defaults: https://www.lazyvim.org/keymaps
+-- Add custom keymaps here only after real usage demands them.

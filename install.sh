@@ -81,6 +81,11 @@ echo "Linking yazi config..."
 backup_if_exists "$CONFIG_DIR/yazi"
 ln -sfn "$DOTFILES_DIR/config/yazi" "$CONFIG_DIR/yazi"
 
+# neovim config (LazyVim)
+echo "Linking neovim config..."
+backup_if_exists "$CONFIG_DIR/nvim"
+ln -sfn "$DOTFILES_DIR/config/nvim" "$CONFIG_DIR/nvim"
+
 # MarkEdit custom styles (editor + preview fonts).
 # MarkEdit is a sandboxed app; its settings live in the app container, not
 # ~/.config. We only link when the container exists (i.e. MarkEdit is installed),
