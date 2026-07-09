@@ -257,7 +257,7 @@ keys work directly:
 | Move up / down in the list | `k` / `j` (or arrow keys) |
 | Enter a directory | `l` or `Enter` |
 | Go up to parent directory | `h` or `Backspace` |
-| Open the selected file | `Enter` (opens in `$EDITOR`, usually vim) |
+| Open the selected file | `Enter` (opens in nvim, in this pane) |
 | **Copy file's absolute path** to clipboard | `c` then `c` |
 | Copy parent dir path | `c` then `d` |
 | Copy filename only | `c` then `f` |
@@ -268,18 +268,19 @@ keys work directly:
 
 ### After opening a file from yazi
 
-When you press `Enter` on a file, yazi launches VS Code **without
-blocking** — the terminal pane stays fully interactive.
+When you press `Enter` on a text file, nvim opens **in the yazi pane** and
+takes over until you quit — `:q` (or `ZZ` to save-and-quit) drops you
+straight back into yazi.
 
 | What happens | What to do |
 |---|---|
-| VS Code window opens with the file | Keep working in yazi — browse, copy paths, open more files. Each file opens in VS Code (existing window if open, or new). |
+| nvim opens with the file | Edit; `Space` shows every LazyVim keybinding. Quit to return to yazi. |
+| Markdown file | Opens in MarkEdit (GUI) instead; `O` on the file offers nvim. |
 | Image / PDF / non-text file | macOS opens it in Preview (or the default app). yazi is unaffected. |
 
-> Under the hood: yazi's `edit` opener is configured to run `code` with
-> `orphan = true` — fire-and-forget. The global `$EDITOR` is still
-> `code --wait` so git commit (and any other CLI tool that *needs* to
-> block on the editor) still works correctly. Best of both.
+> Under the hood: yazi's `edit` opener runs `nvim` with `block = true`, and
+> the global `$EDITOR` is `nvim` too — one editor everywhere (git commit,
+> crontab, `proj --edit`).
 
 ---
 

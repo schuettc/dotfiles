@@ -32,6 +32,9 @@ design rationale behind the migration off cmux.
   `.tmux.conf`.
 - **[yazi](https://yazi-rs.github.io)** — TUI file explorer that lives in a
   right-side pane. Config in `config/yazi/`.
+- **neovim** ([LazyVim](https://lazyvim.org)) — terminal editor and system-wide
+  `$EDITOR`. Config in `config/nvim/` (Catppuccin Mocha; TypeScript, Python,
+  and Go language servers via Mason).
 
 ### The workspace workflow
 
@@ -123,9 +126,10 @@ The install script configures [Claude Code](https://claude.ai/code) with:
 ├── config/
 │   ├── ghostty/config     # Terminal config (fonts, theme, keybinds)
 │   ├── yazi/              # File-explorer config (Catppuccin Mocha)
+│   ├── nvim/              # neovim config (LazyVim, Catppuccin Mocha)
 │   ├── zsh/
 │   │   ├── 00-terminal.zsh      # OSC 7 cwd reporting (Ghostty new-tab dir)
-│   │   ├── 01-paths.zsh        # PATH + EDITOR (code --wait)
+│   │   ├── 01-paths.zsh        # PATH + EDITOR (nvim)
 │   │   ├── 02-nvm-lazy.zsh     # Lazy NVM loading
 │   │   ├── 03-tools.zsh        # Atuin, zoxide, fzf init
 │   │   ├── 03-proj-roots.zsh   # project-roots loader (proj/pt)
