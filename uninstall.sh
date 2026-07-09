@@ -50,6 +50,7 @@ unlink_restore "$CONFIG_DIR/atuin"
 unlink_restore "$CONFIG_DIR/ghostty/config"
 unlink_restore "$HOME/.tmux.conf"
 unlink_restore "$CONFIG_DIR/yazi"
+unlink_restore "$CONFIG_DIR/nvim"
 unlink_restore "$CONFIG_DIR/claude"
 
 # claude-attn CLI symlink (the menu-bar / hook trigger)

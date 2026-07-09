@@ -34,7 +34,7 @@ cd ~/dotfiles
 `install.sh` is idempotent — safe to re-run. It will:
 
 1. Install Homebrew (if missing) and run `brew bundle` to install everything
-   in the `Brewfile`: Ghostty, tmux, yazi, fzf, fd, ripgrep, bat, eza,
+   in the `Brewfile`: Ghostty, tmux, yazi, neovim, fzf, fd, ripgrep, bat, eza,
    zoxide, atuin, starship, gh, jq, VS Code, Nerd Font casks, …
 2. Symlink configs into place (backing up any existing file to `*.bak`):
    - `~/.zshrc`, `~/.tmux.conf`
@@ -94,7 +94,8 @@ A few things can't be fully automated:
 | **MonoLisa font** | Paid font, not in the Brewfile. Drop your `.ttf`s into `~/Library/Fonts/` or Ghostty falls back to a default monospace. Needs **3.000+** — its family is `MonoLisaCode` (v2.x was `MonoLisa`), and the variable `MonoLisaCodeUpright.ttf` supplies every weight. |
 | **Atuin sync** | `atuin login` (existing account) or `atuin register` (new) for cross-machine shell history. |
 | **GitHub CLI** | `gh auth login` |
-| **VS Code** | Sign in for Settings Sync if you want your extensions. (`code` is the `$EDITOR` used by yazi + git commit.) |
+| **VS Code** | Sign in for Settings Sync if you want your extensions. (kept as a GUI editor; `$EDITOR` is nvim.) |
+| **neovim** | First `nvim` launch bootstraps lazy.nvim + restores the pinned plugins from `lazy-lock.json` + Mason installs language servers (needs network, takes a couple of minutes). On machines whose global pip config points at a private mirror, Mason's `ruff` install may need `PIP_INDEX_URL=https://pypi.org/simple nvim`; if `sum.golang.org` DNS fails, `gopls` may need `GOSUMDB=off`. |
 | **Claude Code** | First `claude` launch prompts to sign in. |
 | **SwiftBar Accessibility** | One-time, can't be automated (macOS TCC is SIP-protected). The menu-bar 🔔's **click-to-focus** (un-minimize + raise the waiting session's window) needs it: System Settings → Privacy & Security → **Accessibility** → enable **SwiftBar**, then quit + reopen it. The 🔔 badge and titles work *without* this — only click-to-bring-forward needs it. |
 | **1Password** | Sign in to the app + CLI if you use it. |

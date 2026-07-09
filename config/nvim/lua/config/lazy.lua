@@ -28,6 +28,7 @@ require("lazy").setup({
   defaults = { lazy = false, version = false },
   install = { colorscheme = { "catppuccin", "habamax" } },
   checker = { enabled = true, notify = false }, -- background plugin-update checks, no popup
+  rocks = { enabled = false }, -- no plugin needs luarocks; silences the hererocks checkhealth error
   performance = {
     rtp = {
       disabled_plugins = { "gzip", "tarPlugin", "tohtml", "tutor", "zipPlugin" },
