@@ -23,9 +23,7 @@ export PATH="$HOME/.local/bin:$PATH"
   export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
 
 # Default editor (used by yazi, git commit, crontab, etc.).
-# `--wait` is required so commands that block on the editor (git commit) only
-# return after the VS Code window is closed.
-if command -v code &> /dev/null; then
-  export EDITOR='code --wait'
-  export VISUAL='code --wait'
-fi
+# nvim runs in the terminal and blocks until you quit, so tools that wait
+# on the editor (git commit) need no --wait flag.
+export EDITOR='nvim'
+export VISUAL='nvim'

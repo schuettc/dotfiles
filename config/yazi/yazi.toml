@@ -22,13 +22,11 @@ image_filter  = "triangle"
 image_quality = 75
 
 # ─── Openers ─────────────────────────────────────────────────────────
-# Override the default `edit` opener so yazi launches VS Code without
-# waiting for the window to close. EDITOR='code --wait' remains the
-# system default (for git commit, crontab, etc.), but for yazi we want
-# fire-and-forget so the pane never freezes.
+# `edit` runs nvim inside the yazi pane and blocks until you quit —
+# :q / ZZ drops you straight back into yazi.
 [opener]
 edit = [
-  { run = 'code "$@"', desc = "VS Code (no wait)", orphan = true, for = "unix" },
+  { run = 'nvim "$@"', desc = "nvim", block = true, for = "unix" },
 ]
 reveal = [
   { run = 'open -R "$1"', desc = "Reveal in Finder", for = "macos" },
@@ -42,7 +40,7 @@ markedit = [
 
 [open]
 prepend_rules = [
-  # Markdown → MarkEdit by default (Enter); VS Code still available via `O`.
+  # Markdown → MarkEdit by default (Enter); nvim still available via `O`.
   # Match by `url` (path glob) — `.md` detects as text/plain so mime can't single
   # it out, and `[open]` rules don't accept `name`. Must precede the text/* rule.
   { url = "*.md",                    use = ["markedit", "edit", "reveal"] },
