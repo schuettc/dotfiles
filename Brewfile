@@ -27,6 +27,7 @@ brew "htop"               # Better top
 brew "tree"               # Directory tree view
 brew "tmux"               # Terminal multiplexer (sessions, splits, persistence)
 brew "yazi"               # TUI file manager (right-pane explorer)
+brew "neovim"             # Editor — $EDITOR, LazyVim config in config/nvim
 
 # ===================
 # Data Processing
@@ -68,7 +69,7 @@ cask "font-monaspice-nerd-font"
 # Apps
 # ===================
 cask "ghostty"            # Terminal emulator (native, GPU-accelerated)
-cask "visual-studio-code" # Editor ($EDITOR for yazi + git commit)
+cask "visual-studio-code" # GUI editor (kept installed; $EDITOR is nvim)
 cask "markedit"           # Markdown editor (custom styles via config/markedit/editor.css)
 cask "docker-desktop"     # Docker Desktop
 cask "swiftbar"           # Menu-bar runner — Claude attention indicator (config/swiftbar/plugins)
