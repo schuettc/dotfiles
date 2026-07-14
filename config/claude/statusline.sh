@@ -43,18 +43,23 @@ if [[ -n "${TMUX_PANE:-}" ]]; then
     > "$state_dir/$state_key" 2>/dev/null
 fi
 
-# ─── Sync Claude session rename → tmux task label ────────────────────
-# Claude includes `session_name` in the statusline JSON only when the
-# session has a custom name (/rename or --name); auto-derived names
-# never appear here. Copy it into the session-scoped @claude_task
-# option — the same label `prefix T` sets — so a rename shows up in
+# ─── Sync Claude session name → tmux task label ──────────────────────
+# Claude ships `session_name` in the statusline JSON whenever the session
+# has a name — both an explicit /rename and the auto-generated topic name
+# (e.g. "Debug tmux title …") land here. Copy it into the session-scoped
+# @claude_task option — the same label `prefix T` sets — so it shows in
 # status-left, Ghostty tab titles, and the proj picker automatically.
-# Set-never-clear: an unnamed session leaves manual labels alone.
+#
+# Manual wins: `prefix T` raises @claude_task_manual when you set a label
+# by hand, and this sync backs off while that flag is present so it can't
+# clobber your title every turn. Clearing the label (empty prefix T) drops
+# the flag and hands the label back to Claude's auto-name.
 # Plain `tmux` + inherited $TMUX reaches the right per-project server.
 SESSION_NAME=$(echo "$input" | jq -r '.session_name // ""')
 if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
+  is_manual=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task_manual 2>/dev/null)
   current_label=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task 2>/dev/null)
-  if [[ "$SESSION_NAME" != "$current_label" ]]; then
+  if [[ -z "$is_manual" && "$SESSION_NAME" != "$current_label" ]]; then
     tmux set-option -t "$TMUX_PANE" @claude_task "$SESSION_NAME" 2>/dev/null
     tmux refresh-client -S 2>/dev/null
   fi
