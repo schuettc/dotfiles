@@ -218,6 +218,21 @@ else
   echo "Skipping muster (repo not cloned at $MUSTER_REPO, or Go not installed)."
 fi
 
+# scratch: the per-worktree markdown scratchpad TUI (github.com/schuettc/scratch —
+# a private Go project). It is the top pane of every tmux workspace's right
+# column (see config/zsh/04-aliases.zsh -> __proj_right_column). When the repo is
+# cloned and Go is present, build the binary into ~/.local/bin. Idempotent; skips
+# cleanly if the repo/tools are absent.
+SCRATCH_REPO="$HOME/GitHub/schuettc/scratch"
+if [[ -d "$SCRATCH_REPO" ]] && command -v go &> /dev/null; then
+  echo "Building scratch (notes pane)..."
+  if ! go -C "$SCRATCH_REPO" build -o "$HOME/.local/bin/scratch" . 2>/dev/null; then
+    warn "scratch build failed — build it by hand: (cd $SCRATCH_REPO && go build -o ~/.local/bin/scratch .)"
+  fi
+else
+  echo "Skipping scratch (repo not cloned at $SCRATCH_REPO, or Go not installed)."
+fi
+
 # Claude attention indicator: the `claude-attn` CLI (raise/clear/list/focus the
 # per-session @claude_attn flag) + the SwiftBar menu-bar plugin. The Notification
 # hook and any script/skill call `claude-attn raise`; it surfaces as 🔔 in the
