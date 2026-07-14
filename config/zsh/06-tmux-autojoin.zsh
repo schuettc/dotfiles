@@ -100,15 +100,10 @@ __auto_join_project() {
     (( n > 50 )) && return 0
   done
 
-  # Add the yazi pane on the right. yazi always probes the terminal at startup
-  # and tmux routes the responses to the focused pane (see __proj_launch), so
-  # keep yazi focused while it probes, then return focus to the left pane after
-  # ~0.5s via a detached job. The subshell is forked before the `exec tmux
-  # attach` below, so the timer survives the exec and still fires.
-  local left
-  left=$(tmux -L "$srv" list-panes -t "$target" -F '#{pane_id}' 2>/dev/null | head -1)
-  tmux -L "$srv" split-window -h -l 30% -t "$left" -c "$proj_dir" yazi 2>/dev/null
-  ( sleep 0.5; tmux -L "$srv" select-pane -t "$left" 2>/dev/null ) &!
+  # Build the right column (scratch -> yazi -> shell); see __proj_right_column.
+  # The builder forks its work before the `exec tmux attach` below, so it
+  # survives the exec.
+  __proj_right_column "$srv" "$target" "$proj_dir"
 
   # Replace the current shell with a tmux client attached to the new
   # session. `exec` ensures detach (prefix d) closes the Ghostty tab

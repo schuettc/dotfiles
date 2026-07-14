@@ -82,6 +82,11 @@ alias reload='source ~/.zshrc'
 
 __proj_srv() { print -r -- "proj-$1"; }
 
+# Build the standard right column (scratch -> yazi -> shell) for a freshly
+# created session. Thin wrapper over the canonical builder so the same logic
+# serves proj / pt / auto-join and `prefix f`.
+__proj_right_column() { "$HOME/dotfiles/bin/proj-right-column.sh" "$@"; }
+
 # Socket names of all tmux servers with at least one live session. Dead
 # sockets (server already exited) fail the list-sessions probe; skip them.
 __proj_servers() {
@@ -138,25 +143,10 @@ __proj_launch() {
     else
       tmux -L "$srv" new-session -d -s "$name" -c "$dir"
     fi
-    # Split + select by PANE ID, not "=name": the "=" exact-match prefix is a
-    # session target and is NOT valid for split-window/select-pane (they want a
-    # pane), and ":0.0" is wrong under base-index 1. Pane ids (%NN) are global
-    # and unambiguous, so this works regardless of name (slashes ok) or indexing.
-    #
-    # yazi ALWAYS probes the terminal at startup (XTVERSION + DA1), even when it
-    # already knows the emulator — see yazi-emulator/src/emulator.rs::detect().
-    # tmux delivers the terminal's responses (which are input) to whatever pane
-    # is FOCUSED. So yazi must stay focused while it probes, or the responses
-    # leak into the shell as escape-code garbage (`>|ghostty 1.3.1…;…c`). Split
-    # WITHOUT -d so yazi is focused, let it read its own responses, then return
-    # focus to the left pane after ~0.5s via a detached job (so we never block
-    # the switch-client/attach below, and the timer survives it).
-    local left
-    left=$(tmux -L "$srv" list-panes -t "$name" -F '#{pane_id}' 2>/dev/null | head -1)
-    if [[ -n "$left" ]]; then
-      tmux -L "$srv" split-window -h -l 30% -t "$left" -c "$dir" yazi
-      ( sleep 0.5; tmux -L "$srv" select-pane -t "$left" 2>/dev/null ) &!
-    fi
+    # Build the right column (scratch -> yazi -> shell). The builder handles
+    # pane-id targeting, the per-app terminal-probe focus dance, and tags the
+    # panes @sidebar. It forks its work, so it never blocks the goto/attach below.
+    __proj_right_column "$srv" "$name" "$dir"
   fi
   __proj_goto "$srv" "$name"
 }
@@ -479,14 +469,8 @@ pt() {
     (( n > 50 )) && { echo "too many sessions" >&2; return 1; }
   done
 
-  # Add the yazi pane on the right (30%). yazi always probes the terminal at
-  # startup and tmux routes the responses to the focused pane (see __proj_launch
-  # for the full explanation), so keep yazi focused while it probes, then return
-  # focus to the left pane after ~0.5s via a detached job.
-  local left
-  left=$(tmux -L "$srv" list-panes -t "$target" -F '#{pane_id}' 2>/dev/null | head -1)
-  tmux -L "$srv" split-window -h -l 30% -t "$left" -c "$proj_dir" yazi
-  ( sleep 0.5; tmux -L "$srv" select-pane -t "$left" 2>/dev/null ) &!
+  # Build the right column (scratch -> yazi -> shell); see __proj_right_column.
+  __proj_right_column "$srv" "$target" "$proj_dir"
 
   if [[ -n "$TMUX" ]]; then
     __proj_goto "$srv" "$target"
