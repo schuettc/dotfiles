@@ -196,6 +196,10 @@ else
   echo "Skipping Codex MCP bridge (codex or claude not on PATH)."
 fi
 
+# Ensure the local bin dir exists before anything builds into it (muster,
+# scratch, etc.) — on a fresh machine it may not exist yet.
+mkdir -p "$HOME/.local/bin"
+
 # muster: the local multi-agent coordination bus (github.com/schuettc/muster —
 # a private Go project). When the repo is cloned and Go is present, build the
 # binary into ~/.local/bin and register it as an MCP server in Claude Code and
