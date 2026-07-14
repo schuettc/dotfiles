@@ -9,3 +9,6 @@ config/claude/todos/
 # Local backups (e.g. config files archived before a rewrite)
 *.bak
 *.bak.*
+.claude/worktrees/
+.claude/settings.local.json
+.superpowers/
