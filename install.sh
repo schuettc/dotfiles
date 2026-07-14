@@ -196,6 +196,28 @@ else
   echo "Skipping Codex MCP bridge (codex or claude not on PATH)."
 fi
 
+# muster: the local multi-agent coordination bus (github.com/schuettc/muster —
+# a private Go project). When the repo is cloned and Go is present, build the
+# binary into ~/.local/bin and register it as an MCP server in Claude Code and
+# Codex so agents in separate terminals can message/task each other (with a
+# tmux "wake" knocking the target pane). Idempotent; all steps skip cleanly if
+# the repo/tools are absent. Full docs live in the muster repo's README.
+MUSTER_REPO="$HOME/GitHub/schuettc/muster"
+if [[ -d "$MUSTER_REPO" ]] && command -v go &> /dev/null; then
+  echo "Building muster (coordination bus)..."
+  # Build the dev branch's worktree if checked out, else whatever's current.
+  if CGO_ENABLED=0 go -C "$MUSTER_REPO" build -o "$HOME/.local/bin/muster" ./cmd/muster 2>/dev/null; then
+    command -v claude &> /dev/null && ! claude mcp get muster &> /dev/null \
+      && { echo "Registering muster in Claude Code..."; claude mcp add muster -s user -- muster mcp || warn "Register muster in Claude by hand: claude mcp add muster -s user -- muster mcp"; }
+    command -v codex &> /dev/null && ! codex mcp get muster &> /dev/null \
+      && { echo "Registering muster in Codex..."; codex mcp add muster -- muster mcp || warn "Register muster in Codex by hand: codex mcp add muster -- muster mcp"; }
+  else
+    warn "muster build failed — build it by hand: (cd $MUSTER_REPO && go build -o ~/.local/bin/muster ./cmd/muster)"
+  fi
+else
+  echo "Skipping muster (repo not cloned at $MUSTER_REPO, or Go not installed)."
+fi
+
 # Claude attention indicator: the `claude-attn` CLI (raise/clear/list/focus the
 # per-session @claude_attn flag) + the SwiftBar menu-bar plugin. The Notification
 # hook and any script/skill call `claude-attn raise`; it surfaces as 🔔 in the

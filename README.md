@@ -127,6 +127,25 @@ Both run on a **ChatGPT subscription** (`codex login` — browser OAuth), not a
 metered OpenAI API key. Check auth with `codex login status`. See
 [`docs/codex-bridge.md`](docs/codex-bridge.md) for the day-to-day workflow.
 
+### muster — cross-terminal agent bus
+
+Where the Codex bridge is *vertical* (one terminal), **[muster](https://github.com/schuettc/muster)**
+is *horizontal*: a local coordination bus that lets standing agent sessions in
+separate terminals (Claude Code and/or Codex) message and hand tasks to each
+other — no copy/paste, subscription-only. When the muster repo is cloned and Go
+is installed, `install.sh` builds `~/.local/bin/muster` and registers it as an
+MCP server in both Claude Code and Codex (`claude mcp add muster -s user -- muster mcp`,
+`codex mcp add muster -- muster mcp`).
+
+- **In an agent session:** the agent calls `register_agent` once, then
+  `send_message` / `task_create` / `task_claim` / `get_inbox` / … to coordinate
+  with peers. A tmux "wake" knocks the recipient's pane so idle agents notice.
+- **From any shell:** `muster agents`, `muster inbox <alias>`, `muster tasks <alias>`,
+  `muster send <alias> "…" --from me` to observe and drive the bus.
+
+Verify with `claude mcp list` (`muster … ✔ Connected`). Full docs live in the
+muster repo's README.
+
 ## Structure
 
 ```
