@@ -222,19 +222,23 @@ else
   echo "Skipping muster (repo not cloned at $MUSTER_REPO, or Go not installed)."
 fi
 
-# scratch: the per-worktree markdown scratchpad TUI (github.com/schuettc/scratch —
-# a private Go project). It is the top pane of every tmux workspace's right
-# column (see config/zsh/04-aliases.zsh -> __proj_right_column). When the repo is
-# cloned and Go is present, build the binary into ~/.local/bin. Idempotent; skips
-# cleanly if the repo/tools are absent.
-SCRATCH_REPO="$HOME/GitHub/schuettc/scratch"
-if [[ -d "$SCRATCH_REPO" ]] && command -v go &> /dev/null; then
-  echo "Building scratch (notes pane)..."
-  if ! go -C "$SCRATCH_REPO" build -o "$HOME/.local/bin/scratch" . 2>/dev/null; then
-    warn "scratch build failed — build it by hand: (cd $SCRATCH_REPO && go build -o ~/.local/bin/scratch .)"
+# scratch: the per-worktree markdown scratchpad TUI (github.com/schuettc/scratch,
+# public). It is the top pane of every tmux workspace's right column (see
+# config/zsh/04-aliases.zsh -> __proj_right_column). Install the published module
+# into ~/.local/bin; if `go install` can't reach the network, fall back to
+# building a local clone if one is present. Idempotent; skips if Go is absent.
+if command -v go &> /dev/null; then
+  echo "Installing scratch (notes pane)..."
+  if ! GOBIN="$HOME/.local/bin" go install github.com/schuettc/scratch@latest 2>/dev/null; then
+    SCRATCH_REPO="$HOME/GitHub/schuettc/scratch"
+    if [[ -d "$SCRATCH_REPO" ]] && go -C "$SCRATCH_REPO" build -o "$HOME/.local/bin/scratch" . 2>/dev/null; then
+      : # offline: built from the local clone
+    else
+      warn "scratch install failed — try: GOBIN=~/.local/bin go install github.com/schuettc/scratch@latest"
+    fi
   fi
 else
-  echo "Skipping scratch (repo not cloned at $SCRATCH_REPO, or Go not installed)."
+  echo "Skipping scratch (Go not installed)."
 fi
 
 # Claude attention indicator: the `claude-attn` CLI (raise/clear/list/focus the
