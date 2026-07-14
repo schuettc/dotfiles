@@ -46,6 +46,14 @@ brew "uv"                 # Fast Python package manager
 brew "awscli"             # AWS CLI
 
 # ===================
+# AI Coding Agents
+# ===================
+# Claude Code installs via its own native installer (~/.local/bin/claude).
+cask "codex"              # OpenAI Codex CLI — GPT coding agent; bridged into
+                          # Claude Code as an MCP server (see install.sh). Sign in
+                          # with `codex login` (ChatGPT subscription, not API key).
+
+# ===================
 # Security & Auth
 # ===================
 cask "1password-cli"      # 1Password CLI (op)

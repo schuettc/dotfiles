@@ -180,6 +180,22 @@ else
 EOF
 fi
 
+# Codex MCP bridge: register the OpenAI Codex CLI as an MCP server inside Claude
+# Code (user scope), so Claude can delegate discrete coding tasks / second opinions
+# to GPT via `codex mcp-server`. Runs on the ChatGPT subscription (`codex login`),
+# not an API key. Idempotent — skip if codex is missing or already registered.
+if command -v codex &> /dev/null && command -v claude &> /dev/null; then
+  if claude mcp get codex &> /dev/null; then
+    echo "Codex MCP bridge already registered — skipping."
+  else
+    echo "Registering Codex as an MCP server in Claude Code..."
+    claude mcp add codex -s user -- codex mcp-server \
+      || warn "Couldn't register Codex MCP server — run 'claude mcp add codex -s user -- codex mcp-server' by hand."
+  fi
+else
+  echo "Skipping Codex MCP bridge (codex or claude not on PATH)."
+fi
+
 # Claude attention indicator: the `claude-attn` CLI (raise/clear/list/focus the
 # per-session @claude_attn flag) + the SwiftBar menu-bar plugin. The Notification
 # hook and any script/skill call `claude-attn raise`; it surfaces as 🔔 in the
@@ -219,6 +235,8 @@ echo "  1. Open Ghostty (cmd+space → \"Ghostty\") and run: source ~/.zshrc"
 echo "  2. Run \`proj\` and pick a project to spin up your first workspace."
 echo "  3. Inside a project, cmd+T spawns more terminals (auto-joins tmux)."
 echo "  4. Set up Atuin sync (optional): atuin register / atuin login"
+echo "  4b. Sign in to Codex (needs a ChatGPT subscription): codex login"
+echo "      Verify with 'codex login status'; Claude Code reaches it via the codex MCP tool."
 if [[ -n "$SWIFTBAR_A11Y_NOTE" ]]; then
   echo "  5. ⚠ MANUAL: $SWIFTBAR_A11Y_NOTE —"
   echo "     System Settings → Privacy & Security → Accessibility → enable SwiftBar,"

@@ -109,6 +109,24 @@ The install script configures [Claude Code](https://claude.ai/code) with:
   the status-left attention banner and a 🔔 on the Ghostty tab. Purely
   in-terminal — no macOS notification, no Dock bounce.
 
+### Codex (GPT) bridge
+
+Claude Code stays the primary harness, with [OpenAI Codex](https://github.com/openai/codex)
+(`cask "codex"`) wired in two complementary ways so you get GPT for a second
+opinion without leaving Claude Code:
+
+- **MCP bridge** — `install.sh` registers Codex as a user-scope MCP server
+  (`claude mcp add codex -s user -- codex mcp-server`), so Claude Code can
+  delegate a discrete coding task or ask GPT for a second opinion mid-session
+  via the `codex` MCP tool. Verify with `claude mcp list` (look for
+  `codex … ✔ Connected`).
+- **Standalone** — `codex` in its own tab for an independent pass; run both
+  agents on the same tricky task and let agreement/divergence guide you.
+
+Both run on a **ChatGPT subscription** (`codex login` — browser OAuth), not a
+metered OpenAI API key. Check auth with `codex login status`. See
+[`docs/codex-bridge.md`](docs/codex-bridge.md) for the day-to-day workflow.
+
 ## Structure
 
 ```
@@ -144,6 +162,7 @@ The install script configures [Claude Code](https://claude.ai/code) with:
 └── docs/
     ├── terminal-usage.md  # day-to-day cheat sheet
     ├── terminal-setup.md  # install tutorial
+    ├── codex-bridge.md    # Claude Code + Codex (GPT) workflow
     └── setup-notes.md     # design rationale / running log
 ```
 
