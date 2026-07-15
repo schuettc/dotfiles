@@ -20,6 +20,13 @@ See [`docs/terminal-usage.md`](docs/terminal-usage.md) for the day-to-day
 cheat sheet, and [`docs/setup-notes.md`](docs/setup-notes.md) for the full
 design rationale behind the migration off cmux.
 
+### Selective install
+
+Don't want everything `install.sh` installs? Clone the repo, open `claude`
+in it, and ask it to run the install wizard — it walks you through each
+package (what it is, what it touches), lets you pick a subset, and installs
+only those.
+
 ## What's Included
 
 ### Terminal stack: Ghostty + tmux + yazi
@@ -69,7 +76,7 @@ Screen-2 rows, `.worktreeinclude`, pruning, and the `⚠ primary` status-bar cue
 - **Lazy-loaded NVM** — Node available immediately, NVM loads on demand
 - **Starship prompt** — two-line prompt with git status, language versions, AWS profile
 
-### Modern CLI Tools (via Brewfile)
+### Modern CLI Tools (via packages/*/Brewfile)
 | Tool | Replaces | Purpose |
 |------|----------|---------|
 | eza | ls | File listing with icons and git status |
@@ -132,15 +139,18 @@ metered OpenAI API key. Check auth with `codex login status`. See
 Where the Codex bridge is *vertical* (one terminal), **[muster](https://github.com/schuettc/muster)**
 is *horizontal*: a local coordination bus that lets standing agent sessions in
 separate terminals (Claude Code and/or Codex) message and hand tasks to each
-other — no copy/paste, subscription-only. `install.sh` self-installs the whole
-stack when Go is present: clones the (private) repo to `~/GitHub/schuettc/muster`
-if missing, builds `~/.local/bin/muster`, installs a **LaunchAgent**
-(`tools.muster.serve` — `muster serve` runs at login, restarts on crash, logs to
+other — no copy/paste, subscription-only. The `muster` package self-installs
+the whole stack when Go is present: clones the repo (now public — HTTPS, no
+SSH auth needed) to `~/GitHub/schuettc/muster` if missing, builds
+`~/.local/bin/muster`, installs a **LaunchAgent** (`tools.muster.serve` —
+`muster serve` runs at login, restarts on crash, logs to
 `~/.local/share/muster/serve.log`), and registers the MCP server in both Claude
 Code and Codex (`claude mcp add muster -s user -- muster mcp`,
 `codex mcp add muster -- muster mcp`). Session hooks (auto-register on the bus +
 self-resolving inbox via `bin/muster-session-hook.sh`) are merged into the
-Claude/Codex settings by the same script.
+Claude/Codex settings by the same script. Don't want muster? Skip it and pick
+the rest of the packages with the install-wizard skill (see "Selective
+install" below).
 
 - **In an agent session:** the agent calls `register_agent` once, then
   `send_message` / `task_create` / `task_claim` / `get_inbox` / … to coordinate
@@ -157,8 +167,12 @@ muster repo's README.
 ~/dotfiles/
 ├── .zshrc                 # Minimal loader, sources config/zsh/*
 ├── .tmux.conf             # tmux config (prefix C-a, plugins, status bar)
-├── Brewfile               # Homebrew packages and casks
-├── install.sh             # One-command setup
+├── install.sh             # One-command setup — runs every package below
+├── packages/
+│   ├── lib.sh             # Shared install helpers (run_pkg, warn/die, backups)
+│   ├── run.sh             # Runs an explicit package list (the wizard's entry point)
+│   └── <name>/pkg.sh      # Per-package install/verify + its own Brewfile
+│       # core terminal nvim markedit claude swiftbar codex muster
 ├── bin/
 │   ├── tmux-git-status.sh      # branch + dirty count for status-right
 │   ├── tmux-claude-context.sh  # Claude context % for status-right
@@ -199,13 +213,13 @@ muster repo's README.
 | The prompt | `config/starship.toml` ([starship.rs/config](https://starship.rs/config/)) |
 | Terminal settings / keybinds | `config/ghostty/config` |
 | tmux behavior / status bar | `.tmux.conf` |
-| Homebrew packages | `Brewfile`, then `brew bundle` |
+| Homebrew packages | `packages/<name>/Brewfile`, then `brew bundle --file=packages/<name>/Brewfile` |
 
 ## Requirements
 
 - macOS
 - [Homebrew](https://brew.sh)
-- MonoLisa font (paid; not in Brewfile) — without it Ghostty falls back to a
+- MonoLisa font (paid; not in any package's Brewfile) — without it Ghostty falls back to a
   default monospace. Install your `.ttf`s into `~/Library/Fonts/` first. The
   config expects MonoLisa **3.000+**, whose family is `MonoLisaCode` (v2.x
   shipped as `MonoLisa`); on 3.000 the variable `MonoLisaCodeUpright.ttf` covers
