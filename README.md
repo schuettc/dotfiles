@@ -147,8 +147,8 @@ SSH auth needed) to `~/GitHub/schuettc/muster` if missing, builds
 `~/.local/share/muster/serve.log`), and registers the MCP server in both Claude
 Code and Codex (`claude mcp add muster -s user -- muster mcp`,
 `codex mcp add muster -- muster mcp`). Session hooks (auto-register on the bus +
-self-resolving inbox via `bin/muster-session-hook.sh`) are merged into the
-Claude/Codex settings by the same script. Don't want muster? Skip it and pick
+self-resolving inbox via `muster hook`, built into the binary since v0.3.0) are
+merged into the Claude/Codex settings by the same script. Don't want muster? Skip it and pick
 the rest of the packages with the install-wizard skill (see "Selective
 install" below).
 

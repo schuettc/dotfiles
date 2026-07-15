@@ -72,8 +72,12 @@ EOF
   fi
 
   # Claude session hooks: auto-register on the muster bus + self-resolving
-  # inbox, via bin/muster-session-hook.sh. Additive merge — set/ensure our
-  # hook entries WITHOUT touching entries owned by other packages (claude).
+  # inbox, via the muster binary itself (v0.3.0 `muster hook`; the old
+  # bin/muster-session-hook.sh is retired — its behavior was ported into the
+  # binary, reference copy in muster's contrib/). Additive merge — set/ensure
+  # our hook entries WITHOUT touching entries owned by other packages
+  # (claude). The migrate step strips any legacy script entries first, so
+  # existing machines converge to the binary hooks on re-run.
   local settings="$HOME/.claude/settings.json"
   if command -v claude &> /dev/null && command -v jq &> /dev/null; then
     [[ -f "$settings" ]] || echo '{}' > "$settings"
@@ -82,25 +86,31 @@ EOF
       def ensure_hook(ev; cmd; entry):
         .hooks[ev] = ((.hooks[ev] // [])
           | if ([.[].hooks[]?.command] | index(cmd)) then . else . + [entry] end);
-      ensure_hook("Stop"; "~/dotfiles/bin/muster-session-hook.sh Stop claude";
-        {"hooks":[{"type":"command","command":"~/dotfiles/bin/muster-session-hook.sh Stop claude"}]})
-      | ensure_hook("SessionStart"; "~/dotfiles/bin/muster-session-hook.sh SessionStart claude";
-        {"matcher":"startup|resume","hooks":[{"type":"command","command":"~/dotfiles/bin/muster-session-hook.sh SessionStart claude"}]})
+      (.hooks // {}) |= with_entries(.value |= (
+        map(.hooks |= map(select(.command // "" | contains("muster-session-hook.sh") | not)))
+        | map(select((.hooks | length) > 0))))
+      | ensure_hook("Stop"; "~/.local/bin/muster hook Stop claude";
+        {"hooks":[{"type":"command","command":"~/.local/bin/muster hook Stop claude"}]})
+      | ensure_hook("SessionStart"; "~/.local/bin/muster hook SessionStart claude";
+        {"matcher":"startup|resume","hooks":[{"type":"command","command":"~/.local/bin/muster hook SessionStart claude"}]})
+      | ensure_hook("SessionEnd"; "~/.local/bin/muster hook SessionEnd claude";
+        {"hooks":[{"type":"command","command":"~/.local/bin/muster hook SessionEnd claude"}]})
     ' "$settings" > "$tmp"; then mv "$tmp" "$settings"
     else rm -f "$tmp"; warn "muster: Claude hooks merge failed — settings.json untouched."; fi
   fi
 
-  # Codex session hooks: auto-register on the muster bus + self-resolving inbox, via
-  # bin/muster-session-hook.sh. Written with an absolute path (Codex hook commands
-  # don't reliably expand ~). Idempotent; Codex prompts once to trust the file
-  # (trust is by content-hash) on the next 'codex' launch.
+  # Codex session hooks: auto-register on the muster bus + self-resolving
+  # inbox, via `muster hook` (v0.3.0 binary-native). Written with an absolute
+  # path (Codex hook commands don't reliably expand ~). Idempotent; Codex
+  # prompts once to trust the file (trust is by content-hash) on the next
+  # 'codex' launch.
   if command -v codex &> /dev/null; then
     mkdir -p "$HOME/.codex"
     cat > "$HOME/.codex/hooks.json" <<EOF
 {
   "hooks": {
-    "SessionStart": [{"hooks":[{"type":"command","command":"$DOTFILES_DIR/bin/muster-session-hook.sh SessionStart codex"}]}],
-    "Stop":         [{"hooks":[{"type":"command","command":"$DOTFILES_DIR/bin/muster-session-hook.sh Stop codex"}]}]
+    "SessionStart": [{"hooks":[{"type":"command","command":"$HOME/.local/bin/muster hook SessionStart codex"}]}],
+    "Stop":         [{"hooks":[{"type":"command","command":"$HOME/.local/bin/muster hook Stop codex"}]}]
   }
 }
 EOF
@@ -117,7 +127,7 @@ pkg_verify() {
   if command -v claude &> /dev/null; then
     claude mcp get muster &> /dev/null && echo "  PASS claude MCP registered" || { echo "  FAIL claude MCP registered"; ok=1; }
   fi
-  jq -e '[.hooks.Stop[].hooks[]?.command] | index("~/dotfiles/bin/muster-session-hook.sh Stop claude")' "$s" >/dev/null 2>&1 \
+  jq -e '[.hooks.Stop[].hooks[]?.command] | index("~/.local/bin/muster hook Stop claude")' "$s" >/dev/null 2>&1 \
     && echo "  PASS Stop hook wired" || { echo "  FAIL Stop hook wired"; ok=1; }
   return $ok
 }
