@@ -235,16 +235,60 @@ fi
 mkdir -p "$HOME/.local/bin"
 
 # muster: the local multi-agent coordination bus (github.com/schuettc/muster —
-# a private Go project). When the repo is cloned and Go is present, build the
-# binary into ~/.local/bin and register it as an MCP server in Claude Code and
-# Codex so agents in separate terminals can message/task each other (with a
-# tmux "wake" knocking the target pane). Idempotent; all steps skip cleanly if
-# the repo/tools are absent. Full docs live in the muster repo's README.
+# a private Go project). Fully self-installing when Go is present:
+#   clone (if missing) → build → LaunchAgent daemon → MCP registration.
+# The session hooks (auto-register + self-resolving inbox) are wired above in
+# the Claude/Codex settings merges; docs live in the muster repo's README.
 MUSTER_REPO="$HOME/GitHub/schuettc/muster"
+if command -v go &> /dev/null; then
+  if [[ ! -d "$MUSTER_REPO" ]]; then
+    echo "Cloning muster (private repo — needs GitHub SSH auth)..."
+    mkdir -p "$(dirname "$MUSTER_REPO")"
+    git clone git@github.com:schuettc/muster.git "$MUSTER_REPO" 2>/dev/null \
+      || warn "muster clone failed (no SSH auth to github.com:schuettc/muster?) — clone it by hand and re-run."
+  fi
+fi
 if [[ -d "$MUSTER_REPO" ]] && command -v go &> /dev/null; then
   echo "Building muster (coordination bus)..."
-  # Build the dev branch's worktree if checked out, else whatever's current.
+  # Build whatever branch the clone has checked out (dev during development).
   if CGO_ENABLED=0 go -C "$MUSTER_REPO" build -o "$HOME/.local/bin/muster" ./cmd/muster 2>/dev/null; then
+    # ── Daemon via LaunchAgent ─────────────────────────────────────────
+    # `muster serve` owns ~/.local/share/muster/{sock,bus.db}; everything
+    # (MCP tools, CLI, session hooks) is dead without it, so it must be
+    # supervised — KeepAlive restarts it on crash, RunAtLoad on login.
+    # PATH matters: the daemon shells out to `tmux` for the 📬 wake, and
+    # launchd's default PATH has no /opt/homebrew/bin — without it the bus
+    # works but notifications silently never appear.
+    MUSTER_PLIST="$HOME/Library/LaunchAgents/tools.muster.serve.plist"
+    mkdir -p "$HOME/Library/LaunchAgents" "$HOME/.local/share/muster"
+    cat > "$MUSTER_PLIST" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>tools.muster.serve</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$HOME/.local/bin/muster</string>
+    <string>serve</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:$HOME/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>StandardOutPath</key><string>$HOME/.local/share/muster/serve.log</string>
+  <key>StandardErrorPath</key><string>$HOME/.local/share/muster/serve.log</string>
+</dict>
+</plist>
+EOF
+    echo "Starting muster daemon (LaunchAgent)..."
+    launchctl bootout "gui/$(id -u)/tools.muster.serve" 2>/dev/null || true
+    pkill -f "$HOME/.local/bin/muster serve" 2>/dev/null || true   # reap any hand-started daemon holding the socket
+    launchctl bootstrap "gui/$(id -u)" "$MUSTER_PLIST" 2>/dev/null \
+      || warn "Couldn't bootstrap muster LaunchAgent — run: launchctl bootstrap gui/\$(id -u) $MUSTER_PLIST"
+    # ── MCP registration (idempotent) ──────────────────────────────────
     command -v claude &> /dev/null && ! claude mcp get muster &> /dev/null \
       && { echo "Registering muster in Claude Code..."; claude mcp add muster -s user -- muster mcp || warn "Register muster in Claude by hand: claude mcp add muster -s user -- muster mcp"; }
     command -v codex &> /dev/null && ! codex mcp get muster &> /dev/null \

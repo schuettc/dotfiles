@@ -132,10 +132,15 @@ metered OpenAI API key. Check auth with `codex login status`. See
 Where the Codex bridge is *vertical* (one terminal), **[muster](https://github.com/schuettc/muster)**
 is *horizontal*: a local coordination bus that lets standing agent sessions in
 separate terminals (Claude Code and/or Codex) message and hand tasks to each
-other — no copy/paste, subscription-only. When the muster repo is cloned and Go
-is installed, `install.sh` builds `~/.local/bin/muster` and registers it as an
-MCP server in both Claude Code and Codex (`claude mcp add muster -s user -- muster mcp`,
-`codex mcp add muster -- muster mcp`).
+other — no copy/paste, subscription-only. `install.sh` self-installs the whole
+stack when Go is present: clones the (private) repo to `~/GitHub/schuettc/muster`
+if missing, builds `~/.local/bin/muster`, installs a **LaunchAgent**
+(`tools.muster.serve` — `muster serve` runs at login, restarts on crash, logs to
+`~/.local/share/muster/serve.log`), and registers the MCP server in both Claude
+Code and Codex (`claude mcp add muster -s user -- muster mcp`,
+`codex mcp add muster -- muster mcp`). Session hooks (auto-register on the bus +
+self-resolving inbox via `bin/muster-session-hook.sh`) are merged into the
+Claude/Codex settings by the same script.
 
 - **In an agent session:** the agent calls `register_agent` once, then
   `send_message` / `task_create` / `task_claim` / `get_inbox` / … to coordinate
