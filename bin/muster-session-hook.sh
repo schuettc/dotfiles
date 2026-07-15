@@ -46,7 +46,10 @@ case "$event" in
     # Tell the agent to drain its inbox and act autonomously. decision:block makes
     # both Claude and Codex continue with `reason` as the next prompt. When the
     # agent calls get_inbox, the daemon clears @muster_inbox → next Stop is quiet.
-    reason="You have ${count} unread muster message(s). Call your muster get_inbox tool now, read each new thread with get_thread, handle the request, and reply with the muster reply tool. Act autonomously — do not ask the user."
+    # Embed this session's alias (its tmux session name = its muster alias) so the
+    # agent calls get_inbox with the right alias directly instead of guessing.
+    alias="$(tmux display-message -p '#{session_name}' 2>/dev/null)"
+    reason="You have ${count} unread muster message(s). Your muster alias is '${alias}' (this tmux session). Call your muster get_inbox tool now with alias '${alias}', read each new thread with get_thread, handle the request, and reply with the muster reply tool. Act autonomously — do not ask the user."
     if command -v jq >/dev/null 2>&1; then
       jq -nc --arg r "$reason" '{decision:"block",reason:$r}'
     else
