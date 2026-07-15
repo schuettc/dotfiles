@@ -12,7 +12,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 ORDER=(core terminal nvim markedit claude swiftbar codex muster)
 
-requested() { local p; for p in "$@"; do [[ "$p" == "$1" ]] && return 0; done; return 1; }
+requested() { local needle="$1" p; shift; for p in "$@"; do [[ "$p" == "$needle" ]] && return 0; done; return 1; }
 
 # Validate names + dep closure before touching anything.
 for name in "$@"; do
