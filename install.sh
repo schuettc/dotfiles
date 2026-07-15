@@ -12,6 +12,11 @@ WARNINGS=()
 warn() { printf '  ⚠ %s\n' "$1" >&2; WARNINGS+=("$1"); }
 die()  { printf '\n✗ FATAL: %s\n' "$1" >&2; exit 1; }
 
+# macOS only — this setup leans on Homebrew casks, launchd (muster LaunchAgent),
+# SwiftBar/osascript, and pbcopy throughout. Fail loudly up front rather than
+# leaving a Linux/WSL machine half-configured.
+[[ "$(uname)" == "Darwin" ]] || die "This install is macOS-only (found $(uname)). No Linux/Windows support yet."
+
 echo "Installing dotfiles..."
 
 # Homebrew — fatal if we can't get it, since everything else depends on it.
