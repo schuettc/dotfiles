@@ -1,5 +1,6 @@
 brew "tmux"               # Terminal multiplexer (sessions, splits, persistence)
 brew "yazi"               # TUI file manager (right-pane explorer)
+brew "go"                 # Build toolchain for scratch (and muster)
 cask "ghostty"            # Terminal emulator (native, GPU-accelerated)
 cask "font-fira-code-nerd-font"
 cask "font-meslo-lg-nerd-font"

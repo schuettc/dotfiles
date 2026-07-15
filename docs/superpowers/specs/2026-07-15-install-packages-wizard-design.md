@@ -24,7 +24,7 @@ Hard deps only where things actually break without them:
 | package  | contents                                                              | deps     |
 |----------|-----------------------------------------------------------------------|----------|
 | core     | brew bootstrap, CLI formulas (eza/bat/rg/fd/zoxide/fzf/delta/lazygit/atuin/jq/gh/…), zsh configs, starship, atuin import | —        |
-| terminal | Ghostty cask+config, tmux + .tmux.conf + TPM bootstrap, yazi, tmux helper bins (tmux-*.sh, proj-right-column.sh) | core     |
+| terminal | Ghostty cask+config, tmux + .tmux.conf + TPM bootstrap, yazi, tmux helper bins (tmux-*.sh, proj-right-column.sh), scratch (go install) | core     |
 | nvim     | neovim formula + LazyVim config                                        | core     |
 | markedit | MarkEdit editor styles (skips cleanly if app absent)                   | core     |
 | claude   | statusline, notify hook, settings merge, claude-attn CLI               | core     |

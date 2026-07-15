@@ -48,6 +48,25 @@ pkg_install() {
     env -u TMUX tmux -L _bootstrap_tpm run-shell "$HOME/.tmux/plugins/tpm/bin/install_plugins" 2>/dev/null || true
     env -u TMUX tmux -L _bootstrap_tpm kill-server 2>/dev/null || true
   fi
+
+  # scratch: the per-worktree markdown scratchpad TUI (github.com/schuettc/scratch,
+  # public). It is the top pane of every tmux workspace's right column (see
+  # config/zsh/04-aliases.zsh -> __proj_right_column). Install the published module
+  # into ~/.local/bin; if `go install` can't reach the network, fall back to
+  # building a local clone if one is present. Idempotent; skips if Go is absent.
+  if command -v go &> /dev/null; then
+    echo "Installing scratch (notes pane)..."
+    if ! GOBIN="$HOME/.local/bin" go install github.com/schuettc/scratch@latest 2>/dev/null; then
+      SCRATCH_REPO="$HOME/GitHub/schuettc/scratch"
+      if [[ -d "$SCRATCH_REPO" ]] && go -C "$SCRATCH_REPO" build -o "$HOME/.local/bin/scratch" . 2>/dev/null; then
+        : # offline: built from the local clone
+      else
+        warn "scratch install failed — try: GOBIN=~/.local/bin go install github.com/schuettc/scratch@latest"
+      fi
+    fi
+  else
+    echo "Skipping scratch (Go not installed)."
+  fi
 }
 
 pkg_verify() {
@@ -58,5 +77,7 @@ pkg_verify() {
   [[ -d "$HOME/.tmux/plugins/tpm" ]] && echo "  PASS TPM" || { echo "  FAIL TPM missing"; ok=1; }
   [[ "$(readlink "$CONFIG_DIR/yazi")" == "$DOTFILES_DIR/config/yazi" ]] \
     && echo "  PASS yazi config" || { echo "  FAIL yazi config"; ok=1; }
+  { [[ -x "$HOME/.local/bin/scratch" ]] || command -v scratch &> /dev/null; } \
+    && echo "  PASS scratch" || { echo "  FAIL scratch"; ok=1; }
   return $ok
 }

@@ -8,6 +8,7 @@ pkg_install() {
   mkdir -p "$HOME/.claude/sessions"
   backup_if_exists "$CONFIG_DIR/claude"
   ln -sfn "$DOTFILES_DIR/config/claude" "$CONFIG_DIR/claude"
+  mkdir -p "$HOME/.local/bin"
   ln -sf "$DOTFILES_DIR/bin/claude-attn" "$HOME/.local/bin/claude-attn"
 
   local settings="$HOME/.claude/settings.json"
@@ -39,7 +40,7 @@ pkg_verify() {
   local ok=0 s="$HOME/.claude/settings.json"
   [[ "$(readlink "$CONFIG_DIR/claude")" == "$DOTFILES_DIR/config/claude" ]] \
     && echo "  PASS ~/.config/claude -> repo" || { echo "  FAIL config link"; ok=1; }
-  command -v claude-attn &> /dev/null && echo "  PASS claude-attn" || { echo "  FAIL claude-attn"; ok=1; }
+  [[ -x "$HOME/.local/bin/claude-attn" ]] && echo "  PASS claude-attn" || { echo "  FAIL claude-attn"; ok=1; }
   jq -e '.statusLine.command == "~/.config/claude/statusline.sh"' "$s" >/dev/null 2>&1 \
     && echo "  PASS statusline wired" || { echo "  FAIL statusline"; ok=1; }
   jq -e '[.hooks.Stop[].hooks[]?.command] | index("~/.config/claude/claude-notify.sh")' "$s" >/dev/null 2>&1 \

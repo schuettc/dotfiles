@@ -110,7 +110,7 @@ EOF
 
 pkg_verify() {
   local ok=0 s="$HOME/.claude/settings.json"
-  command -v muster &> /dev/null && echo "  PASS muster on PATH" || { echo "  FAIL muster on PATH"; ok=1; }
+  [[ -x "$HOME/.local/bin/muster" ]] && echo "  PASS muster on PATH" || { echo "  FAIL muster on PATH"; ok=1; }
   launchctl print "gui/$(id -u)/tools.muster.serve" 2>/dev/null | grep -q "state = running" \
     && echo "  PASS daemon running" || { echo "  FAIL daemon running"; ok=1; }
   [[ -S "$HOME/.local/share/muster/sock" ]] && echo "  PASS socket present" || { echo "  FAIL socket present"; ok=1; }

@@ -13,6 +13,8 @@ pkg_install() {
       claude mcp add codex -s user -- codex mcp-server \
         || warn "Couldn't register Codex MCP server — run 'claude mcp add codex -s user -- codex mcp-server' by hand."
     fi
+  elif ! command -v codex &> /dev/null; then
+    echo "Skipped Claude bridge (codex not installed)."
   else
     echo "Skipped Claude bridge (claude CLI not present)."
   fi
