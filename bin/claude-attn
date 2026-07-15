@@ -16,6 +16,8 @@
 #   claude-attn list               # print flagged session names, one per line
 #   claude-attn raise-pid <pid>    # flag the session owning <pid> via ancestry
 #                                  # walk — for hooks, which run with $TMUX unset
+#   claude-attn clear-pid <pid>    # unflag that session (same ancestry walk) —
+#                                  # the Stop hook's focus-independent clear
 #
 # From inside a tmux pane: `claude-attn raise` flags whatever session you're in.
 # From a Claude hook (no $TMUX): `claude-attn raise-pid "$$"`.
@@ -44,34 +46,49 @@ raise_session() {
   refresh_cues
 }
 
+clear_session() {
+  local s="$1"; [[ -z "$s" ]] && return 0
+  # No-op (and no refresh) if there's nothing flagged — keeps the
+  # high-frequency focus/turn hooks cheap.
+  [[ "$(tmux show-options -t "$s" -qv @claude_attn 2>/dev/null)" == "1" ]] || return 0
+  tmux set-option -t "$s" -u @claude_attn 2>/dev/null
+  refresh_cues
+}
+
+# Resolve the tmux session owning <pid> by walking process ancestry (hook →
+# claude → pane shell) until a PID matches a pane's #{pane_pid}. For hooks,
+# which run with $TMUX unset, so the session can't come from the environment.
+session_of_pid() {
+  local pid="$1" guard=0 panes s
+  [[ -z "$pid" ]] && return 0
+  panes=$(tmux list-panes -aF '#{pane_pid} #{session_name}' 2>/dev/null) || return 0
+  while [[ -n "$pid" && "$pid" != 0 && "$pid" != 1 && $guard -lt 30 ]]; do
+    s=$(printf '%s\n' "$panes" | awk -v p="$pid" '$1==p { print $2; exit }')
+    if [[ -n "$s" ]]; then printf '%s' "$s"; return 0; fi
+    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+    guard=$((guard + 1))
+  done
+}
+
 case "$cmd" in
   raise)
     raise_session "${arg:-$(cur_session)}"
     ;;
   clear)
-    s="${arg:-$(cur_session)}"
-    [[ -z "$s" ]] && exit 0
-    # No-op (and no refresh) if there's nothing flagged — keeps the
-    # pane-focus-in hook cheap, since it fires on every focus change.
-    [[ "$(tmux show-options -t "$s" -qv @claude_attn 2>/dev/null)" == "1" ]] || exit 0
-    tmux set-option -t "$s" -u @claude_attn 2>/dev/null
-    refresh_cues
+    clear_session "${arg:-$(cur_session)}"
     ;;
   list)
     tmux list-sessions -F '#{session_name} #{@claude_attn}' 2>/dev/null \
       | awk '$2 == 1 { print $1 }'
     ;;
   raise-pid)
-    pid="$arg"
-    [[ -z "$pid" ]] && exit 0
-    panes=$(tmux list-panes -aF '#{pane_pid} #{session_name}' 2>/dev/null) || exit 0
-    guard=0
-    while [[ -n "$pid" && "$pid" != 0 && "$pid" != 1 && $guard -lt 30 ]]; do
-      s=$(printf '%s\n' "$panes" | awk -v p="$pid" '$1==p { print $2; exit }')
-      if [[ -n "$s" ]]; then raise_session "$s"; exit 0; fi
-      pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
-      guard=$((guard + 1))
-    done
+    raise_session "$(session_of_pid "$arg")"
+    ;;
+  clear-pid)
+    # Focus-independent clear: the Stop hook fires this when a turn completes,
+    # proving the operator engaged with the session. Doesn't rely on tmux focus
+    # events (which some terminals/windows drop — e.g. a wedged Ghostty surface).
+    clear_session "$(session_of_pid "$arg")"
     ;;
   focus)
     # Bring the Ghostty window showing this session to the front, then clear its
@@ -96,7 +113,7 @@ OSA
     "$0" clear "$s"
     ;;
   *)
-    echo "usage: claude-attn {raise|clear|list|focus|raise-pid <pid>} [session]" >&2
+    echo "usage: claude-attn {raise|clear|list|focus|raise-pid <pid>|clear-pid <pid>} [session]" >&2
     exit 2
     ;;
 esac

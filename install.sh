@@ -114,12 +114,19 @@ fi
 if command -v tmux &> /dev/null; then
   echo "Installing tmux plugins..."
   # install_plugins reads TMUX_PLUGIN_MANAGER_PATH from a running tmux
-  # server's global env. Kill any stale server (likely with old config),
-  # spin up a fresh one to load the current .tmux.conf, then install.
-  tmux kill-server 2>/dev/null || true
-  tmux new-session -d -s _bootstrap_install 2>/dev/null || true
-  "$HOME/.tmux/plugins/tpm/bin/install_plugins" 2>/dev/null || true
-  tmux kill-server 2>/dev/null || true
+  # server's global env, so we need a live server that has loaded the
+  # current .tmux.conf. Run the whole bootstrap on a DEDICATED throwaway
+  # socket (-L) with $TMUX scrubbed: if this script runs from a shell
+  # inside tmux, bare `tmux` inherits $TMUX and targets the CURRENT
+  # server — a kill-server there nukes the project you're sitting in
+  # (this bit us: it killed the live proj-muster server mid-upgrade and
+  # left its replacement's hook queue deadlocked behind a hung tpm).
+  # run-shell (not a direct script call) so install_plugins' bare `tmux`
+  # calls inherit $TMUX for the bootstrap server, not the default socket.
+  env -u TMUX tmux -L _bootstrap_tpm kill-server 2>/dev/null || true
+  env -u TMUX tmux -L _bootstrap_tpm new-session -d -s _bootstrap_install 2>/dev/null || true
+  env -u TMUX tmux -L _bootstrap_tpm run-shell "$HOME/.tmux/plugins/tpm/bin/install_plugins" 2>/dev/null || true
+  env -u TMUX tmux -L _bootstrap_tpm kill-server 2>/dev/null || true
 fi
 
 # Claude Code setup

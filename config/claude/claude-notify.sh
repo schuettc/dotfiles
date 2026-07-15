@@ -56,6 +56,9 @@ case "$hook_name" in
   Stop)
     # Turn finished → in-terminal bell only. No attention flag: with many
     # parallel sessions, flagging every turn-end would keep half of them lit.
+    # (Deliberately NO auto-clear here either: an autonomous turn completing —
+    # e.g. a muster drain — would falsely clear a bell the operator never saw.
+    # Focus is the one true clear signal; see the client-focus-in hook.)
     ring_tmux_bell
     ;;
 esac
