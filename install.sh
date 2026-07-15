@@ -23,12 +23,16 @@ if ! command -v brew &> /dev/null; then
 fi
 command -v brew &> /dev/null || die "brew not on PATH after install — open a new shell and re-run."
 
-# Install packages from Brewfile. brew bundle keeps going past a single failed
-# formula/cask and exits non-zero at the end; warn rather than abort so the rest
-# of the setup (symlinks, hooks, …) still happens.
+# Install packages from Brewfile. --no-upgrade makes this install-only: it adds
+# what's missing but never force-upgrades already-installed packages. That keeps
+# the bootstrap non-interactive — self-updating casks (e.g. docker-desktop, which
+# updates itself ahead of brew) would otherwise trigger a sudo-requiring upgrade
+# that has no TTY here and fails. Run `brew upgrade` deliberately when you want
+# upgrades. brew bundle keeps going past a single failed formula/cask and exits
+# non-zero at the end; warn rather than abort so the rest of the setup still happens.
 echo "Installing Homebrew packages..."
-brew bundle --file="$DOTFILES_DIR/Brewfile" \
-  || warn "Some Homebrew packages failed — re-run 'brew bundle --file=$DOTFILES_DIR/Brewfile' or install them by hand."
+brew bundle --file="$DOTFILES_DIR/Brewfile" --no-upgrade \
+  || warn "Some Homebrew packages failed — re-run 'brew bundle --file=$DOTFILES_DIR/Brewfile --no-upgrade' or install them by hand."
 
 # Create config directory if it doesn't exist
 mkdir -p "$CONFIG_DIR"
@@ -127,15 +131,21 @@ backup_if_exists "$CONFIG_DIR/claude"
 ln -sfn "$DOTFILES_DIR/config/claude" "$CONFIG_DIR/claude"
 
 # Merge Claude settings (preserves existing settings, adds/updates our config).
-# Hooks: Notification + Stop both fire claude-notify.sh (macOS notif + tmux bell).
+# Hooks: Notification + Stop fire claude-notify.sh (macOS notif + tmux bell);
+# muster adds SessionStart (auto-register on the bus) and a second Stop hook
+# (self-resolving inbox) via bin/muster-session-hook.sh.
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
-CLAUDE_HOOK_BLOCK='{"hooks":[{"type":"command","command":"~/.config/claude/claude-notify.sh"}]}'
+CLAUDE_HOOKS_BLOCK='{
+  "Notification": [{"hooks":[{"type":"command","command":"~/.config/claude/claude-notify.sh"}]}],
+  "Stop":         [{"hooks":[{"type":"command","command":"~/.config/claude/claude-notify.sh"},{"type":"command","command":"~/dotfiles/bin/muster-session-hook.sh Stop claude"}]}],
+  "SessionStart": [{"matcher":"startup|resume","hooks":[{"type":"command","command":"~/dotfiles/bin/muster-session-hook.sh SessionStart claude"}]}]
+}'
 
 if [[ -f "$CLAUDE_SETTINGS" ]]; then
   echo "Updating Claude Code settings (statusline + hooks)..."
   if command -v jq &> /dev/null; then
     TEMP_FILE=$(mktemp)
-    if jq --argjson hook "$CLAUDE_HOOK_BLOCK" '
+    if jq --argjson hooks "$CLAUDE_HOOKS_BLOCK" '
       .statusLine = {
         "type": "command",
         "command": "~/.config/claude/statusline.sh"
@@ -143,10 +153,7 @@ if [[ -f "$CLAUDE_SETTINGS" ]]; then
       .permissions = (.permissions // {}) + {
         "allow": ((.permissions.allow // []) + ["Bash(*/.claude/sessions/*)"] | unique)
       } |
-      .hooks = (.hooks // {}) + {
-        "Notification": [$hook],
-        "Stop":         [$hook]
-      }
+      .hooks = (.hooks // {}) + $hooks
     ' "$CLAUDE_SETTINGS" > "$TEMP_FILE"; then
       mv "$TEMP_FILE" "$CLAUDE_SETTINGS"
     else
@@ -173,11 +180,31 @@ else
       {"hooks": [{"type": "command", "command": "~/.config/claude/claude-notify.sh"}]}
     ],
     "Stop": [
-      {"hooks": [{"type": "command", "command": "~/.config/claude/claude-notify.sh"}]}
+      {"hooks": [{"type": "command", "command": "~/.config/claude/claude-notify.sh"}, {"type": "command", "command": "~/dotfiles/bin/muster-session-hook.sh Stop claude"}]}
+    ],
+    "SessionStart": [
+      {"matcher": "startup|resume", "hooks": [{"type": "command", "command": "~/dotfiles/bin/muster-session-hook.sh SessionStart claude"}]}
     ]
   }
 }
 EOF
+fi
+
+# Codex session hooks: auto-register on the muster bus + self-resolving inbox, via
+# bin/muster-session-hook.sh. Written with an absolute path (Codex hook commands
+# don't reliably expand ~). Idempotent; Codex prompts once to trust the file
+# (trust is by content-hash) on the next 'codex' launch.
+if command -v codex &> /dev/null; then
+  mkdir -p "$HOME/.codex"
+  cat > "$HOME/.codex/hooks.json" <<EOF
+{
+  "hooks": {
+    "SessionStart": [{"hooks":[{"type":"command","command":"$DOTFILES_DIR/bin/muster-session-hook.sh SessionStart codex"}]}],
+    "Stop":         [{"hooks":[{"type":"command","command":"$DOTFILES_DIR/bin/muster-session-hook.sh Stop codex"}]}]
+  }
+}
+EOF
+  echo "Wrote Codex session hooks (~/.codex/hooks.json) — trust them on the next 'codex' launch."
 fi
 
 # Codex MCP bridge: register the OpenAI Codex CLI as an MCP server inside Claude
