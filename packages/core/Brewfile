@@ -1,0 +1,27 @@
+# Brewfile - Core Developer Environment
+tap "1password/tap"
+brew "starship"           # Cross-shell prompt
+brew "atuin"              # Shell history with sync
+brew "zsh-completions"    # Additional zsh completions
+brew "eza"                # Better ls (icons, git status)
+brew "bat"                # Better cat (syntax highlighting)
+brew "zoxide"             # Smarter cd (learns your habits)
+brew "fzf"                # Fuzzy finder
+brew "fd"                 # Better find
+brew "ripgrep"            # Better grep
+brew "git-delta"          # Better git diff
+brew "lazygit"            # Git TUI
+brew "tlrc"               # Simplified man pages (tldr client)
+brew "htop"               # Better top
+brew "tree"               # Directory tree view
+brew "jq"                 # JSON processor
+brew "yq"                 # YAML processor
+brew "gh"                 # GitHub CLI
+brew "git"                # Latest git (vs macOS default)
+brew "git-lfs"            # Git Large File Storage
+brew "pipx"               # Python app installer
+brew "uv"                 # Fast Python package manager
+brew "awscli"             # AWS CLI
+cask "1password-cli"      # 1Password CLI (op)
+cask "visual-studio-code" # GUI editor (kept installed; $EDITOR is nvim)
+cask "docker-desktop"     # Docker Desktop

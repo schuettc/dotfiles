@@ -1,0 +1,3 @@
+cask "codex"              # OpenAI Codex CLI — GPT coding agent; bridged into
+                          # Claude Code as an MCP server (see install.sh). Sign in
+                          # with `codex login` (ChatGPT subscription, not API key).
