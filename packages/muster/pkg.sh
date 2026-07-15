@@ -21,8 +21,16 @@ pkg_install() {
   fi
   if [[ -d "$MUSTER_REPO" ]] && command -v go &> /dev/null; then
     echo "Building muster (coordination bus)..."
-    # Build whatever branch the clone has checked out (dev during development).
-    if CGO_ENABLED=0 go -C "$MUSTER_REPO" build -o "$HOME/.local/bin/muster" ./cmd/muster 2>/dev/null; then
+    # Build the RELEASED code (origin/main) via a detached temp worktree —
+    # NEVER the clone's checked-out branch. A stale local dev checkout once
+    # silently DOWNGRADED the live binary below what the installed session
+    # hooks require (`muster hook` shipped in v0.3.0), erroring every
+    # session's Stop hook. The clone's branch state is never touched.
+    git -C "$MUSTER_REPO" fetch origin main --quiet 2>/dev/null || true
+    local build_src; build_src="$(mktemp -d)/muster-main"
+    if git -C "$MUSTER_REPO" worktree add --detach "$build_src" origin/main 2>/dev/null >/dev/null \
+       && CGO_ENABLED=0 go -C "$build_src" build -o "$HOME/.local/bin/muster" ./cmd/muster 2>/dev/null \
+       && { git -C "$MUSTER_REPO" worktree remove --force "$build_src" 2>/dev/null || true; }; then
       # ── Daemon via LaunchAgent ─────────────────────────────────────────
       # `muster serve` owns ~/.local/share/muster/{sock,bus.db}; everything
       # (MCP tools, CLI, session hooks) is dead without it, so it must be
@@ -65,7 +73,8 @@ EOF
       command -v codex &> /dev/null && ! codex mcp get muster &> /dev/null \
         && { echo "Registering muster in Codex..."; codex mcp add muster -- muster mcp || warn "Register muster in Codex by hand: codex mcp add muster -- muster mcp"; }
     else
-      warn "muster build failed — build it by hand: (cd $MUSTER_REPO && go build -o ~/.local/bin/muster ./cmd/muster)"
+      git -C "$MUSTER_REPO" worktree remove --force "$build_src" 2>/dev/null || true
+      warn "muster build failed — build it by hand: (git -C $MUSTER_REPO worktree add --detach /tmp/m origin/main && go -C /tmp/m build -o ~/.local/bin/muster ./cmd/muster)"
     fi
   else
     echo "Skipping muster (repo not cloned at $MUSTER_REPO, or Go not installed)."
@@ -120,7 +129,12 @@ EOF
 
 pkg_verify() {
   local ok=0 s="$HOME/.claude/settings.json"
-  [[ -x "$HOME/.local/bin/muster" ]] && echo "  PASS muster on PATH" || { echo "  FAIL muster on PATH"; ok=1; }
+  [[ -x "$HOME/.local/bin/muster" ]] && echo "  PASS muster binary" || { echo "  FAIL muster binary"; ok=1; }
+  # Capability, not just existence: the session hooks call `muster hook`
+  # (v0.3.0+). A downgraded binary passes an existence check while every
+  # session's Stop hook errors — that exact regression happened once.
+  "$HOME/.local/bin/muster" 2>&1 | head -1 | grep -q "hook" \
+    && echo "  PASS hook subcommand" || { echo "  FAIL hook subcommand (binary too old for installed hooks)"; ok=1; }
   launchctl print "gui/$(id -u)/tools.muster.serve" 2>/dev/null | grep -q "state = running" \
     && echo "  PASS daemon running" || { echo "  FAIL daemon running"; ok=1; }
   [[ -S "$HOME/.local/share/muster/sock" ]] && echo "  PASS socket present" || { echo "  FAIL socket present"; ok=1; }
