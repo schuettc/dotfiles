@@ -86,7 +86,11 @@ EOF
   # binary, reference copy in muster's contrib/). Additive merge — set/ensure
   # our hook entries WITHOUT touching entries owned by other packages
   # (claude). The migrate step strips any legacy script entries first, so
-  # existing machines converge to the binary hooks on re-run.
+  # existing machines converge to the binary hooks on re-run. Also allowlists
+  # the muster MCP server ("mcp__muster", all tools) in permissions.allow:
+  # the auto-mode classifier once denied a read-only get_inbox mid-drain with
+  # a stale merge rationale, deadlocking the Stop-hook autonomy loop — the
+  # local bus must never be classifier-eligible.
   local settings="$HOME/.claude/settings.json"
   if command -v claude &> /dev/null && command -v jq &> /dev/null; then
     [[ -f "$settings" ]] || echo '{}' > "$settings"
@@ -104,6 +108,8 @@ EOF
         {"matcher":"startup|resume","hooks":[{"type":"command","command":"~/.local/bin/muster hook SessionStart claude"}]})
       | ensure_hook("SessionEnd"; "~/.local/bin/muster hook SessionEnd claude";
         {"hooks":[{"type":"command","command":"~/.local/bin/muster hook SessionEnd claude"}]})
+      | .permissions = ((.permissions // {})
+        + {"allow": (((.permissions.allow // []) + ["mcp__muster"]) | unique)})
     ' "$settings" > "$tmp"; then mv "$tmp" "$settings"
     else rm -f "$tmp"; warn "muster: Claude hooks merge failed — settings.json untouched."; fi
   fi
@@ -135,6 +141,8 @@ pkg_verify() {
   # session's Stop hook errors — that exact regression happened once.
   "$HOME/.local/bin/muster" 2>&1 | head -1 | grep -q "hook" \
     && echo "  PASS hook subcommand" || { echo "  FAIL hook subcommand (binary too old for installed hooks)"; ok=1; }
+  jq -e '.permissions.allow | index("mcp__muster")' "$s" >/dev/null 2>&1 \
+    && echo "  PASS mcp__muster allowlisted" || { echo "  FAIL mcp__muster allowlisted"; ok=1; }
   launchctl print "gui/$(id -u)/tools.muster.serve" 2>/dev/null | grep -q "state = running" \
     && echo "  PASS daemon running" || { echo "  FAIL daemon running"; ok=1; }
   [[ -S "$HOME/.local/share/muster/sock" ]] && echo "  PASS socket present" || { echo "  FAIL socket present"; ok=1; }
