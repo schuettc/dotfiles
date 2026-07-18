@@ -28,8 +28,15 @@ pkg_install() {
     # session's Stop hook. The clone's branch state is never touched.
     git -C "$MUSTER_REPO" fetch origin main --quiet 2>/dev/null || true
     local build_src; build_src="$(mktemp -d)/muster-main"
+    # Stamp version+commit like the repo's own justfile (-ldflags -X on
+    # internal/version) — an unstamped binary reports "dev (none)", which once
+    # made a rollout unverifiable by version string.
+    local mver mcommit mldflags
+    mver="$(git -C "$MUSTER_REPO" show origin/main:VERSION 2>/dev/null | tr -d '[:space:]')"
+    mcommit="$(git -C "$MUSTER_REPO" rev-parse --short origin/main 2>/dev/null)"
+    mldflags="-X github.com/schuettc/muster/internal/version.version=${mver:-dev} -X github.com/schuettc/muster/internal/version.commit=${mcommit:-none}"
     if git -C "$MUSTER_REPO" worktree add --detach "$build_src" origin/main 2>/dev/null >/dev/null \
-       && CGO_ENABLED=0 go -C "$build_src" build -o "$HOME/.local/bin/muster" ./cmd/muster 2>/dev/null \
+       && CGO_ENABLED=0 go -C "$build_src" build -ldflags "$mldflags" -o "$HOME/.local/bin/muster" ./cmd/muster 2>/dev/null \
        && { git -C "$MUSTER_REPO" worktree remove --force "$build_src" 2>/dev/null || true; }; then
       # ── Daemon via LaunchAgent ─────────────────────────────────────────
       # `muster serve` owns ~/.local/share/muster/{sock,bus.db}; everything
@@ -138,8 +145,10 @@ pkg_verify() {
   [[ -x "$HOME/.local/bin/muster" ]] && echo "  PASS muster binary" || { echo "  FAIL muster binary"; ok=1; }
   # Capability, not just existence: the session hooks call `muster hook`
   # (v0.3.0+). A downgraded binary passes an existence check while every
-  # session's Stop hook errors — that exact regression happened once.
-  "$HOME/.local/bin/muster" 2>&1 | head -1 | grep -q "hook" \
+  # session's Stop hook errors — that exact regression happened once. Probe by
+  # invoking the subcommand's help (exit 0 iff it exists) rather than grepping
+  # the usage text, whose format upstream is free to change (and did).
+  "$HOME/.local/bin/muster" hook --help >/dev/null 2>&1 \
     && echo "  PASS hook subcommand" || { echo "  FAIL hook subcommand (binary too old for installed hooks)"; ok=1; }
   jq -e '.permissions.allow | index("mcp__muster")' "$s" >/dev/null 2>&1 \
     && echo "  PASS mcp__muster allowlisted" || { echo "  FAIL mcp__muster allowlisted"; ok=1; }
