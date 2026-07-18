@@ -95,7 +95,12 @@ The status bar surfaces, for the focused pane:
 
 - **left** — an attention banner (`⚠ N: session1, session2`) listing any
   session whose Claude finished a turn / is waiting for input and that you
-  haven't visited yet. Clears when you switch to the session.
+  haven't visited yet (clears when you switch to the session), the session
+  name in its stable color, the prefix-T task label, and the **muster slot**
+  at the end: bright `📬N` when the session has unread bus mail, a dim lone
+  `@` when its agent is registered under the session's own name, or a dim
+  `@alias1,alias2` when the registered address differs from the name.
+  Nothing there = not on the bus.
 - **right** — current git branch + dirty count, a peach `⚠ primary` badge
   when the focused pane is in a project's primary clone while linked worktrees
   exist (the cue to go work in a worktree), the Claude context-window %
@@ -157,6 +162,11 @@ install" below).
   with peers. A tmux "wake" knocks the recipient's pane so idle agents notice.
 - **From any shell:** `muster agents`, `muster inbox <alias>`, `muster tasks <alias>`,
   `muster send <alias> "…" --from me` to observe and drive the bus.
+- **From tmux:** the status bar's muster slot (see above) shows registration
+  and unread state; `prefix @` copies the session's alias (the bus's canonical
+  address) to the clipboard, and `prefix m` nudges the session's agent to
+  drain its inbox now — useful because an idle agent only checks mail at
+  turn boundaries.
 
 Verify with `claude mcp list` (`muster … ✔ Connected`). Full docs live in the
 muster repo's README.
