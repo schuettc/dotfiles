@@ -36,23 +36,12 @@ $docker_context\
 $conda\
 $aws\
 [](fg:sapphire)\
-$fill\
-[](fg:lavender)\
-$cmd_duration\
-[](bg:lavender fg:surface0)\
-$time\
-[](fg:surface0)\
 [─╮](overlay1)
 [╰─](overlay1)$character"""
 
 right_format = ""
 
 palette = 'catppuccin_mocha'
-
-# Fill between left and right content
-[fill]
-symbol = '─'
-style = 'overlay1'
 
 [os]
 disabled = false
@@ -88,10 +77,10 @@ format = '[$user]($style)'
 [directory]
 style = "bg:blue fg:crust"
 format = "[ $path ]($style)"
-truncation_length = 4
+truncation_length = 2
 truncation_symbol = "…/"
 read_only = " 󰌾"
-truncate_to_repo = false
+truncate_to_repo = true
 
 [directory.substitutions]
 "Documents" = "󰈙 "
@@ -105,7 +94,7 @@ truncate_to_repo = false
 symbol = "󰊢 "
 style = "bg:yellow fg:crust"
 format = '[ $symbol$branch ]($style)'
-truncation_length = 20
+truncation_length = 12
 truncation_symbol = "…"
 
 [git_status]
@@ -220,18 +209,6 @@ symbol = "󰸏 "
 style = "bg:sapphire fg:crust"
 format = '[$symbol($profile )(\($region\) )]($style)'
 disabled = false
-
-[time]
-disabled = false
-time_format = "%R"
-style = "bg:surface0 fg:text"
-format = '[  $time ]($style)'
-
-[cmd_duration]
-min_time = 500
-show_milliseconds = false
-format = '[ 󱎫 $duration ]($style)'
-style = "bg:lavender fg:crust"
 
 [character]
 disabled = false
