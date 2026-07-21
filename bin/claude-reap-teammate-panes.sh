@@ -113,6 +113,21 @@ while IFS='|' read -r sock pane aid name age joined; do
   [ -n "$title" ] && [ -n "$ppid" ] || continue
   # Identity gate first — a mapping we cannot prove is skipped, never killed.
   proc_start_matches "$ppid" "$joined" || continue
+  # Authoritative idle stamp, if the teammate wrote one. Its own Stop hook
+  # (~/.config/claude/claude-teammate-idle.sh) records the moment it went idle,
+  # and refreshes it on every later turn — so a resumed teammate can never look
+  # stale. When present this REPLACES the glyph/screen inference below; when
+  # absent (teammate predates the hook) we fall back to inference.
+  ledger="${XDG_CACHE_HOME:-$HOME/.cache}/claude-teammate-idle/${sock}_${pane#%}"
+  if [ -f "$ledger" ]; then
+    since=$(awk -F= '$1=="idle_since"{print $2}' "$ledger" 2>/dev/null)
+    if [ -n "$since" ]; then
+      idle_for=$(( ( $(date +%s) - since ) / 60 ))
+      [ "$idle_for" -ge "$IDLE_MIN" ] || continue      # actively working / too recent
+      live+=("$sock|$pane|$aid|$name|$idle_for|LEDGER|stamped")
+      continue
+    fi
+  fi
   # Snapshot rendered content; compared after the gap below. A working agent
   # redraws (spinner, elapsed timer, token counts), an idle one is byte-stable.
   hash=$(tmux -L "$sock" capture-pane -p -t "$pane" 2>/dev/null | md5)
@@ -134,6 +149,21 @@ for row in "${live[@]}"; do
     "$IDLE_GLYPH"*) ;;
     *) printf '%-34s %-6s %-22s %-6s %s\n' "$sock" "$pane" "$name" "${age}m" "SKIP (became active)"; skipped=$((skipped+1)); continue ;;
   esac
+  # Ledger-stamped entries are already proven idle by the teammate itself.
+  if [ "$hash" = "LEDGER" ]; then
+    if [ "$KILL" = 1 ]; then
+      if tmux -L "$sock" kill-pane -t "$pane" 2>/dev/null; then
+        printf '%-34s %-6s %-22s %-6s %s\n' "$sock" "$pane" "$name" "${age}m" "REAPED (self-reported idle)"
+        reaped=$((reaped+1))
+      else
+        printf '%-34s %-6s %-22s %-6s %s\n' "$sock" "$pane" "$name" "${age}m" "kill failed"; skipped=$((skipped+1))
+      fi
+    else
+      printf '%-34s %-6s %-22s %-6s %s\n' "$sock" "$pane" "$name" "${age}m" "would reap (self-reported idle)"
+      reaped=$((reaped+1))
+    fi
+    continue
+  fi
   # Second, glyph-independent idle proof: the rendered pane must not have
   # changed across the gap. Survives any future change to the spinner glyphs.
   h2=$(tmux -L "$sock" capture-pane -p -t "$pane" 2>/dev/null | md5)
