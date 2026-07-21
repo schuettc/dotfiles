@@ -21,6 +21,32 @@ set -u
 srv="${1:?server}"; name="${2:?session}"; dir="${3:?dir}"; mode="${4:-bg}"
 tm() { if [ "$srv" = "-" ]; then tmux "$@"; else tmux -L "$srv" "$@"; fi; }
 
+# Validate $dir ONCE, here, because callers cannot guarantee it still exists:
+# prefix f passes #{pane_current_path}, which is a dead path the moment you
+# delete the git worktree you were sitting in.
+#
+# An unusable $dir does not fail loudly, it fails invisibly. yazi PANICS (Rust,
+# exit 1) when its cwd does not exist, so its pane vanishes; and because the
+# build chains each split off the previous pane, the shell's split then targets
+# a pane that no longer exists, fails, and hits `|| return 0`. Every call is
+# 2>/dev/null, so the result is a silently half-built column — scratch present,
+# no file browser, no terminal, nothing logged.
+#
+# Falling back keeps the column buildable from any caller: nearest surviving
+# ancestor (stays near the work), else the session's own path, else $HOME.
+if [ ! -d "$dir" ]; then
+  bad="$dir"
+  case "$dir" in
+    /*) while [ "$dir" != / ] && [ ! -d "$dir" ]; do dir=$(dirname "$dir"); done ;;
+    *)  dir=/ ;;   # relative/empty: nothing to walk
+  esac
+  if [ "$dir" = / ] || [ ! -d "$dir" ]; then
+    sp=$(tm display-message -p -t "$name" '#{session_path}' 2>/dev/null)
+    if [ -n "$sp" ] && [ -d "$sp" ]; then dir="$sp"; else dir="$HOME"; fi
+  fi
+  tm display-message "sidebar: '$bad' is gone — building in $dir" 2>/dev/null
+fi
+
 # Main (left) pane = leftmost column, and among ties the tallest — robust to
 # whatever agent panes exist to its right. (list-panes|head -1 would break once
 # pane indices renumber after kills.)
