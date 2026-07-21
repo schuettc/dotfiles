@@ -76,18 +76,43 @@ for cfg in glob.glob(os.path.join(teams_dir, '*', 'config.json')):
         age = int((now - joined) / 60) if joined else 10**6
         if age < idle_min:
             continue
-        print('%s|%s|%s|%s|%d' % (sock, pane, m.get('agentId'), m.get('name'), age))
+        print('%s|%s|%s|%s|%d|%d' % (sock, pane, m.get('agentId'), m.get('name'), age, joined))
 PY
 )
+
+# Identity gate. Teams configs accumulate STALE mappings forever (measured:
+# 33 stale vs 25 live), and tmux pane IDs restart at %0 when a server restarts —
+# so a stale `name -> %38` can later point at an unrelated, live pane. The idle
+# glyph does NOT save us: main session panes show it too (e.g. "✳ Build lineups
+# for today"). So before trusting a mapping, require the pane's process to have
+# started when the teammate joined. Measured across 25 live teammate panes, the
+# delta is <=1s; a recycled pane id or a main pane misses by hours.
+proc_start_matches() {  # $1=pid  $2=joined_epoch
+  python3 - "$1" "$2" "${CLAUDE_REAP_START_TOLERANCE:-120}" <<'PY'
+import subprocess, sys, time, datetime
+pid, joined, tol = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+out = subprocess.run(['ps','-o','lstart=','-p',pid], capture_output=True, text=True).stdout.strip()
+if not out:
+    sys.exit(1)
+try:
+    started = time.mktime(datetime.datetime.strptime(out, "%a %b %d %H:%M:%S %Y").timetuple())
+except Exception:
+    sys.exit(1)
+sys.exit(0 if abs(started - joined) <= tol else 1)
+PY
+}
 
 [ -z "$candidates" ] && { echo "no teammate panes older than ${IDLE_MIN}m — nothing to do"; exit 0; }
 
 # --- sample 1: which candidates are live AND idle right now -------------------
 declare -a live=()
-while IFS='|' read -r sock pane aid name age; do
+while IFS='|' read -r sock pane aid name age joined; do
   [ -n "$pane" ] || continue
-  title=$(tmux -L "$sock" display-message -p -t "$pane" '#{pane_title}' 2>/dev/null) || continue
-  [ -n "$title" ] || continue
+  ppid=$(tmux -L "$sock" display-message -p -t "$pane" '#{pane_pid}' 2>/dev/null)
+  title=$(tmux -L "$sock" display-message -p -t "$pane" '#{pane_title}' 2>/dev/null)
+  [ -n "$title" ] && [ -n "$ppid" ] || continue
+  # Identity gate first — a mapping we cannot prove is skipped, never killed.
+  proc_start_matches "$ppid" "$joined" || continue
   case "$title" in
     "$IDLE_GLYPH"*) live+=("$sock|$pane|$aid|$name|$age|$title") ;;
   esac
