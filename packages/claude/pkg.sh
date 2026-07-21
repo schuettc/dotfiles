@@ -26,6 +26,7 @@ pkg_install() {
       | .permissions = ((.permissions // {}) + {"allow": (((.permissions.allow // []) + ["Bash(*/.claude/sessions/*)"]) | unique)})
       | ensure_hook("Notification"; "~/.config/claude/claude-notify.sh")
       | ensure_hook("Stop"; "~/.config/claude/claude-notify.sh")
+      | ensure_hook("Stop"; "~/.config/claude/claude-teammate-idle.sh")
     ' "$settings" > "$tmp"; then
       mv "$tmp" "$settings"
     else
@@ -45,5 +46,7 @@ pkg_verify() {
     && echo "  PASS statusline wired" || { echo "  FAIL statusline"; ok=1; }
   jq -e '[.hooks.Stop[].hooks[]?.command] | index("~/.config/claude/claude-notify.sh")' "$s" >/dev/null 2>&1 \
     && echo "  PASS notify hooks" || { echo "  FAIL notify hooks"; ok=1; }
+  jq -e '[.hooks.Stop[].hooks[]?.command] | index("~/.config/claude/claude-teammate-idle.sh")' "$s" >/dev/null 2>&1 \
+    && echo "  PASS teammate-idle hook" || { echo "  FAIL teammate-idle hook"; ok=1; }
   return $ok
 }
