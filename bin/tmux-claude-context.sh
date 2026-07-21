@@ -23,13 +23,30 @@ pane_id="${1:-}"
 # only rewrites the state file at each turn boundary, so during a long turn
 # the file looks "stale" while Claude is very much alive. If the command
 # isn't Claude, the pane moved on → no icon.
-cmd=$(tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null)
+#
+# The same query also yields '#{socket_path}' — the server that owns this pane
+# — so one tmux call covers both the liveness gate and the state key below.
+info=$(tmux display-message -p -t "$pane_id" '#{pane_current_command}
+#{socket_path}' 2>/dev/null)
+cmd=${info%%$'\n'*}
+sock_path=${info#*$'\n'}
 [[ "$cmd" == claude || "$cmd" =~ ^[0-9]+\.[0-9]+ ]] || exit 0
 
 # Stable path: $HOME/.cache is identical for the Claude process (even when
 # its sandbox sets a different $TMPDIR) and for tmux — so both sides agree.
 state_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-status"
-state_key="${pane_id//[^a-zA-Z0-9]/_}"
+
+# Key = socket name + pane number, identical to the derivation in
+# ~/.config/claude/statusline.sh. Pane ids repeat across the ~14 per-project
+# tmux servers on this machine, so a pane-only key mixed up their state files.
+# The writer takes the socket from its inherited $TMUX; here it comes from
+# '#{socket_path}' of the server that owns the pane. Both are basenames, so
+# the /tmp vs /private/tmp symlink difference can't split them.
+sock=${sock_path##*/}
+[[ -n "$sock" ]] || { sock="${TMUX:-}"; sock="${sock%%,*}"; sock="${sock##*/}"; }
+[[ -n "$sock" ]] || sock=unknown
+state_key="${sock}_${pane_id#%}"
+state_key="${state_key//[^a-zA-Z0-9_.-]/_}"
 state_file="$state_dir/$state_key"
 
 [[ -f "$state_file" ]] || exit 0

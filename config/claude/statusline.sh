@@ -8,8 +8,9 @@
 #      noisy and prone to drift.
 #   2. Write a per-pane state file so tmux's status-right can show the
 #      current context % for the focused Claude pane. The file is keyed
-#      by the inherited TMUX_PANE env var; bin/tmux-claude-context.sh
-#      reads it from the tmux side.
+#      by tmux socket name + the inherited TMUX_PANE env var (pane ids are
+#      only unique per server); bin/tmux-claude-context.sh reads it from
+#      the tmux side with the identical key derivation.
 #   3. Sync a custom Claude session name (/rename) into the tmux
 #      session's @claude_task label so it shows on every surface.
 
@@ -32,14 +33,28 @@ FEATURE=""
 [[ -f ~/.claude/feature-context ]] && FEATURE=$(cat ~/.claude/feature-context)
 
 # ─── Write state file for tmux status bar ────────────────────────────
-# Keyed by TMUX_PANE so multiple Claude sessions don't clobber each other.
-# Sanitized for the filesystem (TMUX_PANE looks like "%47").
+# Keyed by SOCKET + pane. Pane ids are only unique within one tmux server,
+# and this machine runs a per-project socket for every workspace — so keying
+# on the pane alone made every server's %NN collide on one file, and the
+# status bar showed some *other* socket's context %. $TMUX looks like
+# "<socket-path>,<pid>,<session>", so the socket NAME is the basename of the
+# first comma-field. bin/tmux-claude-context.sh derives the identical key
+# from '#{socket_path}' on the reading side — change the two together.
 if [[ -n "${TMUX_PANE:-}" ]]; then
   state_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-status"
   mkdir -p "$state_dir" 2>/dev/null
-  state_key="${TMUX_PANE//[^a-zA-Z0-9]/_}"
-  printf 'context_pct=%d\nmodel=%s\nupdated=%d\n' \
-    "$CONTEXT_PCT" "$MODEL" "$(date +%s)" \
+
+  # One-time migration: legacy keys were "_<pane-number>" (socket-agnostic).
+  # They can never match the new key, so drop them rather than leave stale
+  # files lying around forever.
+  rm -f "$state_dir"/_[0-9]* 2>/dev/null
+
+  sock="${TMUX%%,*}"; sock="${sock##*/}"
+  [[ -n "$sock" ]] || sock=unknown
+  state_key="${sock}_${TMUX_PANE#%}"
+  state_key="${state_key//[^a-zA-Z0-9_.-]/_}"
+  printf 'context_pct=%d\nmodel=%s\nupdated=%d\npane=%s\nsocket=%s\n' \
+    "$CONTEXT_PCT" "$MODEL" "$(date +%s)" "$TMUX_PANE" "$sock" \
     > "$state_dir/$state_key" 2>/dev/null
 fi
 
