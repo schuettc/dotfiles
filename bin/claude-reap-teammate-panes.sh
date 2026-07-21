@@ -113,8 +113,11 @@ while IFS='|' read -r sock pane aid name age joined; do
   [ -n "$title" ] && [ -n "$ppid" ] || continue
   # Identity gate first — a mapping we cannot prove is skipped, never killed.
   proc_start_matches "$ppid" "$joined" || continue
+  # Snapshot rendered content; compared after the gap below. A working agent
+  # redraws (spinner, elapsed timer, token counts), an idle one is byte-stable.
+  hash=$(tmux -L "$sock" capture-pane -p -t "$pane" 2>/dev/null | md5)
   case "$title" in
-    "$IDLE_GLYPH"*) live+=("$sock|$pane|$aid|$name|$age|$title") ;;
+    "$IDLE_GLYPH"*) live+=("$sock|$pane|$aid|$name|$age|$hash|$title") ;;
   esac
 done <<<"$candidates"
 
@@ -125,12 +128,19 @@ sleep "$SAMPLE_GAP"
 printf '%-34s %-6s %-22s %-6s %s\n' SOCKET PANE TEAMMATE AGE STATE
 reaped=0; skipped=0
 for row in "${live[@]}"; do
-  IFS='|' read -r sock pane aid name age title <<<"$row"
+  IFS='|' read -r sock pane aid name age hash title <<<"$row"
   t2=$(tmux -L "$sock" display-message -p -t "$pane" '#{pane_title}' 2>/dev/null)
   case "$t2" in
     "$IDLE_GLYPH"*) ;;
     *) printf '%-34s %-6s %-22s %-6s %s\n' "$sock" "$pane" "$name" "${age}m" "SKIP (became active)"; skipped=$((skipped+1)); continue ;;
   esac
+  # Second, glyph-independent idle proof: the rendered pane must not have
+  # changed across the gap. Survives any future change to the spinner glyphs.
+  h2=$(tmux -L "$sock" capture-pane -p -t "$pane" 2>/dev/null | md5)
+  if [ "$h2" != "$hash" ]; then
+    printf '%-34s %-6s %-22s %-6s %s\n' "$sock" "$pane" "$name" "${age}m" "SKIP (screen changed — working)"
+    skipped=$((skipped+1)); continue
+  fi
   if [ "$KILL" = 1 ]; then
     # Final recheck at kill time, then reap.
     t3=$(tmux -L "$sock" display-message -p -t "$pane" '#{pane_title}' 2>/dev/null)
