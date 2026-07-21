@@ -130,6 +130,31 @@ __proj_goto() {
   fi
 }
 
+# Create a tmux session with the SERVER pinned to a stable cwd.
+#
+# A tmux server permanently inherits the cwd of whichever client first started
+# it, and never updates it afterwards (verified: the server cwd does not follow
+# later clients). If that directory is later deleted — a git worktree being the
+# usual way — the server's cwd dangles, and from then on tmux SILENTLY IGNORES
+# `-c` on every new pane: you ask for the project root, the pane gets the dead
+# path. Its shell can't getcwd(), so it spews
+#   shell-init: error retrieving current directory
+# and the prompt collapses to ".". Every new pane on that server is born broken,
+# and nothing short of restarting the server fixes it.
+#
+# That is exactly how proj-bettor-help-workspace was poisoned: a session was
+# first created while the shell sat inside mlb-dk-worktrees/u7-cutover, and the
+# worktree was removed later.
+#
+# So always create sessions from $HOME, which cannot be deleted. `-c "$dir"`
+# still sets the pane's directory, so behaviour is unchanged — only the server's
+# permanent cwd differs. The subshell keeps the caller's own cwd untouched, and
+# the exit status still propagates for the race-safe "name taken" loops.
+__tmux_new_session() {  # <srv> <new-session args...>
+  local srv="$1"; shift
+  ( builtin cd -q -- "$HOME" && tmux -L "$srv" new-session "$@" )
+}
+
 # Create-or-attach a tmux session named $2 on server $1 in dir $3 with the
 # standard layout (claude-or-shell left + yazi right). $4=1 auto-launches
 # claude. Uses "=name" exact-match targets so prefix-sharing names (proj vs
@@ -139,9 +164,9 @@ __proj_launch() {
   cd "$dir"
   if ! tmux -L "$srv" has-session -t "=$name" 2>/dev/null; then
     if (( auto_claude )) && command -v claude >/dev/null; then
-      tmux -L "$srv" new-session -d -s "$name" -c "$dir" "claude"
+      __tmux_new_session "$srv" -d -s "$name" -c "$dir" "claude"
     else
-      tmux -L "$srv" new-session -d -s "$name" -c "$dir"
+      __tmux_new_session "$srv" -d -s "$name" -c "$dir"
     fi
     # Build the right column (scratch -> yazi -> shell). The builder handles
     # pane-id targeting, the per-app terminal-probe focus dance, and tags the
@@ -461,9 +486,9 @@ pt() {
   while true; do
     target="${proj_name}-${n}"
     if (( auto_claude )) && command -v claude >/dev/null; then
-      if tmux -L "$srv" new-session -d -s "$target" -c "$proj_dir" "claude" 2>/dev/null; then break; fi
+      if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" "claude" 2>/dev/null; then break; fi
     else
-      if tmux -L "$srv" new-session -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
+      if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
     fi
     n=$((n + 1))
     (( n > 50 )) && { echo "too many sessions" >&2; return 1; }

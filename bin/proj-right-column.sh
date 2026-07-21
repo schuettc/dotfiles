@@ -28,6 +28,16 @@ left=$(tm list-panes -t "$name" -F '#{pane_left} #{pane_height} #{pane_id}' 2>/d
        | sort -k1,1n -k2,2nr | head -1 | awk '{print $3}')
 [ -n "$left" ] || exit 0
 
+# Each pane cd's to $dir itself instead of trusting `-c`. A tmux server whose
+# own cwd was deleted (e.g. it was first started inside a git worktree that was
+# later removed) SILENTLY IGNORES -c and births every pane in the dead path.
+# scratch survives that, but yazi and the shell cannot start in a directory that
+# does not exist — so the column half-builds and you get a session with no file
+# browser and no terminal, with nothing logged. `-c` is still passed for the
+# healthy case; this is the belt to its braces.
+printf -v qdir '%q' "$dir"
+run_in_dir() { printf "cd %s && exec %s" "$qdir" "$1"; }
+
 build() {
   local right mid bottom anchor
   # anchor = topmost non-main, non-sidebar pane already in the window, i.e. the
@@ -41,25 +51,25 @@ build() {
     # (scratch → yazi → shell → agents) instead of wedging a 1-col sliver
     # beside the main pane. Width is inherited from the agent column, so no
     # -l here; the agent-pin re-assert at the end restores main to 70%.
-    right=$(tm split-window -v -b -t "$anchor" -c "$dir" -P -F '#{pane_id}' scratch 2>/dev/null) || return 0
+    right=$(tm split-window -v -b -t "$anchor" -c "$dir" -P -F '#{pane_id}' "$(run_in_dir scratch)" 2>/dev/null) || return 0
     tm set-option -p -t "$right" @sidebar 1 2>/dev/null
     sleep 0.5                                 # scratch reads its probe while focused
-    mid=$(tm split-window -v -t "$right" -c "$dir" -P -F '#{pane_id}' yazi 2>/dev/null) || return 0
+    mid=$(tm split-window -v -t "$right" -c "$dir" -P -F '#{pane_id}' "$(run_in_dir yazi)" 2>/dev/null) || return 0
     tm set-option -p -t "$mid" @sidebar 1 2>/dev/null
     sleep 0.5                                 # yazi reads its probe while focused
-    bottom=$(tm split-window -v -t "$mid" -c "$dir" -P -F '#{pane_id}' 2>/dev/null) || return 0
+    bottom=$(tm split-window -v -t "$mid" -c "$dir" -P -F '#{pane_id}' "$(run_in_dir "${SHELL:-zsh}")" 2>/dev/null) || return 0
     tm set-option -p -t "$bottom" @sidebar 1 2>/dev/null
     tm resize-pane -t "$bottom" -y 10 2>/dev/null
     tm resize-pane -t "$right" -y 12 2>/dev/null
   else
     # No foreign panes: main is the only pane. Split the 30% column off the right.
-    right=$(tm split-window -h -l 30% -t "$left" -c "$dir" -P -F '#{pane_id}' scratch 2>/dev/null) || return 0
+    right=$(tm split-window -h -l 30% -t "$left" -c "$dir" -P -F '#{pane_id}' "$(run_in_dir scratch)" 2>/dev/null) || return 0
     tm set-option -p -t "$right" @sidebar 1 2>/dev/null
     sleep 0.5                                 # scratch reads its probe while focused
-    mid=$(tm split-window -v -t "$right" -c "$dir" -P -F '#{pane_id}' yazi 2>/dev/null) || return 0
+    mid=$(tm split-window -v -t "$right" -c "$dir" -P -F '#{pane_id}' "$(run_in_dir yazi)" 2>/dev/null) || return 0
     tm set-option -p -t "$mid" @sidebar 1 2>/dev/null
     sleep 0.5                                 # yazi reads its probe while focused
-    bottom=$(tm split-window -v -l 10 -t "$mid" -c "$dir" -P -F '#{pane_id}' 2>/dev/null) || return 0
+    bottom=$(tm split-window -v -l 10 -t "$mid" -c "$dir" -P -F '#{pane_id}' "$(run_in_dir "${SHELL:-zsh}")" 2>/dev/null) || return 0
     tm set-option -p -t "$bottom" @sidebar 1 2>/dev/null
     tm resize-pane -t "$right" -y 12 2>/dev/null
   fi

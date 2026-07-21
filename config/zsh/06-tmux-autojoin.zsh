@@ -92,9 +92,9 @@ __auto_join_project() {
   while true; do
     target="${proj_name}-${n}"
     if [[ -n "$launch_cmd" ]]; then
-      if tmux -L "$srv" new-session -d -s "$target" -c "$proj_dir" "$launch_cmd" 2>/dev/null; then break; fi
+      if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" "$launch_cmd" 2>/dev/null; then break; fi
     else
-      if tmux -L "$srv" new-session -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
+      if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
     fi
     n=$((n + 1))
     (( n > 50 )) && return 0
