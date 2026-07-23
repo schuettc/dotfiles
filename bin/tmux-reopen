@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# tmux-reopen — after a reboot (or lost windows), restore tmux sessions from
+# the last tmux-resurrect save and open one Ghostty window per session.
+#
+# Safe to re-run: the resurrect restore skips sessions that already exist,
+# and sessions that already have an attached client are not reopened.
+set -uo pipefail
+
+RESTORE="$HOME/.tmux/plugins/tmux-resurrect/scripts/restore.sh"
+
+# Ensure a server exists, then restore: recreates any session present in the
+# last resurrect save that isn't currently running (existing ones are skipped).
+if ! tmux ls &>/dev/null; then
+  echo "no tmux server — starting one"
+  tmux new-session -d -s _bootstrap
+fi
+# run-shell, not a direct call: restore.sh derives the server socket from
+# $TMUX (tmux_socket helper), which is only set inside tmux — run from a
+# plain shell it fails with "error creating (No such file or directory)".
+# Note: if clients are attached during a partial restore, resurrect may
+# switch some of them to the sessions marked active in the save.
+tmux run-shell "$RESTORE"
+tmux kill-session -t _bootstrap 2>/dev/null || true
+
+attached() { tmux list-clients -t "=$1" 2>/dev/null | grep -q .; }
+
+status=0
+for s in $(tmux ls -F '#S' | sort); do
+  if attached "$s"; then
+    echo "skip   $s (already attached)"
+    continue
+  fi
+  open -na Ghostty.app --args -e tmux attach -t "=$s"
+  sleep 2
+  if attached "$s"; then
+    echo "opened $s"
+  else
+    echo "WARN   $s did not attach" >&2
+    status=1
+  fi
+done
+exit $status

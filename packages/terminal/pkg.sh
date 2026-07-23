@@ -18,6 +18,10 @@ pkg_install() {
   backup_if_exists "$HOME/.tmux.conf"
   ln -sf "$DOTFILES_DIR/.tmux.conf" "$HOME/.tmux.conf"
 
+  # tmux-reopen: post-reboot recovery — resurrect-restore sessions and open
+  # one Ghostty window per session
+  ln -sf "$DOTFILES_DIR/bin/tmux-reopen" "$HOME/.local/bin/tmux-reopen"
+
   # yazi config (file explorer)
   echo "Linking yazi config..."
   backup_if_exists "$CONFIG_DIR/yazi"
@@ -75,6 +79,7 @@ pkg_verify() {
   [[ "$(readlink "$HOME/.tmux.conf")" == "$DOTFILES_DIR/.tmux.conf" ]] \
     && echo "  PASS ~/.tmux.conf -> repo" || { echo "  FAIL ~/.tmux.conf"; ok=1; }
   [[ -d "$HOME/.tmux/plugins/tpm" ]] && echo "  PASS TPM" || { echo "  FAIL TPM missing"; ok=1; }
+  [[ -x "$HOME/.local/bin/tmux-reopen" ]] && echo "  PASS tmux-reopen" || { echo "  FAIL tmux-reopen"; ok=1; }
   [[ "$(readlink "$CONFIG_DIR/yazi")" == "$DOTFILES_DIR/config/yazi" ]] \
     && echo "  PASS yazi config" || { echo "  FAIL yazi config"; ok=1; }
   { [[ -x "$HOME/.local/bin/scratch" ]] || command -v scratch &> /dev/null; } \
