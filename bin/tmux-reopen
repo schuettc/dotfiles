@@ -1,42 +1,79 @@
 #!/usr/bin/env bash
-# tmux-reopen — after a reboot (or lost windows), restore tmux sessions from
-# the last tmux-resurrect save and open one Ghostty window per session.
+# tmux-reopen — post-reboot recovery for the per-project tmux fleet: restore
+# every server's sessions from its own resurrect save and open one window per
+# session in the RUNNING Ghostty instance.
 #
-# Safe to re-run: the resurrect restore skips sessions that already exist,
-# and sessions that already have an attached client are not reopened.
+# Server enumeration is the union of live sockets in the tmux socket dir and
+# per-server save dirs under ~/.tmux/resurrect (see @resurrect-dir in
+# .tmux.conf): /tmp is wiped at boot, so after a reboot the save dirs are the
+# only memory of which servers existed.
+#
+# Windows are created via Ghostty's AppleScript `new window` (Ghostty ≥1.3)
+# with the attach as the surface command — never `open -na`, which launches a
+# whole second Ghostty instance per call. If Ghostty isn't running, the first
+# `tell` launches it; the launch's initial plain-shell window is left alone.
+#
+# Safe to re-run: restore skips sessions that already exist, and sessions
+# with an attached client are not reopened.
 set -uo pipefail
 
 RESTORE="$HOME/.tmux/plugins/tmux-resurrect/scripts/restore.sh"
+SAVE_BASE="$HOME/.tmux/resurrect"
+SOCK_DIR="${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)"
 
-# Ensure a server exists, then restore: recreates any session present in the
-# last resurrect save that isn't currently running (existing ones are skipped).
-if ! tmux ls &>/dev/null; then
-  echo "no tmux server — starting one"
-  tmux new-session -d -s _bootstrap
-fi
-# run-shell, not a direct call: restore.sh derives the server socket from
-# $TMUX (tmux_socket helper), which is only set inside tmux — run from a
-# plain shell it fails with "error creating (No such file or directory)".
-# Note: if clients are attached during a partial restore, resurrect may
-# switch some of them to the sessions marked active in the save.
-tmux run-shell "$RESTORE"
-tmux kill-session -t _bootstrap 2>/dev/null || true
+# One window per (server, session), attaching through the socket name so each
+# window lands on the right server. argv-passing sidesteps quoting entirely.
+ghostty_window() {
+  osascript \
+    -e 'on run argv' \
+    -e 'tell application "Ghostty" to new window with configuration {command:(item 1 of argv)}' \
+    -e 'end run' \
+    "tmux -L $1 attach -t '=$2'" >/dev/null
+}
 
-attached() { tmux list-clients -t "=$1" 2>/dev/null | grep -q .; }
+attached() { tmux -L "$1" list-clients -t "=$2" 2>/dev/null | grep -q .; }
+
+# ─── Enumerate servers: live sockets ∪ save dirs with a `last` save ─────────
+names=$(
+  {
+    for s in "$SOCK_DIR"/*; do [[ -S "$s" ]] && basename "$s"; done
+    for d in "$SAVE_BASE"/*/; do [[ -e "${d}last" ]] && basename "$d"; done
+  } 2>/dev/null | sort -u
+)
+[[ -n "$names" ]] || { echo "nothing to reopen: no live sockets, no saves"; exit 0; }
 
 status=0
-for s in $(tmux ls -F '#S' | sort); do
-  if attached "$s"; then
-    echo "skip   $s (already attached)"
-    continue
+for name in $names; do
+  # Ensure a server exists, then restore: recreates any session in this
+  # server's own save that isn't currently running (existing ones skipped).
+  # run-shell, not a direct call: restore.sh derives socket AND @resurrect-dir
+  # from the server it runs inside.
+  booted=""
+  if ! tmux -L "$name" ls &>/dev/null; then
+    tmux -L "$name" new-session -d -s _bootstrap
+    booted=1
   fi
-  open -na Ghostty.app --args -e tmux attach -t "=$s"
-  sleep 2
-  if attached "$s"; then
-    echo "opened $s"
-  else
-    echo "WARN   $s did not attach" >&2
-    status=1
-  fi
+  [[ -x "$RESTORE" ]] && tmux -L "$name" run-shell "$RESTORE"
+  [[ -n "$booted" ]] && tmux -L "$name" kill-session -t _bootstrap 2>/dev/null
+
+  # Process substitution, not a pipe: a piped while runs in a subshell and
+  # would drop the status=1 the attach check sets.
+  while IFS= read -r s; do
+    if attached "$name" "$s"; then
+      echo "skip   $name/$s (already attached)"
+      continue
+    fi
+    ghostty_window "$name" "$s"
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+      attached "$name" "$s" && break
+      sleep 0.5
+    done
+    if attached "$name" "$s"; then
+      echo "opened $name/$s"
+    else
+      echo "WARN   $name/$s did not attach" >&2
+      status=1
+    fi
+  done < <(tmux -L "$name" ls -F '#S' 2>/dev/null | sort)
 done
 exit $status
