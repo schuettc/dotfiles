@@ -10,7 +10,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 [[ "$(uname)" == "Darwin" ]] || die "macOS only."
 [[ $# -gt 0 ]] || die "usage: packages/run.sh <package>… (see packages/*/pkg.sh)"
 
-ORDER=(core terminal nvim markedit claude swiftbar codex muster)
+ORDER=(core terminal nvim markedit claude swiftbar codex cursor muster)
 
 requested() { local needle="$1" p; shift; for p in "$@"; do [[ "$p" == "$needle" ]] && return 0; done; return 1; }
 

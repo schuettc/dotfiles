@@ -1,0 +1,3 @@
+cask "cursor-cli"         # Cursor Agent CLI (cursor-agent / agent) — peer
+                          # coding agent on the muster bus. Sign in with your
+                          # Cursor subscription when prompted.

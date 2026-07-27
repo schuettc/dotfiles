@@ -52,11 +52,12 @@ alias reload='source ~/.zshrc'
 #          THERE, so parallel work never collides in a single tree.
 #   You think in branches; proj handles every `git worktree` mechanic.
 #
-# Layout for every session: claude-or-shell on the left, yazi (30%) on the right.
+# Layout for every session: agent-or-shell on the left, yazi (30%) on the right.
 #
 # Usage:
 #   proj            # default branch = home base, any other branch = worktree
-#   proj --claude   # same, but auto-launch claude in the left pane
+#   proj --claude   # same, but auto-launch Claude in the left pane
+#   proj --cursor   # same, but auto-launch Cursor in the left pane
 #   proj --edit     # open ~/.config/proj/roots in $EDITOR
 #
 # Worktrees live at <repo>/.worktrees/<branch>, ignored via .git/info/exclude
@@ -156,15 +157,26 @@ __tmux_new_session() {  # <srv> <new-session args...>
 }
 
 # Create-or-attach a tmux session named $2 on server $1 in dir $3 with the
-# standard layout (claude-or-shell left + yazi right). $4=1 auto-launches
-# claude. Uses "=name" exact-match targets so prefix-sharing names (proj vs
-# proj/branch) don't clash.
+# standard layout (agent-or-shell left + yazi right). $4 is "" / "claude" /
+# "cursor"; legacy numeric 1 means Claude. Uses "=name" exact-match targets so
+# prefix-sharing names (proj vs proj/branch) don't clash.
 __proj_launch() {
-  local srv="$1" name="$2" dir="$3" auto_claude="${4:-0}"
+  local srv="$1" name="$2" dir="$3" auto_agent="${4:-}"
+  # Legacy: numeric 1 means claude.
+  [[ "$auto_agent" == "1" ]] && auto_agent="claude"
   cd "$dir"
   if ! tmux -L "$srv" has-session -t "=$name" 2>/dev/null; then
-    if (( auto_claude )) && command -v claude >/dev/null; then
+    if [[ "$auto_agent" == "claude" ]] && command -v claude >/dev/null; then
       __tmux_new_session "$srv" -d -s "$name" -c "$dir" "claude"
+    elif [[ "$auto_agent" == "cursor" ]]; then
+      local ca=""
+      command -v cursor-agent >/dev/null && ca="cursor-agent"
+      [[ -z "$ca" ]] && command -v agent >/dev/null && ca="agent"
+      if [[ -n "$ca" ]]; then
+        __tmux_new_session "$srv" -d -s "$name" -c "$dir" "$ca --trust --approve-mcps"
+      else
+        __tmux_new_session "$srv" -d -s "$name" -c "$dir"
+      fi
     else
       __tmux_new_session "$srv" -d -s "$name" -c "$dir"
     fi
@@ -178,14 +190,14 @@ __proj_launch() {
 
 # Spawn an ADDITIONAL session for a project that already has a home base: find
 # the next free <project>-N (N≥2, matching pt/auto-join numbering) and launch it
-# in <dir> with the standard shell+yazi layout. $3=1 auto-launches claude.
+# in <dir> with the standard shell+yazi layout. $3 is an optional auto-agent.
 __proj_launch_numbered() {
-  local project="$1" dir="$2" auto_claude="${3:-0}" n=2
+  local project="$1" dir="$2" auto_agent="${3:-}" n=2
   local srv; srv=$(__proj_srv "$project")
   while tmux -L "$srv" has-session -t "=${project}-${n}" 2>/dev/null; do
     (( n++ )); (( n > 50 )) && { echo "too many sessions" >&2; return 1; }
   done
-  __proj_launch "$srv" "${project}-${n}" "$dir" "$auto_claude"
+  __proj_launch "$srv" "${project}-${n}" "$dir" "$auto_agent"
 }
 
 # Copy gitignored paths listed in <primary>/.worktreeinclude into a new worktree.
@@ -313,11 +325,12 @@ proj() {
     return
   fi
 
-  local auto_claude=0
-  if [[ "$1" == "--claude" ]]; then
-    auto_claude=1
+  local auto_agent=""
+  while [[ "$1" == "--claude" || "$1" == "--cursor" ]]; do
+    [[ "$1" == "--claude" ]] && auto_agent="claude"
+    [[ "$1" == "--cursor" ]] && auto_agent="cursor"
     shift
-  fi
+  done
 
   if ! __proj_load_roots; then
     if [[ -t 0 && -t 1 ]]; then
@@ -372,7 +385,7 @@ proj() {
 
   # Non-git dir → plain home-base session, no worktree machinery.
   if ! git -C "$primary" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    __proj_launch "$psrv" "$project" "$primary" "$auto_claude"
+    __proj_launch "$psrv" "$project" "$primary" "$auto_agent"
     return
   fi
 
@@ -395,12 +408,12 @@ proj() {
       ;;
     "🏠 "*)
       # Default branch → home base in the primary clone.
-      __proj_launch "$psrv" "$project" "$primary" "$auto_claude"
+      __proj_launch "$psrv" "$project" "$primary" "$auto_agent"
       ;;
     "+ new session here")
       # Additional workspace in the primary clone (project-2, -3, …) — never
       # attaches to the existing home base.
-      __proj_launch_numbered "$project" "$primary" "$auto_claude"
+      __proj_launch_numbered "$project" "$primary" "$auto_agent"
       ;;
     "+ new branch…")
       printf "New branch (off dev): "
@@ -408,7 +421,7 @@ proj() {
       [[ -z "$nb" ]] && return
       local wt; wt=$(__proj_ensure_worktree "$primary" "$nb") \
         || { echo "Could not create worktree for $nb" >&2; return 1; }
-      __proj_launch "$psrv" "$project/$nb" "$wt" "$auto_claude"
+      __proj_launch "$psrv" "$project/$nb" "$wt" "$auto_agent"
       ;;
     "+ prune worktrees…")
       __proj_prune_worktrees "$primary" "$project"
@@ -417,7 +430,7 @@ proj() {
       local branch="${pick#▸ }"; branch="${branch%% *}"
       local wt; wt=$(__proj_ensure_worktree "$primary" "$branch") \
         || { echo "Could not open worktree for $branch" >&2; return 1; }
-      __proj_launch "$psrv" "$project/$branch" "$wt" "$auto_claude"
+      __proj_launch "$psrv" "$project/$branch" "$wt" "$auto_agent"
       ;;
   esac
 }
@@ -430,17 +443,19 @@ proj() {
 # Usage:
 #   pt now-playing         # next free now-playing-N, shell + yazi
 #   pt                     # auto-detect project from $PWD
-#   pt --claude now-playing  # same, but auto-launch claude in the left pane
+#   pt --claude now-playing  # same, but auto-launch Claude in the left pane
+#   pt --cursor now-playing  # same, but auto-launch Cursor in the left pane
 #
 # Picks the next free <project>-N slot starting at 2 (the unnumbered
 # session is the main one created by proj). Uses exec so the Ghostty tab
 # closes cleanly when you detach.
 pt() {
-  local auto_claude=0
-  if [[ "$1" == "--claude" ]]; then
-    auto_claude=1
+  local auto_agent=""
+  while [[ "$1" == "--claude" || "$1" == "--cursor" ]]; do
+    [[ "$1" == "--claude" ]] && auto_agent="claude"
+    [[ "$1" == "--cursor" ]] && auto_agent="cursor"
     shift
-  fi
+  done
 
   local proj_name="$1"
   if ! __proj_load_roots; then
@@ -462,7 +477,7 @@ pt() {
   fi
 
   if [[ -z "$proj_name" ]]; then
-    echo "usage: pt [--claude] <project>     (or run from inside a project dir)" >&2
+    echo "usage: pt [--claude|--cursor] <project>     (or run from inside a project dir)" >&2
     return 1
   fi
 
@@ -485,8 +500,17 @@ pt() {
   local n=2 target
   while true; do
     target="${proj_name}-${n}"
-    if (( auto_claude )) && command -v claude >/dev/null; then
+    if [[ "$auto_agent" == "claude" ]] && command -v claude >/dev/null; then
       if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" "claude" 2>/dev/null; then break; fi
+    elif [[ "$auto_agent" == "cursor" ]]; then
+      local ca=""
+      command -v cursor-agent >/dev/null && ca="cursor-agent"
+      [[ -z "$ca" ]] && command -v agent >/dev/null && ca="agent"
+      if [[ -n "$ca" ]]; then
+        if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" "$ca --trust --approve-mcps" 2>/dev/null; then break; fi
+      else
+        if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
+      fi
     else
       if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
     fi

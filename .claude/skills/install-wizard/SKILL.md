@@ -12,11 +12,11 @@ packages — not this file — are the source of truth: read every
 ## Flow (one question per message, always)
 
 1. **Prereq scan.** Verify macOS (`uname`). Report what's already present:
-   brew, go, claude, codex, SwiftBar, an existing ~/.claude/settings.json
+   brew, go, claude, codex, cursor-agent, SwiftBar, an existing ~/.claude/settings.json
    (say clearly: merges are additive — their settings are preserved).
 2. **Inventory.** Present the package list with one-line descriptions and
    the dependency graph, then walk packages ONE AT A TIME in canonical
-   order (core terminal nvim markedit claude swiftbar codex muster). For
+   order (core terminal nvim markedit claude swiftbar codex cursor muster). For
    each: what it is, how it works, and EXACTLY what it touches — casks
    installed, files symlinked into $HOME, settings files merged, and any
    persistence (login items, LaunchAgents) called out explicitly. Codex
