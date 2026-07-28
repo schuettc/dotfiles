@@ -39,8 +39,8 @@ inbox.
 
 ## tmux notes
 
-- `prefix T` sets the tmux and muster task label for every agent. It only
-  synchronizes a `/rename` command into a live Claude pane; Cursor and Codex
-  still receive the tmux/bus label.
+- `prefix T` sets the tmux and muster task label for every agent, and types
+  `/rename <label>` into a live Claude or Cursor pane so the harness session
+  name follows. Codex has no `/rename`, so it only gets the tmux/bus label.
 - `prefix m` nudges the selected agent to drain its muster inbox and
   auto-submits for Claude, Codex, and Cursor.
