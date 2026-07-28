@@ -1,5 +1,5 @@
 #!/bin/bash
-PKG_DESC="muster: cross-terminal agent coordination bus (daemon via LaunchAgent, MCP in Claude/Codex, session hooks)"
+PKG_DESC="muster: cross-terminal agent coordination bus (daemon via LaunchAgent, MCP in Claude/Codex/Cursor, session hooks)"
 PKG_DEPS=(terminal)
 
 pkg_install() {
@@ -9,7 +9,7 @@ pkg_install() {
   # a public Go project). Fully self-installing when Go is present:
   #   clone (if missing) → build → LaunchAgent daemon → MCP registration.
   # The session hooks (auto-register + self-resolving inbox) are wired below in
-  # the Claude/Codex settings merges; docs live in the muster repo's README.
+  # the Claude/Codex/Cursor settings merges; docs live in the muster repo's README.
   MUSTER_REPO="$HOME/GitHub/schuettc/muster"
   if command -v go &> /dev/null; then
     if [[ ! -d "$MUSTER_REPO" ]]; then
@@ -79,6 +79,28 @@ EOF
         && { echo "Registering muster in Claude Code..."; claude mcp add muster -s user -- muster mcp || warn "Register muster in Claude by hand: claude mcp add muster -s user -- muster mcp"; }
       command -v codex &> /dev/null && ! codex mcp get muster &> /dev/null \
         && { echo "Registering muster in Codex..."; codex mcp add muster -- muster mcp || warn "Register muster in Codex by hand: codex mcp add muster -- muster mcp"; }
+      if command -v cursor-agent &> /dev/null || command -v agent &> /dev/null; then
+        mkdir -p "$HOME/.cursor"
+        local mcp_json="$HOME/.cursor/mcp.json"
+        [[ -f "$mcp_json" ]] || echo '{"mcpServers":{}}' > "$mcp_json"
+        if command -v jq &> /dev/null; then
+          local tmp; tmp=$(mktemp)
+          if jq --arg cmd "$HOME/.local/bin/muster" '
+            .mcpServers = (.mcpServers // {})
+            | .mcpServers.muster = {"command": $cmd, "args": ["mcp"]}
+          ' "$mcp_json" > "$tmp"; then
+            mv "$tmp" "$mcp_json"
+            echo "Registered muster in Cursor MCP (~/.cursor/mcp.json)."
+          else
+            rm -f "$tmp"; warn "muster: Cursor mcp.json merge failed."
+          fi
+        else
+          warn "jq missing — add muster to ~/.cursor/mcp.json by hand."
+        fi
+        local ca="cursor-agent"; command -v cursor-agent &>/dev/null || ca="agent"
+        "$ca" mcp enable muster >/dev/null 2>&1 \
+          || warn "Couldn't enable muster MCP in Cursor — run: $ca mcp enable muster"
+      fi
     else
       git -C "$MUSTER_REPO" worktree remove --force "$build_src" 2>/dev/null || true
       warn "muster build failed — build it by hand: (git -C $MUSTER_REPO worktree add --detach /tmp/m origin/main && go -C /tmp/m build -o ~/.local/bin/muster ./cmd/muster)"
@@ -138,6 +160,53 @@ EOF
 EOF
     echo "Wrote Codex session hooks (~/.codex/hooks.json) — trust them on the next 'codex' launch."
   fi
+
+  # Cursor session hooks: same lifecycle as Claude (SessionStart/Stop/SessionEnd),
+  # Cursor schema (camelCase, flat {command}, loop_limit on stop). Overwrite
+  # wholesale like Codex — ~/.cursor/hooks.json is muster-owned for now.
+  if command -v cursor-agent &> /dev/null || command -v agent &> /dev/null; then
+    mkdir -p "$HOME/.cursor"
+    cat > "$HOME/.cursor/hooks.json" <<EOF
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [{ "command": "$HOME/.local/bin/muster hook SessionStart cursor" }],
+    "stop": [{ "command": "$HOME/.local/bin/muster hook Stop cursor", "loop_limit": 3 }],
+    "sessionEnd": [{ "command": "$HOME/.local/bin/muster hook SessionEnd cursor" }]
+  }
+}
+EOF
+    echo "Wrote Cursor session hooks (~/.cursor/hooks.json)."
+
+    # Allowlist muster MCP tools so Stop-hook drain isn't stalled on every
+    # "Run this MCP tool?" prompt (Cursor default is allowlist mode).
+    local cli_cfg="$HOME/.cursor/cli-config.json"
+    if command -v jq &> /dev/null; then
+      if [[ ! -f "$cli_cfg" ]]; then
+        cat > "$cli_cfg" <<'EOF'
+{
+  "version": 1,
+  "editor": { "vimMode": false },
+  "permissions": { "allow": ["Mcp(muster:*)"], "deny": [] }
+}
+EOF
+      else
+        local tmp; tmp=$(mktemp)
+        if jq '
+          .permissions = (.permissions // {})
+          | .permissions.allow = (((.permissions.allow // []) + ["Mcp(muster:*)"]) | unique)
+          | .permissions.deny = (.permissions.deny // [])
+        ' "$cli_cfg" > "$tmp"; then
+          mv "$tmp" "$cli_cfg"
+        else
+          rm -f "$tmp"; warn "muster: Cursor cli-config.json merge failed."
+        fi
+      fi
+      echo "Allowlisted Mcp(muster:*) in ~/.cursor/cli-config.json."
+    else
+      warn "jq missing — add Mcp(muster:*) to ~/.cursor/cli-config.json permissions.allow by hand."
+    fi
+  fi
 }
 
 pkg_verify() {
@@ -160,5 +229,14 @@ pkg_verify() {
   fi
   jq -e '[.hooks.Stop[].hooks[]?.command] | index("~/.local/bin/muster hook Stop claude")' "$s" >/dev/null 2>&1 \
     && echo "  PASS Stop hook wired" || { echo "  FAIL Stop hook wired"; ok=1; }
+  if command -v cursor-agent &> /dev/null || command -v agent &> /dev/null; then
+    jq -e --arg cmd "$HOME/.local/bin/muster hook SessionStart cursor" \
+      '.hooks.sessionStart[]?.command == $cmd' "$HOME/.cursor/hooks.json" >/dev/null 2>&1 \
+      && echo "  PASS cursor hooks wired" || { echo "  FAIL cursor hooks wired"; ok=1; }
+    jq -e '.permissions.allow | index("Mcp(muster:*)")' "$HOME/.cursor/cli-config.json" >/dev/null 2>&1 \
+      && echo "  PASS cursor Mcp(muster:*) allowlisted" || { echo "  FAIL cursor Mcp(muster:*) allowlisted"; ok=1; }
+    jq -e '.mcpServers.muster.command' "$HOME/.cursor/mcp.json" >/dev/null 2>&1 \
+      && echo "  PASS cursor MCP registered" || { echo "  FAIL cursor MCP registered"; ok=1; }
+  fi
   return $ok
 }

@@ -59,6 +59,7 @@ layout. Shell helpers (in `config/zsh/04-aliases.zsh`):
 |---------|--------------|
 | `proj` | two-screen picker → enter/create a workspace; choose home base or a branch (own worktree) |
 | `proj --claude` | same, but auto-launch `claude` in the left pane |
+| `proj --cursor` | same, but auto-launch Cursor Agent in the left pane |
 | `pt [name]` | spawn another terminal in a project (next `name-N` session) |
 | `tat <name>` | attach-or-create a named session |
 | `proj-clean` | reap idle sessions (shell/yazi only — no Claude/editor/server) |
@@ -134,21 +135,29 @@ Both run on a **ChatGPT subscription** (`codex login` — browser OAuth), not a
 metered OpenAI API key. Check auth with `codex login status`. See
 [`docs/codex-bridge.md`](docs/codex-bridge.md) for the day-to-day workflow.
 
+### Cursor Agent
+
+[Cursor Agent CLI](https://cursor.com/cli) is a peer coding agent on the muster
+bus. Install `packages/cursor` with `muster` to install the CLI and wire Cursor
+session hooks, the muster MCP server, and its permission allowlist. Start a
+workspace with `proj --cursor`; the left pane runs
+`cursor-agent --trust --approve-mcps` (or `agent` when that is the available
+CLI). See [`docs/cursor-bridge.md`](docs/cursor-bridge.md).
+
 ### muster — cross-terminal agent bus
 
 Where the Codex bridge is *vertical* (one terminal), **[muster](https://github.com/schuettc/muster)**
 is *horizontal*: a local coordination bus that lets standing agent sessions in
-separate terminals (Claude Code and/or Codex) message and hand tasks to each
+separate terminals (Claude Code, Codex, and/or Cursor) message and hand tasks to each
 other — no copy/paste, subscription-only. The `muster` package self-installs
 the whole stack when Go is present: clones the repo (now public — HTTPS, no
 SSH auth needed) to `~/GitHub/schuettc/muster` if missing, builds
 `~/.local/bin/muster`, installs a **LaunchAgent** (`tools.muster.serve` —
 `muster serve` runs at login, restarts on crash, logs to
-`~/.local/share/muster/serve.log`), and registers the MCP server in both Claude
-Code and Codex (`claude mcp add muster -s user -- muster mcp`,
-`codex mcp add muster -- muster mcp`). Session hooks (auto-register on the bus +
+`~/.local/share/muster/serve.log`), and registers the MCP server in Claude
+Code, Codex, and Cursor. Session hooks (auto-register on the bus +
 self-resolving inbox via `muster hook`, built into the binary since v0.3.0) are
-merged into the Claude/Codex settings by the same script. Don't want muster? Skip it and pick
+merged into the Claude/Codex/Cursor settings by the same script. Don't want muster? Skip it and pick
 the rest of the packages with the install-wizard skill (see "Selective
 install" below).
 
@@ -161,8 +170,8 @@ install" below).
   `prefix m` nudges the session's agent to drain its inbox now (idle agents
   otherwise only check mail at turn boundaries).
 
-Verify with `claude mcp list` (`muster … ✔ Connected`). Full docs live in the
-muster repo's README.
+Verify with `claude mcp list` (`muster … ✔ Connected`) or Cursor's
+`~/.cursor/mcp.json`. Full docs live in the muster repo's README.
 
 ## Structure
 
@@ -175,7 +184,7 @@ muster repo's README.
 │   ├── lib.sh             # Shared install helpers (run_pkg, warn/die, backups)
 │   ├── run.sh             # Runs an explicit package list (the wizard's entry point)
 │   └── <name>/pkg.sh      # Per-package install/verify + its own Brewfile
-│       # core terminal nvim markedit claude swiftbar codex muster
+│       # core terminal nvim markedit claude swiftbar codex cursor muster
 ├── bin/
 │   ├── tmux-git-status.sh      # branch + dirty count for status-right
 │   ├── tmux-claude-context.sh  # Claude context % for status-right
@@ -204,6 +213,7 @@ muster repo's README.
     ├── terminal-usage.md  # day-to-day cheat sheet
     ├── terminal-setup.md  # install tutorial
     ├── codex-bridge.md    # Claude Code + Codex (GPT) workflow
+    ├── cursor-bridge.md   # Cursor Agent + muster workflow
     └── setup-notes.md     # design rationale / running log
 ```
 

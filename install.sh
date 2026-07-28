@@ -17,7 +17,7 @@ if ! command -v brew &> /dev/null; then
 fi
 command -v brew &> /dev/null || die "brew not on PATH after install — open a new shell and re-run."
 
-for pkg in core terminal nvim markedit claude swiftbar codex muster; do
+for pkg in core terminal nvim markedit claude swiftbar codex cursor muster; do
   run_pkg "$pkg"
 done
 
@@ -34,6 +34,6 @@ echo "Next steps:"
 echo "  1. Open Ghostty (cmd+space → \"Ghostty\") and run: source ~/.zshrc"
 echo "  2. Run \`proj\` and pick a project to spin up your first workspace."
 echo "  3. Inside a project, cmd+T spawns more terminals (auto-joins tmux)."
-echo "  4. Optional sign-ins: atuin register/login; codex login (ChatGPT plan)."
+echo "  4. Optional sign-ins: atuin register/login; codex login (ChatGPT plan); Cursor Agent CLI (Cursor subscription)."
 [[ -d "/Applications/SwiftBar.app" ]] && echo "     ⚠ MANUAL: grant SwiftBar Accessibility for click-to-focus (see package output above)."
 echo "  5. Read docs/terminal-usage.md for the day-to-day cheat sheet."
