@@ -44,7 +44,14 @@ export AWS_PAGER=""
 # (a one-shot must not claim the session's name), nested invocations from
 # inside a Claude session, and anything outside tmux or without muster.
 if [[ -x "$HOME/.local/bin/claude" ]]; then
-  claude() {
+  # A shell that loaded the pre-handshake config has `claude` as an ALIAS.
+  # zsh expands aliases at PARSE time — and it parses this whole if-block
+  # before running any of it — so a bare `claude() {` would parse-error on
+  # re-source ("defining function based on alias"). The `function` keyword
+  # suppresses alias expansion of the name; the unalias clears the runtime
+  # shadowing so the function is what future commands resolve.
+  unalias claude 2> /dev/null
+  function claude {
     if [[ -n "$TMUX" && -z "$CLAUDECODE" ]] && command -v muster &> /dev/null; then
       case " $* " in
         (*" --resume "*|*" -r "*|*" --continue "*|*" -c "*|*" --session-id "*|*" -p "*|*" --print "*) ;;
