@@ -28,8 +28,46 @@ command -v lazygit &> /dev/null && alias lg='lazygit'
 # AWS
 export AWS_PAGER=""
 
-# Claude (only if installed)
-[[ -x "$HOME/.local/bin/claude" ]] && alias claude="$HOME/.local/bin/claude"
+# Claude (only if installed) — with the muster launch handshake.
+#
+# Claude Code ≥2.1.2xx executes sessions in daemon-forked processes that never
+# see $TMUX, so a session's own muster hooks cannot capture pane identity —
+# they'd fall back to a cwd-derived paneless alias with no label/nudge/badge.
+# The PANE, though, knows everything. So on a fresh launch inside tmux: mint
+# the session UUID here, pre-register this tmux session under its OWN name on
+# the bus (`--harness-session` stores the link), and hand the same UUID to
+# `claude --session-id`. The session's hooks then find that row by UUID and
+# leave it alone; prefix T, nudge, and the 📬 badge all work again.
+#
+# Skipped for resumes/continues (the session keeps its original UUID — its
+# row, if any, is found by that), explicit --session-id, headless -p runs
+# (a one-shot must not claim the session's name), nested invocations from
+# inside a Claude session, and anything outside tmux or without muster.
+if [[ -x "$HOME/.local/bin/claude" ]]; then
+  # A shell that loaded the pre-handshake config has `claude` as an ALIAS.
+  # zsh expands aliases at PARSE time — and it parses this whole if-block
+  # before running any of it — so a bare `claude() {` would parse-error on
+  # re-source ("defining function based on alias"). The `function` keyword
+  # suppresses alias expansion of the name; the unalias clears the runtime
+  # shadowing so the function is what future commands resolve.
+  unalias claude 2> /dev/null
+  function claude {
+    if [[ -n "$TMUX" && -z "$CLAUDECODE" ]] && command -v muster &> /dev/null; then
+      case " $* " in
+        (*" --resume "*|*" -r "*|*" --continue "*|*" -c "*|*" --session-id "*|*" -p "*|*" --print "*) ;;
+        (*)
+          local _uuid
+          _uuid=$(uuidgen | tr '[:upper:]' '[:lower:]')
+          "$HOME/.local/bin/muster" register "$(tmux display-message -p '#{session_name}')" \
+            --harness-session "$_uuid" > /dev/null 2>&1
+          "$HOME/.local/bin/claude" --session-id "$_uuid" "$@"
+          return
+          ;;
+      esac
+    fi
+    "$HOME/.local/bin/claude" "$@"
+  }
+fi
 
 # Quick navigation
 alias ..='cd ..'
@@ -166,19 +204,19 @@ __proj_launch() {
   [[ "$auto_agent" == "1" ]] && auto_agent="claude"
   cd "$dir"
   if ! tmux -L "$srv" has-session -t "=$name" 2>/dev/null; then
+    __tmux_new_session "$srv" -d -s "$name" -c "$dir"
     if [[ "$auto_agent" == "claude" ]] && command -v claude >/dev/null; then
-      __tmux_new_session "$srv" -d -s "$name" -c "$dir" "claude"
+      # Type `claude` into the pane's interactive shell instead of making it
+      # the pane command: the launch handshake lives in the claude() shell
+      # function (see the alias block above), and a direct pane command would
+      # bypass it — registering nothing and losing prefix T/nudge/badge.
+      tmux -L "$srv" send-keys -t "=$name" 'claude' Enter
     elif [[ "$auto_agent" == "cursor" ]]; then
       local ca=""
       command -v cursor-agent >/dev/null && ca="cursor-agent"
       [[ -z "$ca" ]] && command -v agent >/dev/null && ca="agent"
-      if [[ -n "$ca" ]]; then
-        __tmux_new_session "$srv" -d -s "$name" -c "$dir" "$ca --trust --approve-mcps"
-      else
-        __tmux_new_session "$srv" -d -s "$name" -c "$dir"
-      fi
-    else
-      __tmux_new_session "$srv" -d -s "$name" -c "$dir"
+      # Same shape as claude for consistency: launch via the pane's shell.
+      [[ -n "$ca" ]] && tmux -L "$srv" send-keys -t "=$name" "$ca --trust --approve-mcps" Enter
     fi
     # Build the right column (scratch -> yazi -> shell). The builder handles
     # pane-id targeting, the per-app terminal-probe focus dance, and tags the
