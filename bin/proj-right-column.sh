@@ -69,7 +69,14 @@ build() {
   # anchor = topmost non-main, non-sidebar pane already in the window, i.e. the
   # top of the agent column left behind when the sidebar was toggled off while
   # Claude's --tmux subagents were running.
-  anchor=$(tm list-panes -F '#{pane_id} #{pane_top} #{pane_left} #{?@sidebar,1,0}' 2>/dev/null \
+  #
+  # -t "$name" is load-bearing: untargeted, list-panes reads the server's
+  # CURRENT session — which, during a `proj` launch from a fresh window, is
+  # whatever session was already attached. Its main pane (never @sidebar,
+  # never $left) then always qualifies as an anchor, and the whole column
+  # builds inside the WRONG session: the new session gets nothing, the
+  # current one grows a second full-width scratch/yazi/shell stack.
+  anchor=$(tm list-panes -t "$name" -F '#{pane_id} #{pane_top} #{pane_left} #{?@sidebar,1,0}' 2>/dev/null \
            | awk -v m="$left" '$1!=m && $4==0' | sort -k2,2n -k3,3n | head -1 | awk '{print $1}')
   if [ -n "$anchor" ]; then
     # Agents occupy the right column. Insert the scratch → yazi → shell stack
@@ -112,7 +119,7 @@ run() {
   tm set-option -g @agent_pin 0 2>/dev/null
   build
   tm set-option -g @agent_pin "${prev_pin:-1}" 2>/dev/null
-  if [ "${prev_pin:-1}" = 1 ] && [ "$(tm display-message -p '#{window_panes}' 2>/dev/null)" -ge 3 ]; then
+  if [ "${prev_pin:-1}" = 1 ] && [ "$(tm display-message -p -t "$name" '#{window_panes}' 2>/dev/null)" -ge 3 ]; then
     tm resize-pane -t "$left" -x 70% 2>/dev/null
   fi
   tm select-pane -t "$left" 2>/dev/null
