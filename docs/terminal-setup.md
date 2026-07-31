@@ -126,7 +126,20 @@ A typical `~/.config/proj/roots`:
 ```
 ~/GitHub/schuettc
 ~/learning-with-court
+project:~/dotfiles
 ```
+
+Each line is one of two kinds:
+
+| Line | Meaning |
+| --- | --- |
+| `~/GitHub/schuettc` | A **root** — its immediate children are projects. |
+| `project:~/dotfiles` | A **project** — this directory itself is the project. |
+
+Use `project:` for a repo that lives directly in `$HOME` and so has no root
+to sit under. Do not list bare `~` as a root to reach it: that makes every
+folder in your home directory a project, and opening a shell in `~/Downloads`
+then gets ambushed by the `proj` picker instead of giving you a shell.
 
 ### 2. Open your first workspace
 
@@ -211,6 +224,11 @@ newline in Claude without submitting. Full reference in
 - **`proj` says "No project roots configured"** — run `proj` interactively to
   set them up, or `proj --edit`. (The roots file is `~/.config/proj/roots`,
   per-machine, untracked.)
+- **A new shell drops into the `proj` picker instead of a shell** — a root in
+  `~/.config/proj/roots` is too broad, so an ordinary directory looks like a
+  project. Usually a bare `~` line: it makes `~/Downloads`, `~/Library` and
+  friends into projects. Replace it with `project:` lines for the specific
+  repos you meant (`proj --edit`).
 - **⌘T lands at `$HOME`, not the project** — tmux didn't forward the cwd via
   OSC 7. Reload tmux (`Ctrl-A r`) or `tmux kill-server` + `tmux attach`; then
   use `pt` for the current tab.

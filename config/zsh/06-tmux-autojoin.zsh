@@ -36,23 +36,14 @@ __auto_join_project() {
   # Project roots from ~/.config/proj/roots (shared with proj()).
   # Silent no-op if unconfigured — first-run setup happens via `proj`.
   __proj_load_roots || return 0
-  local roots=("${PROJ_ROOTS[@]}")
 
-  # Find which root contains $PWD and extract the project name.
-  local proj_name="" root rel
-  for root in "${roots[@]}"; do
-    if [[ "$PWD" == "$root"/* ]]; then
-      rel="${PWD#$root/}"
-      proj_name="${rel%%/*}"
-      break
-    fi
-  done
+  # Which project (if any) contains $PWD — see __proj_name_for_dir.
+  local proj_name
   # Not inside a known project (e.g. a new ⌘N window opens at ~). Leave a plain
   # shell at the current dir — don't force the proj picker. Run `proj` yourself
   # when you actually want to jump into a project.
-  if [[ -z "$proj_name" ]]; then
-    return 0
-  fi
+  proj_name=$(__proj_name_for_dir "$PWD") || return 0
+  [[ -z "$proj_name" ]] && return 0
 
   # Each project has its own tmux server (socket proj-<name>) so a flooding
   # pane can only lag its own project — see "per-project tmux servers" in
@@ -71,12 +62,7 @@ __auto_join_project() {
 
   # Find the project root dir (not just $PWD — they may be in a subdir).
   local proj_dir
-  for root in "${roots[@]}"; do
-    if [[ -d "$root/$proj_name" ]]; then
-      proj_dir="$root/$proj_name"
-      break
-    fi
-  done
+  proj_dir=$(__proj_dir_for_name "$proj_name") || proj_dir=""
   [[ -z "$proj_dir" ]] && proj_dir="$PWD"
 
   # Find the next free <project>-N slot starting at 2. tmux new-session
