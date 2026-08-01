@@ -30,19 +30,25 @@ export AWS_PAGER=""
 
 # Claude (only if installed) — with the muster launch handshake.
 #
-# Claude Code ≥2.1.2xx executes sessions in daemon-forked processes that never
-# see $TMUX, so a session's own muster hooks cannot capture pane identity —
+# The Claude Code session process itself does see $TMUX/$TMUX_PANE — it's
+# launched right here in this pane's shell. But Claude Code runs its HOOKS in
+# a stripped environment where those vars are unset (see claude-notify.sh for
+# the process-ancestry-walk workaround hooks use to find their own pane), so
+# a session's own muster hooks cannot capture pane identity that way —
 # they'd fall back to a cwd-derived paneless alias with no label/nudge/badge.
-# The PANE, though, knows everything. So on a fresh launch inside tmux: mint
-# the session UUID here, pre-register this tmux session under its OWN name on
-# the bus (`--harness-session` stores the link), and hand the same UUID to
-# `claude --session-id`. The session's hooks then find that row by UUID and
-# leave it alone; prefix T, nudge, and the 📬 badge all work again.
+# The PANE, though, knows everything up front. So on a fresh launch inside
+# tmux: mint the session UUID here, pre-register this tmux session under its
+# OWN name on the bus (`--harness-session` stores the link), and hand the
+# same UUID to `claude --session-id`. The session's hooks then find that row
+# by UUID and leave it alone; prefix T, nudge, and the 📬 badge all work
+# again.
 #
-# Skipped for resumes/continues (the session keeps its original UUID — its
-# row, if any, is found by that), explicit --session-id, headless -p runs
-# (a one-shot must not claim the session's name), nested invocations from
-# inside a Claude session, and anything outside tmux or without muster.
+# Skipped for resumes/continues (on --continue or a bare --resume, Claude
+# picks the conversation interactively, so the UUID isn't knowable before
+# exec — the session keeps whatever UUID it picks, and its row, if any, is
+# found by that), explicit --session-id, headless -p runs (a one-shot must
+# not claim the session's name), nested invocations from inside a Claude
+# session, and anything outside tmux or without muster.
 if [[ -x "$HOME/.local/bin/claude" ]]; then
   # A shell that loaded the pre-handshake config has `claude` as an ALIAS.
   # zsh expands aliases at PARSE time — and it parses this whole if-block
