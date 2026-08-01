@@ -27,6 +27,7 @@ pkg_install() {
       | ensure_hook("Notification"; "~/.config/claude/claude-notify.sh")
       | ensure_hook("Stop"; "~/.config/claude/claude-notify.sh")
       | ensure_hook("Stop"; "~/.config/claude/claude-teammate-idle.sh")
+      | ensure_hook("SessionStart"; "~/dotfiles/bin/harness-session-stamp.sh")
     ' "$settings" > "$tmp"; then
       mv "$tmp" "$settings"
     else
@@ -48,5 +49,9 @@ pkg_verify() {
     && echo "  PASS notify hooks" || { echo "  FAIL notify hooks"; ok=1; }
   jq -e '[.hooks.Stop[].hooks[]?.command] | index("~/.config/claude/claude-teammate-idle.sh")' "$s" >/dev/null 2>&1 \
     && echo "  PASS teammate-idle hook" || { echo "  FAIL teammate-idle hook"; ok=1; }
+  jq -e '[.hooks.SessionStart[].hooks[]?.command] | index("~/dotfiles/bin/harness-session-stamp.sh")' "$s" >/dev/null 2>&1 \
+    && echo "  PASS session-stamp hook" || { echo "  FAIL session-stamp hook"; ok=1; }
+  [[ -x "$HOME/dotfiles/bin/tmux-hook-pane.sh" ]] && echo "  PASS tmux-hook-pane helper" \
+    || { echo "  FAIL tmux-hook-pane helper"; ok=1; }
   return $ok
 }
