@@ -145,6 +145,11 @@ then gets ambushed by the `proj` picker instead of giving you a shell.
 list `~/bettor-help` as a root and every dated slate directory inside it
 becomes a separate project in the picker.
 
+The bottom of the `proj` picker carries `[+ add new project root…]` and
+`[- remove a project root…]`; either one edits the file and drops you back
+into a rebuilt list, so you can fix your roots and pick a project in one
+trip. The same two are available directly as flags.
+
 Edit the file with `proj --add` and `proj --remove` (Tab multi-selects) —
 both rewrite it for you. `proj --edit` opens it in `$EDITOR` for anything
 those two can't express.
