@@ -149,34 +149,20 @@ EOF
   # prompts once to trust the file (trust is by content-hash) on the next
   # 'codex' launch.
   if command -v codex &> /dev/null; then
-    mkdir -p "$HOME/.codex"
-    cat > "$HOME/.codex/hooks.json" <<EOF
-{
-  "hooks": {
-    "SessionStart": [{"hooks":[{"type":"command","command":"$HOME/.local/bin/muster hook SessionStart codex"}]}],
-    "Stop":         [{"hooks":[{"type":"command","command":"$HOME/.local/bin/muster hook Stop codex"}]}]
-  }
-}
-EOF
-    echo "Wrote Codex session hooks (~/.codex/hooks.json) — trust them on the next 'codex' launch."
+    codex_ensure_hook SessionStart "$HOME/.local/bin/muster hook SessionStart codex"
+    codex_ensure_hook Stop         "$HOME/.local/bin/muster hook Stop codex"
+    echo "Merged muster's Codex session hooks (~/.codex/hooks.json) — trust them on the next 'codex' launch."
   fi
 
   # Cursor session hooks: same lifecycle as Claude (SessionStart/Stop/SessionEnd),
-  # Cursor schema (camelCase, flat {command}, loop_limit on stop). Overwrite
-  # wholesale like Codex — ~/.cursor/hooks.json is muster-owned for now.
+  # Cursor schema (camelCase, flat {command}, loop_limit on stop). Merged, not
+  # written wholesale: the cursor package wires its own session-identity hook
+  # into this same file (see lib.sh).
   if command -v cursor-agent &> /dev/null || command -v agent &> /dev/null; then
-    mkdir -p "$HOME/.cursor"
-    cat > "$HOME/.cursor/hooks.json" <<EOF
-{
-  "version": 1,
-  "hooks": {
-    "sessionStart": [{ "command": "$HOME/.local/bin/muster hook SessionStart cursor" }],
-    "stop": [{ "command": "$HOME/.local/bin/muster hook Stop cursor", "loop_limit": 3 }],
-    "sessionEnd": [{ "command": "$HOME/.local/bin/muster hook SessionEnd cursor" }]
-  }
-}
-EOF
-    echo "Wrote Cursor session hooks (~/.cursor/hooks.json)."
+    cursor_ensure_hook sessionStart "$HOME/.local/bin/muster hook SessionStart cursor"
+    cursor_ensure_hook stop         "$HOME/.local/bin/muster hook Stop cursor" '{"loop_limit":3}'
+    cursor_ensure_hook sessionEnd   "$HOME/.local/bin/muster hook SessionEnd cursor"
+    echo "Merged muster's Cursor session hooks (~/.cursor/hooks.json)."
 
     # Allowlist muster MCP tools so Stop-hook drain isn't stalled on every
     # "Run this MCP tool?" prompt (Cursor default is allowlist mode).
