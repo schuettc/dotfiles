@@ -97,12 +97,16 @@ alias reload='source ~/.zshrc'
 #   proj --claude   # same, but auto-launch Claude in the left pane
 #   proj --cursor   # same, but auto-launch Cursor in the left pane
 #   proj --edit     # open ~/.config/proj/roots in $EDITOR
+#   proj --add      # add a root, or a single directory as a project
+#   proj --remove   # delete entries from the roots file (Tab = multi-select)
 #
 # Worktrees live at <repo>/.worktrees/<branch>, ignored via .git/info/exclude
 # (the repo's tracked .gitignore is untouched). A <repo>/.worktreeinclude file
 # (gitignore syntax) lists gitignored paths (e.g. .env) to copy into each new
 # worktree. The tmux status bar shows the branch, so you always see which
-# worktree a session is in. Project roots: ~/.config/proj/roots (see proj --edit).
+# worktree a session is in. Project roots: ~/.config/proj/roots (see proj --edit)
+# — bare lines are roots whose children are projects, `project:<path>` lines are
+# projects in their own right. See 03-proj-roots.zsh.
 
 # ─── per-project tmux servers ───────────────────────────────────────────────
 # Every project gets its OWN tmux server (socket "proj-<project>", i.e.
@@ -363,6 +367,19 @@ proj() {
     return
   fi
 
+  # --add/--remove are the guided front door to the roots file; --edit stays
+  # for anything they can't express.
+  if [[ "$1" == "--add" ]]; then
+    __proj_load_roots >/dev/null 2>&1
+    __proj_add_root
+    return
+  fi
+
+  if [[ "$1" == "--remove" ]]; then
+    __proj_remove_root
+    return
+  fi
+
   local auto_agent=""
   while [[ "$1" == "--claude" || "$1" == "--cursor" ]]; do
     [[ "$1" == "--claude" ]] && auto_agent="claude"
@@ -378,13 +395,13 @@ proj() {
       return 1
     fi
   fi
-  local project_dirs=("${PROJ_ROOTS[@]}")
-
   # ── Screen 1: pick a project (or jump straight to a live session) ──
-  # fd's --no-ignore-vcs (in the picker below): a root may itself be a git repo
-  # that gitignores its project subdirs (e.g. a workspace shell whose .gitignore
-  # lists its independent member repos). Those are still projects, so surface
-  # them. An explicit .fdignore/.ignore in the root still hides entries.
+  # Candidates come from __proj_all_dirs: the children of every root, plus
+  # every `project:`-marked directory. Its fd call passes --no-ignore-vcs
+  # because a root may itself be a git repo that gitignores its project
+  # subdirs (e.g. a workspace shell whose .gitignore lists its independent
+  # member repos). Those are still projects, so surface them. An explicit
+  # .fdignore/.ignore in the root still hides entries.
   # (Comments can't live inside the $( { ... } ) substitution — zsh mis-parses.)
   local choice existing s
   while true; do
@@ -394,15 +411,13 @@ proj() {
     choice=$(
       {
         [[ -n "$existing" ]] && print -- "$existing"
-        for d in "${project_dirs[@]}"; do
-          [[ -d "$d" ]] && fd --type d --max-depth 1 --no-ignore-vcs . "$d"
-        done
+        __proj_all_dirs
         print -- "[+ add new project root…]"
       } | awk 'NF' | fzf --prompt='project › ' --height=60% --reverse
     )
     [[ -z "$choice" ]] && return
     if [[ "$choice" == "[+ add new project root…]" ]]; then
-      __proj_add_root && project_dirs=("${PROJ_ROOTS[@]}")
+      __proj_add_root
       continue
     fi
     break
@@ -500,34 +515,17 @@ pt() {
     echo "No project roots configured. Run \`proj\` to set them up." >&2
     return 1
   fi
-  local roots=("${PROJ_ROOTS[@]}")
 
   # If no name given, try to detect from cwd.
-  if [[ -z "$proj_name" ]]; then
-    local root rel
-    for root in "${roots[@]}"; do
-      if [[ "$PWD" == "$root"/* ]]; then
-        rel="${PWD#$root/}"
-        proj_name="${rel%%/*}"
-        break
-      fi
-    done
-  fi
+  [[ -z "$proj_name" ]] && proj_name=$(__proj_name_for_dir "$PWD")
 
   if [[ -z "$proj_name" ]]; then
     echo "usage: pt [--claude|--cursor] <project>     (or run from inside a project dir)" >&2
     return 1
   fi
 
-  # Find the project directory across roots.
-  local proj_dir=""
-  for root in "${roots[@]}"; do
-    if [[ -d "$root/$proj_name" ]]; then
-      proj_dir="$root/$proj_name"
-      break
-    fi
-  done
-  if [[ -z "$proj_dir" ]]; then
+  local proj_dir
+  if ! proj_dir=$(__proj_dir_for_name "$proj_name"); then
     echo "project not found: $proj_name" >&2
     return 1
   fi

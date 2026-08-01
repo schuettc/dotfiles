@@ -60,6 +60,7 @@ layout. Shell helpers (in `config/zsh/04-aliases.zsh`):
 | `proj` | two-screen picker → enter/create a workspace; choose home base or a branch (own worktree) |
 | `proj --claude` | same, but auto-launch `claude` in the left pane |
 | `proj --cursor` | same, but auto-launch Cursor Agent in the left pane |
+| `proj --add` / `--remove` | add or delete an entry in `~/.config/proj/roots` |
 | `pt [name]` | spawn another terminal in a project (next `name-N` session) |
 | `tat <name>` | attach-or-create a named session |
 | `proj-clean` | reap idle sessions (shell/yazi only — no Claude/editor/server) |
@@ -222,7 +223,7 @@ Verify with `claude mcp list` (`muster … ✔ Connected`) or Cursor's
 | To change… | Edit |
 |------------|------|
 | Aliases / workspace commands | `config/zsh/04-aliases.zsh` |
-| Project root directories | `proj --edit` (writes `~/.config/proj/roots`) |
+| Project root directories | `proj --add` / `--remove` / `--edit` (writes `~/.config/proj/roots`) |
 | The prompt | `config/starship.toml` ([starship.rs/config](https://starship.rs/config/)) |
 | Terminal settings / keybinds | `config/ghostty/config` |
 | tmux behavior / status bar | `.tmux.conf` |
