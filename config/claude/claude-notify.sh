@@ -9,14 +9,18 @@
 # Both just ring the bell. No macOS notification, no Dock bounce.
 #
 # Claude Code runs hooks in a STRIPPED environment ($TMUX / $TMUX_PANE are
-# unset), so we can't target the pane via env. Instead we walk this hook's
-# process ancestry (hook → claude → pane shell) until a PID matches a
-# tmux pane's #{pane_pid}, then ring exactly that pane. Running the hook
-# synchronously (not async) keeps the ancestry intact — async reparents
-# the hook and the walk fails. No cwd fallback: ringing the wrong/too-many
-# panes (every same-dir session) is worse than ringing none.
+# unset), so we can't target the pane via env. bin/tmux-hook-pane.sh walks
+# this hook's process ancestry (hook → claude → pane shell) until a PID
+# matches a tmux pane's #{pane_pid}. Running the hook synchronously (not
+# async) keeps the ancestry intact — async reparents the hook and the walk
+# fails. No cwd fallback: ringing the wrong/too-many panes (every same-dir
+# session) is worse than ringing none.
 #
-# tmux commands work without $TMUX because they use the default socket.
+# That walk used to live here and searched only the default socket, which
+# silently stopped finding anything once every project got its own tmux
+# server ("proj-<project>"): with $TMUX unset, a bare `tmux list-panes -a`
+# fails with "error connecting to …/default" and the bell never rang. The
+# shared helper searches every socket.
 
 set -u
 
@@ -24,22 +28,11 @@ input=$(cat)
 hook_name=$(printf '%s' "$input" | jq -r '.hook_event_name // .hook_name // ""' 2>/dev/null || echo "")
 
 ring_tmux_bell() {
-  command -v tmux >/dev/null 2>&1 || return 0
-
-  local panes
-  panes=$(tmux list-panes -aF '#{pane_pid} #{pane_tty}' 2>/dev/null) || return 0
-  [[ -z "$panes" ]] && return 0
-
-  local pid="$$" guard=0 tty
-  while [[ -n "$pid" && "$pid" != 0 && "$pid" != 1 && $guard -lt 30 ]]; do
-    tty=$(printf '%s\n' "$panes" | awk -v p="$pid" '$1==p { print $2; exit }')
-    if [[ -n "$tty" ]]; then
-      printf '\a' >> "$tty" 2>/dev/null || true
-      return 0
-    fi
-    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
-    guard=$((guard + 1))
-  done
+  local pane_line tty
+  pane_line=$("$HOME/dotfiles/bin/tmux-hook-pane.sh" "$$" 2>/dev/null) || return 0
+  tty=$(printf '%s' "$pane_line" | cut -f4)
+  [[ -n "$tty" ]] || return 0
+  printf '\a' >> "$tty" 2>/dev/null || true
   return 0
 }
 
