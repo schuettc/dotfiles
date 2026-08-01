@@ -403,6 +403,10 @@ proj() {
   # member repos). Those are still projects, so surface them. An explicit
   # .fdignore/.ignore in the root still hides entries.
   # (Comments can't live inside the $( { ... } ) substitution — zsh mis-parses.)
+  # Roots-file editors live at the bottom of the list. Bound once so the row
+  # text and the branch that matches it can't drift apart.
+  local add_row="[+ add new project root…]"
+  local rm_row="[- remove a project root…]"
   local choice existing s
   while true; do
     existing=$(for s in $(__proj_servers); do
@@ -412,12 +416,19 @@ proj() {
       {
         [[ -n "$existing" ]] && print -- "$existing"
         __proj_all_dirs
-        print -- "[+ add new project root…]"
+        print -r -- "$add_row"
+        print -r -- "$rm_row"
       } | awk 'NF' | fzf --prompt='project › ' --height=60% --reverse
     )
     [[ -z "$choice" ]] && return
-    if [[ "$choice" == "[+ add new project root…]" ]]; then
+    # Both editors loop back to a rebuilt list rather than returning, so you
+    # can fix the roots file and pick a project in one trip through proj.
+    if [[ "$choice" == "$add_row" ]]; then
       __proj_add_root
+      continue
+    fi
+    if [[ "$choice" == "$rm_row" ]]; then
+      __proj_remove_root
       continue
     fi
     break
