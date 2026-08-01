@@ -141,6 +141,14 @@ to sit under. Do not list bare `~` as a root to reach it: that makes every
 folder in your home directory a project, and opening a shell in `~/Downloads`
 then gets ambushed by the `proj` picker instead of giving you a shell.
 
+`project:` also fits a directory whose children are data rather than code —
+list `~/bettor-help` as a root and every dated slate directory inside it
+becomes a separate project in the picker.
+
+Edit the file with `proj --add` and `proj --remove` (Tab multi-selects) —
+both rewrite it for you. `proj --edit` opens it in `$EDITOR` for anything
+those two can't express.
+
 ### 2. Open your first workspace
 
 ```bash

@@ -97,6 +97,8 @@ alias reload='source ~/.zshrc'
 #   proj --claude   # same, but auto-launch Claude in the left pane
 #   proj --cursor   # same, but auto-launch Cursor in the left pane
 #   proj --edit     # open ~/.config/proj/roots in $EDITOR
+#   proj --add      # add a root, or a single directory as a project
+#   proj --remove   # delete entries from the roots file (Tab = multi-select)
 #
 # Worktrees live at <repo>/.worktrees/<branch>, ignored via .git/info/exclude
 # (the repo's tracked .gitignore is untouched). A <repo>/.worktreeinclude file
@@ -362,6 +364,19 @@ proj() {
     local cfg="${XDG_CONFIG_HOME:-$HOME/.config}/proj/roots"
     mkdir -p "${cfg:h}"
     "${EDITOR:-vi}" "$cfg"
+    return
+  fi
+
+  # --add/--remove are the guided front door to the roots file; --edit stays
+  # for anything they can't express.
+  if [[ "$1" == "--add" ]]; then
+    __proj_load_roots >/dev/null 2>&1
+    __proj_add_root
+    return
+  fi
+
+  if [[ "$1" == "--remove" ]]; then
+    __proj_remove_root
     return
   fi
 

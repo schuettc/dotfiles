@@ -173,6 +173,55 @@ __proj_add_root() {
   __proj_load_roots
 }
 
+# Pick entries out of ~/.config/proj/roots and delete them (Tab to
+# multi-select). The counterpart to __proj_add_root: adding a root you
+# meant as a project is easy to do and, until now, only undoable by hand.
+#
+# Rewrites the file by line index rather than by matching text, so comments
+# and blank lines survive and duplicate entries stay distinguishable.
+# Returns 1 on cancel or when there is nothing to remove.
+__proj_remove_root() {
+  command -v fzf >/dev/null || { echo "fzf required to remove entries" >&2; return 1; }
+  local config_file="${XDG_CONFIG_HOME:-$HOME/.config}/proj/roots"
+  [[ -f "$config_file" ]] || { echo "No roots file at $config_file" >&2; return 1; }
+
+  local -a lines menu
+  lines=("${(@f)$(<"$config_file")}")
+
+  local i trimmed
+  for i in {1..$#lines}; do
+    trimmed="${lines[i]#"${lines[i]%%[![:space:]]*}"}"
+    [[ -z "$trimmed" || "$trimmed" == \#* ]] && continue
+    # The line index rides along in a tab-delimited first field that fzf
+    # displays (--with-nth=2) but hands back on selection.
+    menu+=("$i	$trimmed")
+  done
+  (( ${#menu[@]} > 0 )) || { echo "No entries to remove." >&2; return 1; }
+
+  local picked
+  picked=$(printf '%s\n' "${menu[@]}" \
+    | fzf --multi --prompt='remove › ' --height=40% --reverse \
+          --delimiter=$'\t' --with-nth=2)
+  [[ -z "$picked" ]] && return 1
+
+  local -A drop
+  local p
+  for p in "${(@f)picked}"; do
+    drop[${p%%	*}]=1
+  done
+
+  local -a keep
+  for i in {1..$#lines}; do
+    (( ${+drop[$i]} )) || keep+=("${lines[i]}")
+  done
+  printf '%s\n' "${keep[@]}" > "$config_file"
+
+  for p in "${(@f)picked}"; do
+    echo "Removed: ${p#*	}"
+  done
+  __proj_load_roots
+}
+
 # Interactive first-run prompt. Lets the user pick from common candidates
 # that exist on disk, or enter a custom path. Writes ~/.config/proj/roots
 # and re-loads PROJ_ROOTS. Returns 0 on success, 1 if cancelled.

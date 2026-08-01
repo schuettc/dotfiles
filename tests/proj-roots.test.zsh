@@ -119,6 +119,53 @@ print -- "project:$TMP/dotfiles" > "$ROOTS"
 __proj_load_roots
 ok "projects-only enumeration" "$TMP/dotfiles" "$(__proj_all_dirs)"
 
+echo "── removal (proj --remove) ──"
+# Script the picker: the stub reads the indexed menu on stdin and echoes
+# back the lines a human would have selected. PICK is a global on purpose —
+# a local of an enclosing function would be gone by the time fzf() runs.
+typeset -g PICK=''
+fzf() { grep -E "$PICK"; }
+typeset -g RC=0
+
+cat > "$ROOTS" <<EOF
+# keep this comment
+
+$TMP/GitHub
+project:$TMP/dotfiles
+$TMP/Downloads
+EOF
+
+PICK='Downloads'
+__proj_remove_root >/dev/null
+ok "removes the picked entry" \
+   "# keep this comment,,$TMP/GitHub,project:$TMP/dotfiles" \
+   "${(pj:,:)${(@f)$(<"$ROOTS")}}"
+ok "reload reflects removal" "$TMP/GitHub" "${(j:,:)PROJ_ROOTS}"
+
+# Multi-select: fzf --multi returns several lines at once.
+PICK='GitHub|dotfiles'
+__proj_remove_root >/dev/null
+# Only the comment is left. The blank line that followed it is now trailing,
+# and $(<file) strips trailing newlines — the file keeps it, the read doesn't.
+ok "removes several at once" "# keep this comment" \
+   "${(pj:,:)${(@f)$(<"$ROOTS")}}"
+
+# Esc out of the picker: nothing selected, nothing changed. Capture the
+# status immediately — any intervening command clobbers $?.
+print -- "$TMP/GitHub" > "$ROOTS"
+fzf() { true; }
+__proj_remove_root >/dev/null 2>&1; RC=$?
+ok "cancel returns nonzero"    "1" "$RC"
+ok "cancel leaves file intact" "$TMP/GitHub" "$(<"$ROOTS")"
+
+# Only comments/blanks left: nothing to pick, so bail before reaching fzf.
+print -- "# just a comment" > "$ROOTS"
+fzf() { echo "SHOULD NOT RUN"; }
+__proj_remove_root >/dev/null 2>&1; RC=$?
+ok "no entries returns nonzero" "1" "$RC"
+ok "no entries leaves file"     "# just a comment" "$(<"$ROOTS")"
+unfunction fzf
+
 echo
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"
 (( FAIL == 0 ))
