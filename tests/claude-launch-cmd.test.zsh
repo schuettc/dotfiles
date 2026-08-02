@@ -61,7 +61,7 @@ ok "no bare =session send-keys" "0" \
 
 echo "── the shell still seeds no identity ──"
 # `--session-id <uuid>` also clears agent view, and is the wrong fix: minting
-# an id here is exactly the identity-seeding no-claude-wrapper.test.zsh bans.
+# an id here is exactly the identity-seeding claude-wrapper-scope.test.zsh bans.
 ok "no --session-id" "0" "$(code | grep -c 'session-id')"
 
 echo

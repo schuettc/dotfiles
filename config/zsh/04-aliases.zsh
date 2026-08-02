@@ -28,7 +28,9 @@ command -v lazygit &> /dev/null && alias lg='lazygit'
 # AWS
 export AWS_PAGER=""
 
-# Claude runs unwrapped. There is deliberately no claude() function here.
+# The claude() wrapper below does exactly one thing: argv-shaping. It carries
+# no identity. That distinction is the whole history of this block, so read
+# the next paragraphs before extending it.
 #
 # There used to be a launch handshake: mint a session UUID in the pane,
 # pre-register the tmux session under its own name on the muster bus, and
@@ -56,15 +58,34 @@ export AWS_PAGER=""
 # and the UUID is unknowable before exec. Fresh and resumed sessions now take
 # the same path — none.
 #
-# Do not reintroduce a wrapper to "fix" identity. If a session registers
-# wrongly, the bug is in muster's hook, not here. (Our own SessionStart hook,
-# bin/harness-session-stamp.sh, is unaffected: it reads session_id from the
-# hook payload, never from a wrapper.)
+# That ban still stands, and it is about IDENTITY, not about wrappers. Do not
+# reintroduce anything that names a muster alias, passes --harness-session, or
+# mints a --session-id. If a session registers wrongly, the bug is in muster's
+# hook, not here. (Our own SessionStart hook, bin/harness-session-stamp.sh, is
+# unaffected either way: it reads session_id from the hook payload.)
 #
-# Clears the function/alias a previously-loaded shell defined, so `reload`
-# drops the old wrapper instead of leaving it live until the shell restarts.
-unfunction claude 2> /dev/null
+# Clears an alias a previously-loaded shell defined — an alias would shadow
+# the function below, so `reload` must drop it rather than leave it live.
 unalias claude 2> /dev/null
+
+# Argv-shaping only: add `--` when called with NO arguments, otherwise pass
+# through untouched.
+#
+# A bare `claude` does not start a session on 2.1.220 — it opens agent view,
+# the fleet launcher, whose prompt dispatches a NEW background agent instead
+# of talking to you. Typing "hello" there spawns a detached job. Any argv at
+# all takes the session path; `--` is the smallest that adds no behaviour of
+# its own. See __claude_launch_cmd below for the verification matrix.
+#
+# The passthrough branch is what keeps the fleet reachable, and it is why this
+# is a wrapper rather than the global `disableAgentView` switch: `claude
+# agents`, `claude --bg`, `--resume`, `-p` and every subcommand reach the real
+# binary with argv byte-identical to what you typed. Only the empty case is
+# rewritten, because "I typed the bare word" is the one case where the fleet
+# is never what was meant — you were opening a pane to work in.
+#
+# `command` is load-bearing: without it this recurses into itself.
+claude() { (( $# )) && command claude "$@" || command claude -- ; }
 
 # The command every AUTO-launch path types into a fresh pane. One definition
 # so the three call sites (__proj_launch, pt, the tmux auto-join hook) can't
@@ -89,11 +110,18 @@ unalias claude 2> /dev/null
 # `--session-id <uuid>` works too and is what the old muster handshake passed,
 # which is why this bug stayed hidden until that wrapper was removed. Do not
 # reach for it here: minting an id from the shell is the identity-seeding this
-# file just deleted, and tests/no-claude-wrapper.test.zsh fails the string.
+# file just deleted, and tests/claude-wrapper-scope.test.zsh fails the string.
 #
-# Deliberately NOT applied to a hand-typed `claude`. That stays bare, so the
-# fleet is one word away when you want it. Auto-launch means "put a working
-# session in this pane"; typing it yourself means whatever you meant.
+# Not redundant with the claude() wrapper above, which would also add the
+# `--`. The wrapper only exists in shells that have sourced THIS file, and
+# auto-launch types into a pane shell we did not start: a tmux session left
+# running from before a config change keeps its old environment until it is
+# restarted. That is not hypothetical — it is how this bug survived its first
+# diagnosis on 2026-07-31, when panes whose zsh predated the handshake kept
+# launching bare while freshly-started ones were fine.
+#
+# So the command is spelled out at the call site rather than relying on the
+# receiving shell to have been reloaded.
 __claude_launch_cmd() { print -r -- 'claude --'; }
 
 # Quick navigation
