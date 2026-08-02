@@ -28,52 +28,43 @@ command -v lazygit &> /dev/null && alias lg='lazygit'
 # AWS
 export AWS_PAGER=""
 
-# Claude (only if installed) — with the muster launch handshake.
+# Claude runs unwrapped. There is deliberately no claude() function here.
 #
-# The Claude Code session process itself does see $TMUX/$TMUX_PANE — it's
-# launched right here in this pane's shell. But Claude Code runs its HOOKS in
-# a stripped environment where those vars are unset (see claude-notify.sh for
-# the process-ancestry-walk workaround hooks use to find their own pane), so
-# a session's own muster hooks cannot capture pane identity that way —
-# they'd fall back to a cwd-derived paneless alias with no label/nudge/badge.
-# The PANE, though, knows everything up front. So on a fresh launch inside
-# tmux: mint the session UUID here, pre-register this tmux session under its
-# OWN name on the bus (`--harness-session` stores the link), and hand the
-# same UUID to `claude --session-id`. The session's hooks then find that row
-# by UUID and leave it alone; prefix T, nudge, and the 📬 badge all work
-# again.
+# There used to be a launch handshake: mint a session UUID in the pane,
+# pre-register the tmux session under its own name on the muster bus, and
+# hand the same UUID to `claude --session-id`. It existed for one reason —
+# an agent's hooks run in a stripped environment ($TMUX/$TMUX_PANE unset),
+# so muster's own SessionStart hook could not work out which pane it
+# belonged to and fell back to a paneless alias with no label/nudge/badge.
 #
-# Skipped for resumes/continues (on --continue or a bare --resume, Claude
-# picks the conversation interactively, so the UUID isn't knowable before
-# exec — the session keeps whatever UUID it picks, and its row, if any, is
-# found by that), explicit --session-id, headless -p runs (a one-shot must
-# not claim the session's name), nested invocations from inside a Claude
-# session, and anything outside tmux or without muster.
-if [[ -x "$HOME/.local/bin/claude" ]]; then
-  # A shell that loaded the pre-handshake config has `claude` as an ALIAS.
-  # zsh expands aliases at PARSE time — and it parses this whole if-block
-  # before running any of it — so a bare `claude() {` would parse-error on
-  # re-source ("defining function based on alias"). The `function` keyword
-  # suppresses alias expansion of the name; the unalias clears the runtime
-  # shadowing so the function is what future commands resolve.
-  unalias claude 2> /dev/null
-  function claude {
-    if [[ -n "$TMUX" && -z "$CLAUDECODE" ]] && command -v muster &> /dev/null; then
-      case " $* " in
-        (*" --resume "*|*" -r "*|*" --continue "*|*" -c "*|*" --session-id "*|*" -p "*|*" --print "*) ;;
-        (*)
-          local _uuid
-          _uuid=$(uuidgen | tr '[:upper:]' '[:lower:]')
-          "$HOME/.local/bin/muster" register "$(tmux display-message -p '#{session_name}')" \
-            --harness-session "$_uuid" > /dev/null 2>&1
-          "$HOME/.local/bin/claude" --session-id "$_uuid" "$@"
-          return
-          ;;
-      esac
-    fi
-    "$HOME/.local/bin/claude" "$@"
-  }
-fi
+# muster resolves that itself now (`muster whereami`, v0.8.0: environment
+# first, process-ancestry walk as fallback). Verified with $TMUX, $TMUX_PANE
+# and $CLAUDE_CODE_SESSION_ID all stripped, its SessionStart hook registers a
+# row carrying the correct socket, session_name, pane_id AND the harness UUID
+# from its own payload, with nothing seeded beforehand.
+#
+# So the seed is not merely redundant, it is harmful: it made THIS repo guess
+# a bus alias from the tmux session name, a plain upsert with no liveness
+# check. Name a tmux session the same as a live claimed alias — likelier now
+# that `muster become` gives sessions meaningful ones — and the next fresh
+# claude in it silently adopted that conversation's row, inbox and all.
+# Assigning bus identity is muster's job; it can compare harness UUIDs
+# atomically inside one transaction, which a shell round-trip cannot.
+#
+# Removing it also deleted the resume asymmetry: the handshake had to skip
+# --resume/--continue, because Claude picks the conversation interactively
+# and the UUID is unknowable before exec. Fresh and resumed sessions now take
+# the same path — none.
+#
+# Do not reintroduce a wrapper to "fix" identity. If a session registers
+# wrongly, the bug is in muster's hook, not here. (Our own SessionStart hook,
+# bin/harness-session-stamp.sh, is unaffected: it reads session_id from the
+# hook payload, never from a wrapper.)
+#
+# Clears the function/alias a previously-loaded shell defined, so `reload`
+# drops the old wrapper instead of leaving it live until the shell restarts.
+unfunction claude 2> /dev/null
+unalias claude 2> /dev/null
 
 # Quick navigation
 alias ..='cd ..'
@@ -216,10 +207,12 @@ __proj_launch() {
   if ! tmux -L "$srv" has-session -t "=$name" 2>/dev/null; then
     __tmux_new_session "$srv" -d -s "$name" -c "$dir"
     if [[ "$auto_agent" == "claude" ]] && command -v claude >/dev/null; then
-      # Type `claude` into the pane's interactive shell instead of making it
-      # the pane command: the launch handshake lives in the claude() shell
-      # function (see the alias block above), and a direct pane command would
-      # bypass it — registering nothing and losing prefix T/nudge/badge.
+      # Type `claude` into the pane's interactive shell rather than making it
+      # the pane command, so quitting the agent leaves a usable shell in the
+      # workspace instead of killing the pane (and the invocation lands in
+      # shell history). This used to be load-bearing for the muster launch
+      # handshake; that handshake is gone (see the claude block above), and
+      # this is now an ergonomic choice, not a requirement.
       tmux -L "$srv" send-keys -t "=$name" 'claude' Enter
     elif [[ "$auto_agent" == "cursor" ]]; then
       local ca=""
