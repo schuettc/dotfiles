@@ -66,6 +66,36 @@ export AWS_PAGER=""
 unfunction claude 2> /dev/null
 unalias claude 2> /dev/null
 
+# The command every AUTO-launch path types into a fresh pane. One definition
+# so the three call sites (__proj_launch, pt, the tmux auto-join hook) can't
+# drift apart.
+#
+# The trailing `--` is load-bearing, and it is the whole point of this
+# function. A BARE `claude` — nothing in argv past the program name — does not
+# start a session: it opens agent view, the fleet launcher that lists
+# background agents and whose prompt dispatches a NEW background agent rather
+# than talking to you. Typing "hello" there spawns a detached job, which is
+# exactly the surprise this avoids. Any argv at all takes the session path;
+# `--` is the smallest one that adds no behaviour of its own.
+#
+# Verified on 2.1.220, three sessions in a scratch tmux server: bare `claude`
+# rendered the fleet list ("7 awaiting input · 2 working"), while `claude --`,
+# `claude --add-dir .` and `claude --session-id <uuid>` all rendered a normal
+# prompt. Agent view has exactly one global switch (`disableAgentView` /
+# CLAUDE_CODE_DISABLE_AGENT_VIEW) and it also kills `--bg`, `/background` and
+# the on-demand daemon — too broad, since we want the fleet, just not as the
+# front door.
+#
+# `--session-id <uuid>` works too and is what the old muster handshake passed,
+# which is why this bug stayed hidden until that wrapper was removed. Do not
+# reach for it here: minting an id from the shell is the identity-seeding this
+# file just deleted, and tests/no-claude-wrapper.test.zsh fails the string.
+#
+# Deliberately NOT applied to a hand-typed `claude`. That stays bare, so the
+# fleet is one word away when you want it. Auto-launch means "put a working
+# session in this pane"; typing it yourself means whatever you meant.
+__claude_launch_cmd() { print -r -- 'claude --'; }
+
 # Quick navigation
 alias ..='cd ..'
 alias ...='cd ../..'
@@ -213,13 +243,24 @@ __proj_launch() {
       # shell history). This used to be load-bearing for the muster launch
       # handshake; that handshake is gone (see the claude block above), and
       # this is now an ergonomic choice, not a requirement.
-      tmux -L "$srv" send-keys -t "=$name" 'claude' Enter
+      # Target is "=$name:" — the trailing colon matters. Everywhere else in
+      # this file "=$name" targets a SESSION, but send-keys takes a
+      # target-PANE, and tmux 3.7b will not resolve a bare "=name" to the
+      # active pane: it errors "can't find pane: =name" and the keys vanish.
+      # The colon makes it "exact session, current window", which resolves.
+      # Verified on 3.7b: "=proj/br" fails, "=proj/br:" and "=proj/br.1" work.
+      # This silently ate the auto-launch — `proj --claude` opened an empty
+      # pane and said nothing, because send-keys' failure goes to stderr in a
+      # detached context and nothing checks its exit code.
+      tmux -L "$srv" send-keys -t "=$name:" "$(__claude_launch_cmd)" Enter
     elif [[ "$auto_agent" == "cursor" ]]; then
       local ca=""
       command -v cursor-agent >/dev/null && ca="cursor-agent"
       [[ -z "$ca" ]] && command -v agent >/dev/null && ca="agent"
       # Same shape as claude for consistency: launch via the pane's shell.
-      [[ -n "$ca" ]] && tmux -L "$srv" send-keys -t "=$name" "$ca --trust --approve-mcps" Enter
+      # "=$name:" for the same reason as the claude branch above — send-keys
+      # needs a target-pane, and a bare "=name" doesn't resolve on tmux 3.7b.
+      [[ -n "$ca" ]] && tmux -L "$srv" send-keys -t "=$name:" "$ca --trust --approve-mcps" Enter
     fi
     # Build the right column (scratch -> yazi -> shell). The builder handles
     # pane-id targeting, the per-app terminal-probe focus dance, and tags the
@@ -547,7 +588,7 @@ pt() {
   while true; do
     target="${proj_name}-${n}"
     if [[ "$auto_agent" == "claude" ]] && command -v claude >/dev/null; then
-      if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" "claude" 2>/dev/null; then break; fi
+      if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" "$(__claude_launch_cmd)" 2>/dev/null; then break; fi
     elif [[ "$auto_agent" == "cursor" ]]; then
       local ca=""
       command -v cursor-agent >/dev/null && ca="cursor-agent"

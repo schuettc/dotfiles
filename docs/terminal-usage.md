@@ -200,6 +200,17 @@ NO_AUTO_TMUX=1 zsh
 touch ~/.no-auto-tmux
 ```
 
+Those auto-launch paths run `claude --`, not `claude`. A bare `claude` — no
+arguments at all — opens **agent view**, the fleet launcher listing background
+agents, whose prompt dispatches a *new* background agent instead of starting a
+session for you. Any argument takes the session path; `--` is the smallest one.
+
+That is deliberate, not a workaround to remove: typing `claude` yourself still
+gets you the fleet, which is where `--bg` and `/background` sessions live. Only
+the auto-launch paths force a session, because "put a working pane here" is
+what you asked for. If you type it by hand and want a session, type `claude --`
+(or press `←` from inside any session to reach the fleet).
+
 ---
 
 ## During a session
