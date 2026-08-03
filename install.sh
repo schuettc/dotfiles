@@ -1,7 +1,8 @@
 #!/bin/bash
-# One-command full install: runs every package in packages/ in dependency
-# order. For selective installs, open Claude Code in this repo and run the
-# install-wizard skill (or: packages/run.sh <package>…).
+# One-command full install: runs every default package in packages/ in
+# dependency order. Opt-in packages (docker) are skipped — install those via
+# packages/run.sh <package>. For selective installs, open Claude Code in this
+# repo and run the install-wizard skill (or: packages/run.sh <package>…).
 # Resilient by design: no set -e; failures warn and continue; summary at end.
 
 source "$(dirname "${BASH_SOURCE[0]}")/packages/lib.sh"
@@ -35,5 +36,6 @@ echo "  1. Open Ghostty (cmd+space → \"Ghostty\") and run: source ~/.zshrc"
 echo "  2. Run \`proj\` and pick a project to spin up your first workspace."
 echo "  3. Inside a project, cmd+T spawns more terminals (auto-joins tmux)."
 echo "  4. Optional sign-ins: atuin register/login; codex login (ChatGPT plan); Cursor Agent CLI (Cursor subscription)."
+echo "     Optional packages: Docker Desktop — packages/run.sh docker"
 [[ -d "/Applications/SwiftBar.app" ]] && echo "     ⚠ MANUAL: grant SwiftBar Accessibility for click-to-focus (see package output above)."
 echo "  5. Read docs/terminal-usage.md for the day-to-day cheat sheet."

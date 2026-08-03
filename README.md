@@ -180,12 +180,13 @@ Verify with `claude mcp list` (`muster … ✔ Connected`) or Cursor's
 ~/dotfiles/
 ├── .zshrc                 # Minimal loader, sources config/zsh/*
 ├── .tmux.conf             # tmux config (prefix C-a, plugins, status bar)
-├── install.sh             # One-command setup — runs every package below
+├── install.sh             # One-command setup — runs every default package below
 ├── packages/
 │   ├── lib.sh             # Shared install helpers (run_pkg, warn/die, backups)
 │   ├── run.sh             # Runs an explicit package list (the wizard's entry point)
 │   └── <name>/pkg.sh      # Per-package install/verify + its own Brewfile
 │       # core terminal nvim markedit claude swiftbar codex cursor muster
+│       # docker (opt-in — not run by install.sh; packages/run.sh docker)
 ├── bin/
 │   ├── tmux-git-status.sh      # branch + dirty count for status-right
 │   ├── tmux-claude-context.sh  # Claude context % for status-right
