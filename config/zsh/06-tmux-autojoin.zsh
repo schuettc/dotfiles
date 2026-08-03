@@ -73,7 +73,7 @@ __auto_join_project() {
   local n=2 target
   local launch_cmd=""
   if [[ -n "${AUTO_CLAUDE:-}" ]] && command -v claude >/dev/null 2>&1; then
-    launch_cmd="claude"
+    launch_cmd="$(__claude_launch_cmd)"   # `claude --`; bare opens agent view
   fi
   while true; do
     target="${proj_name}-${n}"
