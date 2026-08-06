@@ -60,23 +60,41 @@ fi
 
 # ─── Sync Claude session name → tmux task label ──────────────────────
 # Claude ships `session_name` in the statusline JSON whenever the session
-# has a name — both an explicit /rename and the auto-generated topic name
-# (e.g. "Debug tmux title …") land here. Copy it into the session-scoped
-# @claude_task option — the same label `prefix T` sets — so it shows in
-# status-left, Ghostty tab titles, and the proj picker automatically.
-#
-# Manual wins: `prefix T` raises @claude_task_manual when you set a label
-# by hand, and this sync backs off while that flag is present so it can't
-# clobber your title every turn. Clearing the label (empty prefix T) drops
-# the flag and hands the label back to Claude's auto-name.
-# Plain `tmux` + inherited $TMUX reaches the right per-project server.
+# has a name — an explicit /rename (or --name) AND the auto-generated topic
+# both land in the same field. The transcript disambiguates (naming-contract
+# plan 2026-08-05): a {"type":"custom-title"} record whose customTitle
+# equals the current session_name proves the name is USER-SET. User-set →
+# PROMOTE: label + @claude_task_manual, bus-synced via `muster label
+# --no-inject` when muster is installed (--no-inject because the name
+# already CAME from /rename — re-typing it would loop text into the pane).
+# Auto topic → display-only, defers to the manual flag (unchanged). Nothing
+# here ever demotes. Newest gesture wins: a fresh /rename overwrites a
+# stale manual label because its custom-title matches the new session_name.
 SESSION_NAME=$(echo "$input" | jq -r '.session_name // ""')
+TRANSCRIPT_PATH=$(echo "$input" | jq -r '.transcript_path // ""')
 if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
   is_manual=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task_manual 2>/dev/null)
   current_label=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task 2>/dev/null)
-  if [[ -z "$is_manual" && "$SESSION_NAME" != "$current_label" ]]; then
-    tmux set-option -t "$TMUX_PANE" @claude_task "$SESSION_NAME" 2>/dev/null
-    tmux refresh-client -S 2>/dev/null
+  if [[ "$current_label" == "$SESSION_NAME" && -n "$is_manual" ]]; then
+    : # fast path: already promoted and aligned — no transcript read
+  else
+    custom_title=""
+    if [[ -n "$TRANSCRIPT_PATH" && -r "$TRANSCRIPT_PATH" ]]; then
+      custom_title=$(grep '"custom-title"' "$TRANSCRIPT_PATH" 2>/dev/null \
+        | tail -1 | jq -r '.customTitle // ""' 2>/dev/null)
+    fi
+    if [[ -n "$custom_title" && "$custom_title" == "$SESSION_NAME" ]]; then
+      if command -v muster >/dev/null 2>&1; then
+        muster label --no-inject "$SESSION_NAME" >/dev/null 2>&1
+      else
+        tmux set-option -t "$TMUX_PANE" @claude_task "$SESSION_NAME" 2>/dev/null
+        tmux set-option -t "$TMUX_PANE" @claude_task_manual 1 2>/dev/null
+      fi
+      tmux refresh-client -S 2>/dev/null
+    elif [[ -z "$is_manual" && "$SESSION_NAME" != "$current_label" ]]; then
+      tmux set-option -t "$TMUX_PANE" @claude_task "$SESSION_NAME" 2>/dev/null
+      tmux refresh-client -S 2>/dev/null
+    fi
   fi
 fi
 
