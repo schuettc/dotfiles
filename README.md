@@ -189,11 +189,23 @@ only). With muster installed, prefix T's existing `muster label` delegation
 already syncs the bus label, making the name addressable (`muster send
 <name>`); the statusline's promoted-`/rename` path picks up the same bus
 sync, via `muster label --no-inject`, once muster ships that half of the
-contract. One asymmetry to know about in muster-less mode: the transcript
-custom-title is the only record of "this name was intentional," so a stale
-custom-title from an earlier `/rename` will re-promote itself over a fresh
-prefix-T label on the very next statusline tick — prefix T without muster
-leaves no durable record for the statusline to prefer instead.
+contract.
+
+A third option, `@claude_task_promoted`, keeps a stale name from undoing a
+fresh one. The transcript custom-title is the only record of "this name was
+intentional," and it lags: when prefix T sets a new label, the `/rename` it
+types into the pane can be swallowed by a busy turn, leaving the transcript
+on the OLD name. The statusline used to re-promote that old name over the
+new label on the next tick — a revert hours after the gesture. The marker
+records the last title the statusline promoted, and a title equal to the
+marker never promotes again; a genuinely new title still wins, and an
+unlabeled session may always adopt its own title (so prefix T's clear
+gesture stays re-adoptable). Renaming *back* to the marker's exact value
+after a prefix-T divergence is the one ignored case — rename through a
+different name, or use prefix T. Note the guard protects against statusline
+ticks, not against a resume: muster's SessionStart projection re-asserts the
+transcript title, so a prefix-T name is only durable once a `/rename`
+actually lands in the transcript.
 
 ## Structure
 
