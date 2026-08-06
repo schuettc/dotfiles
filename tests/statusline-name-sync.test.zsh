@@ -210,6 +210,36 @@ ok "cleared label re-adopts its own title" "T1" "$(opt)"
 ok "re-adoption re-sets the manual flag"   "1"  "$(manual)"
 ok "re-adoption keeps the marker"          "T1" "$(marker)"
 
+# ── an EMPTY label can't be overriding anybody either ───────────────
+# Label unset while the manual flag survives and the marker still holds the
+# title — reachable via a partially-failed clear or a raw `set-option -u
+# @claude_task`. Without the empty-label clause this state is permanently
+# un-promotable: the marker blocks it and the flag blocks the auto branch,
+# so the session shows no label forever.
+reset; clear_marker
+tmux -S "$WORK/sock" set-option -t t @claude_task_promoted "T1"
+tmux -S "$WORK/sock" set-option -t t @claude_task_manual 1     # label left unset
+statusline "T1" "$TRANSCRIPT"
+ok "empty label re-promotes despite the marker" "T1" "$(opt)"
+
+# ── the marker write lives OUTSIDE the muster if/else ───────────────
+# All three promotion paths (muster ok, muster failing, muster absent) must
+# record the marker. A refactor that moved the write inside the else would
+# leave every muster-present session unmarked — the guard would silently die
+# while this suite stayed green. Pin the muster-ABSENT path explicitly.
+reset; clear_marker
+printf '%s\n' '{"type":"custom-title","customTitle":"T1","sessionId":"u1"}' > "$TRANSCRIPT"
+PATH_SAVE="$PATH"
+export PATH="$TMUX_DIR:/usr/bin:/bin"             # muster off PATH, tmux+jq on it
+statusline "T1" "$TRANSCRIPT"
+ok "muster-absent promotion sets the label"  "T1" "$(opt)"
+ok "muster-absent promotion sets the marker" "T1" "$(marker)"
+
+set_pair "T2"                                     # prefix T; /rename eaten
+statusline "T1" "$TRANSCRIPT"                     # stale tick, still no muster
+ok "muster-absent marker blocks the revert"  "T2" "$(opt)"
+export PATH="$PATH_SAVE"
+
 print
 print "PASS=$PASS FAIL=$FAIL"
 (( FAIL == 0 ))

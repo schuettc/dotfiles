@@ -121,8 +121,13 @@ if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
     user_set=0
     [[ -n "$custom_title" && "$custom_title" == "$SESSION_NAME" ]] && user_set=1
     # A user-set title promotes when it's NEW (differs from the marker), or
-    # when the session carries no manual label to protect.
-    if (( user_set )) && [[ "$custom_title" != "$promoted" || -z "$is_manual" ]]; then
+    # when the session carries no manual label to protect — no flag, or no
+    # label at all. The empty-label half closes an otherwise permanently
+    # un-promotable state: label unset while the manual flag survives and
+    # the marker still holds the title (a partially-failed clear, or a raw
+    # `tmux set-option -u @claude_task`). An empty label, like an unlabeled
+    # session, can't be overriding anybody.
+    if (( user_set )) && [[ "$custom_title" != "$promoted" || -z "$is_manual" || -z "$current_label" ]]; then
       if command -v muster >/dev/null 2>&1; then
         # A muster binary predating --no-inject fails the flag parse (exit
         # non-zero) without touching the pane options at all — guard the
