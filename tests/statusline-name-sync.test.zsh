@@ -224,9 +224,14 @@ ok "empty label re-promotes despite the marker" "T1" "$(opt)"
 
 # ── the marker write lives OUTSIDE the muster if/else ───────────────
 # All three promotion paths (muster ok, muster failing, muster absent) must
-# record the marker. A refactor that moved the write inside the else would
-# leave every muster-present session unmarked — the guard would silently die
-# while this suite stayed green. Pin the muster-ABSENT path explicitly.
+# record the marker. This block pins the muster-ABSENT path, so a refactor
+# that relocated the write INTO the muster-present branch can't pass — the
+# reverse relocation (into the else) is already held by the muster-present
+# assertions above. Either way the guard would silently die while the rest
+# of this suite stayed green.
+# NB the PATH strip assumes muster lives outside $TMUX_DIR (~/.local/bin,
+# not Homebrew's bin); installed alongside tmux it would survive the strip
+# and this block would quietly re-test the muster-PRESENT path instead.
 reset; clear_marker
 printf '%s\n' '{"type":"custom-title","customTitle":"T1","sessionId":"u1"}' > "$TRANSCRIPT"
 PATH_SAVE="$PATH"
