@@ -136,6 +136,80 @@ rm -f "$MUSTER_ARGS_LOG"
 statusline "nfl-3" "$TRANSCRIPT"
 ok "fast path skips muster even with matching transcript present" "" "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
 
+# ── promotion marker: a prefix-T label must survive a STALE title ────
+# The live bug (hit twice, 2026-08-06): prefix T sets a new label and types
+# /rename into the pane; on a busy pane the keystrokes are eaten, so the
+# transcript keeps the OLD custom-title. Every later tick then re-promoted
+# that old title over the operator's fresh label — a revert hours after the
+# gesture. @claude_task_promoted records the last title this script acted
+# on, so an unchanged title can't promote twice.
+marker() { tmux -S "$WORK/sock" show-option -qv -t t @claude_task_promoted; }
+clear_marker() { tmux -S "$WORK/sock" set-option -u -t t @claude_task_promoted 2>/dev/null; }
+set_pair() {  # $1 = label — simulate a prefix-T gesture (bypasses statusline)
+  tmux -S "$WORK/sock" set-option -t t @claude_task "$1"
+  tmux -S "$WORK/sock" set-option -t t @claude_task_manual 1
+}
+
+# Restore the side-effecting fake muster (the fast-path block above left a
+# log-only one on PATH, which would make promotions look like no-ops).
+cat > "$WORK/bin/muster" <<'EOF'
+#!/bin/sh
+echo "$@" >> "${MUSTER_ARGS_LOG:?}"
+if [ "$1" = "label" ]; then
+  shift
+  [ "$1" = "--no-inject" ] && shift
+  if [ -n "${1:-}" ] && [ -n "${TMUX_PANE:-}" ]; then
+    tmux set-option -t "$TMUX_PANE" @claude_task "$1"
+    tmux set-option -t "$TMUX_PANE" @claude_task_manual 1
+  fi
+fi
+EOF
+chmod +x "$WORK/bin/muster"
+export MUSTER_ARGS_LOG="$WORK/args-marker.log"
+
+reset; clear_marker
+printf '%s\n' '{"type":"custom-title","customTitle":"T1","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "T1" "$TRANSCRIPT"
+ok "promotion sets label"  "T1" "$(opt)"
+ok "promotion sets marker" "T1" "$(marker)"
+
+set_pair "T2"                                     # prefix T; /rename never landed
+statusline "T1" "$TRANSCRIPT"                     # transcript still says T1
+ok "stale title does NOT revert the prefix-T label" "T2" "$(opt)"
+ok "skipped promotion leaves the marker alone"      "T1" "$(marker)"
+
+# ── a REAL /rename still wins from that same diverged state ─────────
+printf '%s\n' '{"type":"custom-title","customTitle":"T3","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "T3" "$TRANSCRIPT"
+ok "a new title still promotes over a manual label" "T3" "$(opt)"
+ok "marker advances to the new title"               "T3" "$(marker)"
+ok "manual flag still set"                          "1"  "$(manual)"
+
+# ── seeding: a session aligned BEFORE the marker existed ────────────
+# Its marker is unset, and unset != the stale title — so without the fast
+# path seeding it, the next prefix-T divergence would revert exactly as
+# before. The seed happens with no transcript read and no muster call.
+reset; clear_marker
+set_pair "T1"
+rm -f "$MUSTER_ARGS_LOG"
+statusline "T1" "$WORK/does-not-exist.jsonl"      # fast path
+ok "fast path seeds the marker"          "T1" "$(marker)"
+ok "seeding still skips muster"          ""   "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
+
+set_pair "T2"                                     # prefix T; /rename eaten again
+printf '%s\n' '{"type":"custom-title","customTitle":"T1","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "T1" "$TRANSCRIPT"
+ok "seeded marker prevents the revert"   "T2" "$(opt)"
+
+# ── clear gesture: prefix T unsets the pair but not the marker ──────
+# The still-current title must be re-adoptable — an unlabeled session
+# taking its own name back can't be overriding anybody.
+reset                                             # marker stays at T1
+statusline "T1" "$TRANSCRIPT"
+ok "cleared label re-adopts its own title" "T1" "$(opt)"
+ok "re-adoption re-sets the manual flag"   "1"  "$(manual)"
+ok "re-adoption keeps the marker"          "T1" "$(marker)"
+
 print
 print "PASS=$PASS FAIL=$FAIL"
 (( FAIL == 0 ))
