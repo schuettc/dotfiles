@@ -189,7 +189,11 @@ only). With muster installed, prefix T's existing `muster label` delegation
 already syncs the bus label, making the name addressable (`muster send
 <name>`); the statusline's promoted-`/rename` path picks up the same bus
 sync, via `muster label --no-inject`, once muster ships that half of the
-contract.
+contract. One asymmetry to know about in muster-less mode: the transcript
+custom-title is the only record of "this name was intentional," so a stale
+custom-title from an earlier `/rename` will re-promote itself over a fresh
+prefix-T label on the very next statusline tick — prefix T without muster
+leaves no durable record for the statusline to prefer instead.
 
 ## Structure
 

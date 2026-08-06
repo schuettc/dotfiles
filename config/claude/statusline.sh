@@ -85,7 +85,15 @@ if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
     fi
     if [[ -n "$custom_title" && "$custom_title" == "$SESSION_NAME" ]]; then
       if command -v muster >/dev/null 2>&1; then
-        muster label --no-inject "$SESSION_NAME" >/dev/null 2>&1
+        # A muster binary predating --no-inject fails the flag parse (exit
+        # non-zero) without touching the pane options at all — guard the
+        # call and fall back to the plain-tmux pair write so the session
+        # still gets labeled. Degradation is tmux-only promotion; the
+        # muster SessionStart projection re-converges the bus later.
+        if ! muster label --no-inject "$SESSION_NAME" >/dev/null 2>&1; then
+          tmux set-option -t "$TMUX_PANE" @claude_task "$SESSION_NAME" 2>/dev/null
+          tmux set-option -t "$TMUX_PANE" @claude_task_manual 1 2>/dev/null
+        fi
       else
         tmux set-option -t "$TMUX_PANE" @claude_task "$SESSION_NAME" 2>/dev/null
         tmux set-option -t "$TMUX_PANE" @claude_task_manual 1 2>/dev/null

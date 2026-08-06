@@ -86,6 +86,27 @@ export PATH="$WORK/bin:$PATH" MUSTER_ARGS_LOG="$WORK/args.log"
 statusline "nfl-3" "$TRANSCRIPT"
 ok "delegates with --no-inject" "label --no-inject nfl-3" "$(tail -1 "$WORK/args.log")"
 
+# ── user-set name, muster present but rejects --no-inject: a binary
+# predating the flag fails the parse and exits non-zero without touching
+# pane options at all. The caller must fall back to the plain-tmux pair
+# write itself — same two lines as the muster-absent branch — or the
+# pane goes unlabeled and every future tick re-greps + re-spawns muster
+# for nothing. ─────────────────────────────────────────────────────────
+reset
+cat > "$WORK/bin/muster" <<'EOF'
+#!/bin/sh
+echo "$@" >> "${MUSTER_ARGS_LOG:?}"
+# Simulate a muster binary predating --no-inject: the flag parse fails,
+# it exits non-zero, and — like the real failure mode — never touches
+# the pane's tmux options.
+exit 1
+EOF
+chmod +x "$WORK/bin/muster"
+export PATH="$WORK/bin:$PATH" MUSTER_ARGS_LOG="$WORK/args-fail.log"
+statusline "nfl-3" "$TRANSCRIPT"
+ok "failing muster still sets tmux-only label" "nfl-3" "$(opt)"
+ok "failing muster still sets manual flag"     "1"     "$(manual)"
+
 # ── never demote: manual flag blocks a later auto topic ─────────────
 printf '%s\n' '{"type":"user"}' > "$TRANSCRIPT"   # custom-title gone from a NEW transcript
 statusline "Some auto topic" "$TRANSCRIPT"
@@ -96,6 +117,24 @@ ok "manual flag survives"                   "1"     "$(manual)"
 rm -f "$MUSTER_ARGS_LOG"
 statusline "nfl-3" "$WORK/does-not-exist.jsonl"   # would fail if read mattered
 ok "aligned state does nothing" "" "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
+
+# ── fast path, stronger version: still skips muster even when the
+# transcript DOES exist and its custom-title DOES match — proving the
+# early-return happens before the transcript is ever read, not that it
+# happens to re-derive the same no-op result after reading it. A fake
+# muster that would log a call sits on PATH the whole time. ─────────
+tmux -S "$WORK/sock" set-option -t t @claude_task "nfl-3"
+tmux -S "$WORK/sock" set-option -t t @claude_task_manual 1
+printf '%s\n' '{"type":"custom-title","customTitle":"nfl-3","sessionId":"u1"}' > "$TRANSCRIPT"
+cat > "$WORK/bin/muster" <<'EOF'
+#!/bin/sh
+echo "$@" >> "${MUSTER_ARGS_LOG:?}"
+EOF
+chmod +x "$WORK/bin/muster"
+export MUSTER_ARGS_LOG="$WORK/args-fastpath.log"
+rm -f "$MUSTER_ARGS_LOG"
+statusline "nfl-3" "$TRANSCRIPT"
+ok "fast path skips muster even with matching transcript present" "" "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
 
 print
 print "PASS=$PASS FAIL=$FAIL"
