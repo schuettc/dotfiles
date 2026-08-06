@@ -174,6 +174,23 @@ install" below).
 Verify with `claude mcp list` (`muster … ✔ Connected`) or Cursor's
 `~/.cursor/mcp.json`. Full docs live in the muster repo's README.
 
+### The naming contract (tmux ↔ muster)
+
+The tmux option pair `@claude_task` / `@claude_task_manual` is the neutral
+meeting point between this repo and muster (spec:
+`muster/docs/superpowers/specs/2026-08-05-conversation-identity-naming-design.md`).
+Intentional gestures — prefix T, `muster label`, a promoted `/rename` (the
+transcript custom-title proves intent) — set both options. Automatic syncs
+(the statusline copying an auto topic) write only the label and defer to the
+flag. Readers (status-left, tab titles, the proj picker, muster's resolver
+via its stored copy) trust the pair. Each side works alone: without muster,
+prefix T and the statusline still maintain the pair on their own (display
+only). With muster installed, prefix T's existing `muster label` delegation
+already syncs the bus label, making the name addressable (`muster send
+<name>`); the statusline's promoted-`/rename` path picks up the same bus
+sync, via `muster label --no-inject`, once muster ships that half of the
+contract.
+
 ## Structure
 
 ```
