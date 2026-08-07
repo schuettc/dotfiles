@@ -63,11 +63,19 @@ pkg_install() {
   if command -v go &> /dev/null; then
     echo "Installing scratch (notes pane)..."
     if ! GOBIN="$HOME/.local/bin" go install github.com/schuettc/scratch@latest 2>/dev/null; then
-      SCRATCH_REPO="$HOME/GitHub/schuettc/scratch"
-      if [[ -d "$SCRATCH_REPO" ]] && go -C "$SCRATCH_REPO" build -o "$HOME/.local/bin/scratch" . 2>/dev/null; then
-        : # offline: built from the local clone
+      # Local-clone fallback is ONLY for bootstrapping a machine that has no
+      # scratch binary yet. If one is already installed, a transient
+      # `go install @latest` failure (network blip) must not downgrade a
+      # good released binary to a (devel) local build.
+      if [[ ! -x "$HOME/.local/bin/scratch" ]] && ! command -v scratch &> /dev/null; then
+        SCRATCH_REPO="$HOME/GitHub/schuettc/scratch"
+        if [[ -d "$SCRATCH_REPO" ]] && go -C "$SCRATCH_REPO" build -o "$HOME/.local/bin/scratch" . 2>/dev/null; then
+          : # offline: built from the local clone
+        else
+          warn "scratch install failed — try: GOBIN=~/.local/bin go install github.com/schuettc/scratch@latest"
+        fi
       else
-        warn "scratch install failed — try: GOBIN=~/.local/bin go install github.com/schuettc/scratch@latest"
+        warn "scratch: go install @latest failed — kept the existing binary."
       fi
     fi
   else
@@ -93,8 +101,16 @@ pkg_verify() {
     [[ -x "$sbin" ]] || sbin="$(command -v scratch 2>/dev/null)"
     command -v go &> /dev/null \
       && sver="$(go version -m "$sbin" 2>/dev/null | awk '$1=="mod"{print $3}')"
-    echo "  PASS scratch (${sver:-unknown})"
-    verify_release_current schuettc/scratch "$sver" scratch || ok=1
+    if [[ -n "$sver" ]]; then
+      echo "  PASS scratch ($sver)"
+      verify_release_current schuettc/scratch "$sver" scratch || ok=1
+    else
+      # Undetermined isn't the same as drifted: without `go` (or with go but
+      # a probe failure) there's no version to compare, so don't claim a
+      # PASS and don't feed an empty string into the drift check — that
+      # would print a confusing "unknown != latest release" FAIL.
+      echo "  FAIL scratch version undetermined (go missing?)"; ok=1
+    fi
   else
     echo "  FAIL scratch"; ok=1
   fi
