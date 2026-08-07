@@ -50,6 +50,8 @@ pkg_install() {
     env -u TMUX tmux -L _bootstrap_tpm kill-server 2>/dev/null || true
     env -u TMUX tmux -L _bootstrap_tpm new-session -d -s _bootstrap_install 2>/dev/null || true
     env -u TMUX tmux -L _bootstrap_tpm run-shell "$HOME/.tmux/plugins/tpm/bin/install_plugins" 2>/dev/null || true
+    echo "Updating tmux plugins..."
+    env -u TMUX tmux -L _bootstrap_tpm run-shell "$HOME/.tmux/plugins/tpm/bin/update_plugins all" 2>/dev/null || true
     env -u TMUX tmux -L _bootstrap_tpm kill-server 2>/dev/null || true
   fi
 
