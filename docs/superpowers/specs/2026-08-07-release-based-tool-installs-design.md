@@ -49,10 +49,24 @@ mode — forgetting the bump:
   without a new push.
 - release.yml is untouched.
 
-### 2. dotfiles muster package: install the released binary
+### 2. dotfiles lib.sh: shared release helpers
 
-Replace pkg.sh's clone+fetch+worktree+build block with a release download.
-No `gh`, no GitHub API, no rate limits — two plain HTTPS requests:
+The policy lives in one place — three functions in `packages/lib.sh`, so
+every current and future self-built tool gets identical behavior instead of
+re-implementing it per package:
+
+- `latest_release_tag <owner/repo>` — resolve the latest release tag via
+  one unauthenticated HEAD request (the `/releases/latest` redirect's URL
+  ends in `/tag/vX.Y.Z`). Empty output on network failure; never fatal.
+- `install_release_binary <owner/repo> <asset> <bin-name>` — download the
+  asset from `releases/latest/download/`, verify its sha256 against the
+  release's `checksums.txt`, extract/install to `~/.local/bin/<bin-name>`.
+  Any failure keeps the existing binary and warns.
+- `verify_release_current <owner/repo> <installed-version>` — the drift
+  check for pkg_verify: FAIL if a latest tag resolves and the installed
+  version doesn't match it; silently skip when offline.
+
+No `gh`, no GitHub API, no rate limits — plain HTTPS requests:
 
 ```bash
 # Latest tag: one HEAD request; the /releases/latest redirect ends in /tag/vX.Y.Z
@@ -69,6 +83,9 @@ asset="muster_${os}_${arch}.tar.gz"
 # https://github.com/schuettc/muster/releases/latest/download/$asset
 ```
 
+### 3. dotfiles muster package: install the released binary
+
+Replace pkg.sh's clone+fetch+worktree+build block with the lib.sh helpers.
 Install flow:
 
 1. Resolve `latest` via the HEAD redirect. Network failure → keep the
@@ -102,7 +119,7 @@ to install muster.
   capability probes still stand). FAIL (not warn) is the point: verify is
   the "are we all on the right version" enforcement.
 
-### 3. dotfiles scratch package: version visibility
+### 4. dotfiles scratch package: version visibility
 
 `go install @latest` is now correct (auto-release keeps tags fresh); the
 install line stays, as does the offline local-clone fallback.
@@ -111,14 +128,36 @@ install line stays, as does the offline local-clone fallback.
 
 - Report the installed module version via
   `go version -m ~/.local/bin/scratch` (the `mod` line).
-- When online, FAIL if it lags the latest upstream tag (same HEAD-redirect
-  trick against github.com/schuettc/scratch/releases/latest). Offline →
+- When online, FAIL if it lags the latest upstream tag (via
+  `verify_release_current schuettc/scratch <version>`). Offline →
   existence check only.
 
-### 4. update.sh: no changes
+### 5. Brew formulae: upgrade on every install/update
+
+`pkg_brew` currently runs `brew bundle --no-upgrade` — install-if-missing,
+never upgrade, so formulae drift indefinitely (a machine that installed
+tmux two years ago still runs it). Drop `--no-upgrade`: every dotup
+converges each package's Brewfile formulae to brew's latest. When
+everything is already current this adds seconds; when it isn't, that was
+the point. (Casks and fonts in Brewfiles get the same treatment.)
+
+### 6. tmux plugins: update on every install/update
+
+The TPM bootstrap in terminal/pkg.sh clones plugins once and never touches
+them again. In the same throwaway-socket sequence that runs
+`install_plugins`, also run `tpm/bin/update_plugins all` so plugins track
+their upstreams on every dotup.
+
+### 7. update.sh: no changes
 
 It already re-runs every pkg_install. With installs tag-pinned-to-latest
 and idempotent, `dotup` is the convergence mechanism on every machine.
+
+### Already standardized, no changes
+
+- **nvim plugins** — `lazy-lock.json` is committed; lazy.nvim bootstraps
+  from it. Pinned and converged already; the model the rest now follows.
+- **Claude Code** — self-updating.
 
 ## Testing
 
@@ -131,6 +170,10 @@ and idempotent, `dotup` is the convergence mechanism on every machine.
   scratch verify to report v0.2.0 and PASS.
 - **Failure paths:** spot-check by faking `latest` resolution failure
   (temporarily bad URL) — install must warn and keep the binary.
+- **Brew upgrade:** `packages/run.sh core` — expect outdated formulae to
+  upgrade; a second run is quiet.
+- **tmux plugins:** terminal package run leaves plugins at their upstream
+  heads (spot-check one plugin's git log under ~/.tmux/plugins/).
 
 ## Out of scope
 
