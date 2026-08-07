@@ -1,1 +1,0 @@
-brew "go"                # Build toolchain for the muster binary
