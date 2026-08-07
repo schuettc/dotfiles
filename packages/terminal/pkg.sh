@@ -82,7 +82,17 @@ pkg_verify() {
   [[ -x "$HOME/.local/bin/tmux-reopen" ]] && echo "  PASS tmux-reopen" || { echo "  FAIL tmux-reopen"; ok=1; }
   [[ "$(readlink "$CONFIG_DIR/yazi")" == "$DOTFILES_DIR/config/yazi" ]] \
     && echo "  PASS yazi config" || { echo "  FAIL yazi config"; ok=1; }
-  { [[ -x "$HOME/.local/bin/scratch" ]] || command -v scratch &> /dev/null; } \
-    && echo "  PASS scratch" || { echo "  FAIL scratch"; ok=1; }
+  if [[ -x "$HOME/.local/bin/scratch" ]] || command -v scratch &> /dev/null; then
+    # Version = the Go module stamp (go install embeds it; a local-clone
+    # fallback build reports (devel) and will FAIL the drift check online,
+    # which is correct — it isn't a released binary).
+    local sver=""
+    command -v go &> /dev/null \
+      && sver="$(go version -m "$HOME/.local/bin/scratch" 2>/dev/null | awk '$1=="mod"{print $3}')"
+    echo "  PASS scratch (${sver:-unknown})"
+    verify_release_current schuettc/scratch "$sver" scratch || ok=1
+  else
+    echo "  FAIL scratch"; ok=1
+  fi
   return $ok
 }
