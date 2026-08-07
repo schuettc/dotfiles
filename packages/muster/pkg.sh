@@ -5,49 +5,46 @@ PKG_DEPS=(terminal)
 pkg_install() {
   pkg_brew
 
-  # muster: the local multi-agent coordination bus (github.com/schuettc/muster —
-  # a public Go project). Fully self-installing when Go is present:
-  #   clone (if missing) → build → LaunchAgent daemon → MCP registration.
-  # The session hooks (auto-register + self-resolving inbox) are wired below in
-  # the Claude/Codex/Cursor settings merges; docs live in the muster repo's README.
-  MUSTER_REPO="$HOME/GitHub/schuettc/muster"
-  if command -v go &> /dev/null; then
-    if [[ ! -d "$MUSTER_REPO" ]]; then
-      echo "Cloning muster (public repo)..."
-      mkdir -p "$(dirname "$MUSTER_REPO")"
-      git clone https://github.com/schuettc/muster.git "$MUSTER_REPO" 2>/dev/null \
-        || warn "muster clone failed — clone it by hand and re-run."
-    fi
-  fi
-  if [[ -d "$MUSTER_REPO" ]] && command -v go &> /dev/null; then
-    echo "Building muster (coordination bus)..."
-    # Build the RELEASED code (origin/main) via a detached temp worktree —
-    # NEVER the clone's checked-out branch. A stale local dev checkout once
-    # silently DOWNGRADED the live binary below what the installed session
-    # hooks require (`muster hook` shipped in v0.3.0), erroring every
-    # session's Stop hook. The clone's branch state is never touched.
-    git -C "$MUSTER_REPO" fetch origin main --quiet 2>/dev/null || true
-    local build_src; build_src="$(mktemp -d)/muster-main"
-    # Stamp version+commit like the repo's own justfile (-ldflags -X on
-    # internal/version) — an unstamped binary reports "dev (none)", which once
-    # made a rollout unverifiable by version string.
-    local mver mcommit mldflags
-    mver="$(git -C "$MUSTER_REPO" show origin/main:VERSION 2>/dev/null | tr -d '[:space:]')"
-    mcommit="$(git -C "$MUSTER_REPO" rev-parse --short origin/main 2>/dev/null)"
-    mldflags="-X github.com/schuettc/muster/internal/version.version=${mver:-dev} -X github.com/schuettc/muster/internal/version.commit=${mcommit:-none}"
-    if git -C "$MUSTER_REPO" worktree add --detach "$build_src" origin/main 2>/dev/null >/dev/null \
-       && CGO_ENABLED=0 go -C "$build_src" build -ldflags "$mldflags" -o "$HOME/.local/bin/muster" ./cmd/muster 2>/dev/null \
-       && { git -C "$MUSTER_REPO" worktree remove --force "$build_src" 2>/dev/null || true; }; then
-      # ── Daemon via LaunchAgent ─────────────────────────────────────────
-      # `muster serve` owns ~/.local/share/muster/{sock,bus.db}; everything
-      # (MCP tools, CLI, session hooks) is dead without it, so it must be
-      # supervised — KeepAlive restarts it on crash, RunAtLoad on login.
-      # PATH matters: the daemon shells out to `tmux` for the 📬 wake, and
-      # launchd's default PATH has no /opt/homebrew/bin — without it the bus
-      # works but notifications silently never appear.
-      MUSTER_PLIST="$HOME/Library/LaunchAgents/tools.muster.serve.plist"
-      mkdir -p "$HOME/Library/LaunchAgents" "$HOME/.local/share/muster"
-      cat > "$MUSTER_PLIST" << EOF
+  # muster: the local multi-agent coordination bus (github.com/schuettc/muster,
+  # public). Installed from the latest GitHub RELEASE binary — never built
+  # from a clone. Tags are the source of truth (see
+  # docs/superpowers/specs/2026-08-07-release-based-tool-installs-design.md);
+  # ~/GitHub/schuettc/muster, if present, is a dev checkout the installer
+  # never touches. No Go toolchain required.
+  local os arch asset latest installed replaced=0
+  os="$(uname -s | tr '[:upper:]' '[:lower:]')"      # darwin | linux (WSL=linux)
+  arch="$(uname -m)"
+  case "$arch" in x86_64) arch=amd64 ;; aarch64) arch=arm64 ;; esac
+  case "$os/$arch" in
+    darwin/arm64|darwin/amd64|linux/amd64|linux/arm64)
+      asset="muster_${os}_${arch}.tar.gz"
+      latest="$(latest_release_tag schuettc/muster)" || latest=""
+      installed="$("$HOME/.local/bin/muster" version 2>/dev/null | awk 'NR==1{print $2}')"
+      if [[ -z "$latest" ]]; then
+        warn "muster: can't reach github.com to resolve the latest release — kept ${installed:-nothing}."
+      elif [[ "${latest#v}" == "$installed" ]]; then
+        echo "muster $installed is current."
+      else
+        echo "Installing muster $latest (was ${installed:-not installed})..."
+        install_release_binary schuettc/muster "$asset" muster && replaced=1
+      fi
+      ;;
+    *)
+      warn "muster: no published release asset for $os/$arch — skipping."
+      ;;
+  esac
+
+  if [[ -x "$HOME/.local/bin/muster" && "$os" == "darwin" ]]; then
+    # ── Daemon via LaunchAgent ─────────────────────────────────────────
+    # `muster serve` owns ~/.local/share/muster/{sock,bus.db}; everything
+    # (MCP tools, CLI, session hooks) is dead without it, so it must be
+    # supervised — KeepAlive restarts it on crash, RunAtLoad on login.
+    # PATH matters: the daemon shells out to `tmux` for the 📬 wake, and
+    # launchd's default PATH has no /opt/homebrew/bin — without it the bus
+    # works but notifications silently never appear.
+    MUSTER_PLIST="$HOME/Library/LaunchAgents/tools.muster.serve.plist"
+    mkdir -p "$HOME/Library/LaunchAgents" "$HOME/.local/share/muster"
+    cat > "$MUSTER_PLIST" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -69,44 +66,44 @@ pkg_install() {
 </dict>
 </plist>
 EOF
+    if [[ "$replaced" == 1 ]] \
+       || ! launchctl print "gui/$(id -u)/tools.muster.serve" 2>/dev/null | grep -q "state = running"; then
       echo "Starting muster daemon (LaunchAgent)..."
       launchctl bootout "gui/$(id -u)/tools.muster.serve" 2>/dev/null || true
-      pkill -f "$HOME/.local/bin/muster serve" 2>/dev/null || true   # reap any hand-started daemon holding the socket
+      pkill -f "$HOME/.local/bin/muster serve" 2>/dev/null || true
       launchctl bootstrap "gui/$(id -u)" "$MUSTER_PLIST" 2>/dev/null \
         || warn "Couldn't bootstrap muster LaunchAgent — run: launchctl bootstrap gui/\$(id -u) $MUSTER_PLIST"
-      # ── MCP registration (idempotent) ──────────────────────────────────
-      command -v claude &> /dev/null && ! claude mcp get muster &> /dev/null \
-        && { echo "Registering muster in Claude Code..."; claude mcp add muster -s user -- muster mcp || warn "Register muster in Claude by hand: claude mcp add muster -s user -- muster mcp"; }
-      command -v codex &> /dev/null && ! codex mcp get muster &> /dev/null \
-        && { echo "Registering muster in Codex..."; codex mcp add muster -- muster mcp || warn "Register muster in Codex by hand: codex mcp add muster -- muster mcp"; }
-      if command -v cursor-agent &> /dev/null || command -v agent &> /dev/null; then
-        mkdir -p "$HOME/.cursor"
-        local mcp_json="$HOME/.cursor/mcp.json"
-        [[ -f "$mcp_json" ]] || echo '{"mcpServers":{}}' > "$mcp_json"
-        if command -v jq &> /dev/null; then
-          local tmp; tmp=$(mktemp)
-          if jq --arg cmd "$HOME/.local/bin/muster" '
-            .mcpServers = (.mcpServers // {})
-            | .mcpServers.muster = {"command": $cmd, "args": ["mcp"]}
-          ' "$mcp_json" > "$tmp"; then
-            mv "$tmp" "$mcp_json"
-            echo "Registered muster in Cursor MCP (~/.cursor/mcp.json)."
-          else
-            rm -f "$tmp"; warn "muster: Cursor mcp.json merge failed."
-          fi
-        else
-          warn "jq missing — add muster to ~/.cursor/mcp.json by hand."
-        fi
-        local ca="cursor-agent"; command -v cursor-agent &>/dev/null || ca="agent"
-        "$ca" mcp enable muster >/dev/null 2>&1 \
-          || warn "Couldn't enable muster MCP in Cursor — run: $ca mcp enable muster"
-      fi
-    else
-      git -C "$MUSTER_REPO" worktree remove --force "$build_src" 2>/dev/null || true
-      warn "muster build failed — build it by hand: (git -C $MUSTER_REPO worktree add --detach /tmp/m origin/main && go -C /tmp/m build -o ~/.local/bin/muster ./cmd/muster)"
     fi
-  else
-    echo "Skipping muster (repo not cloned at $MUSTER_REPO, or Go not installed)."
+  fi
+
+  if [[ -x "$HOME/.local/bin/muster" ]]; then
+    # ── MCP registration (idempotent) ──────────────────────────────────
+    command -v claude &> /dev/null && ! claude mcp get muster &> /dev/null \
+      && { echo "Registering muster in Claude Code..."; claude mcp add muster -s user -- muster mcp || warn "Register muster in Claude by hand: claude mcp add muster -s user -- muster mcp"; }
+    command -v codex &> /dev/null && ! codex mcp get muster &> /dev/null \
+      && { echo "Registering muster in Codex..."; codex mcp add muster -- muster mcp || warn "Register muster in Codex by hand: codex mcp add muster -- muster mcp"; }
+    if command -v cursor-agent &> /dev/null || command -v agent &> /dev/null; then
+      mkdir -p "$HOME/.cursor"
+      local mcp_json="$HOME/.cursor/mcp.json"
+      [[ -f "$mcp_json" ]] || echo '{"mcpServers":{}}' > "$mcp_json"
+      if command -v jq &> /dev/null; then
+        local tmp; tmp=$(mktemp)
+        if jq --arg cmd "$HOME/.local/bin/muster" '
+          .mcpServers = (.mcpServers // {})
+          | .mcpServers.muster = {"command": $cmd, "args": ["mcp"]}
+        ' "$mcp_json" > "$tmp"; then
+          mv "$tmp" "$mcp_json"
+          echo "Registered muster in Cursor MCP (~/.cursor/mcp.json)."
+        else
+          rm -f "$tmp"; warn "muster: Cursor mcp.json merge failed."
+        fi
+      else
+        warn "jq missing — add muster to ~/.cursor/mcp.json by hand."
+      fi
+      local ca="cursor-agent"; command -v cursor-agent &>/dev/null || ca="agent"
+      "$ca" mcp enable muster >/dev/null 2>&1 \
+        || warn "Couldn't enable muster MCP in Cursor — run: $ca mcp enable muster"
+    fi
   fi
 
   # Claude session hooks: auto-register on the muster bus + self-resolving
@@ -205,6 +202,8 @@ pkg_verify() {
   # the usage text, whose format upstream is free to change (and did).
   "$HOME/.local/bin/muster" hook --help >/dev/null 2>&1 \
     && echo "  PASS hook subcommand" || { echo "  FAIL hook subcommand (binary too old for installed hooks)"; ok=1; }
+  verify_release_current schuettc/muster \
+    "$("$HOME/.local/bin/muster" version 2>/dev/null | awk 'NR==1{print $2}')" muster || ok=1
   jq -e '.permissions.allow | index("mcp__muster")' "$s" >/dev/null 2>&1 \
     && echo "  PASS mcp__muster allowlisted" || { echo "  FAIL mcp__muster allowlisted"; ok=1; }
   launchctl print "gui/$(id -u)/tools.muster.serve" 2>/dev/null | grep -q "state = running" \
@@ -217,7 +216,7 @@ pkg_verify() {
     && echo "  PASS Stop hook wired" || { echo "  FAIL Stop hook wired"; ok=1; }
   if command -v cursor-agent &> /dev/null || command -v agent &> /dev/null; then
     jq -e --arg cmd "$HOME/.local/bin/muster hook SessionStart cursor" \
-      '.hooks.sessionStart[]?.command == $cmd' "$HOME/.cursor/hooks.json" >/dev/null 2>&1 \
+      'any(.hooks.sessionStart[]?.command; . == $cmd)' "$HOME/.cursor/hooks.json" >/dev/null 2>&1 \
       && echo "  PASS cursor hooks wired" || { echo "  FAIL cursor hooks wired"; ok=1; }
     jq -e '.permissions.allow | index("Mcp(muster:*)")' "$HOME/.cursor/cli-config.json" >/dev/null 2>&1 \
       && echo "  PASS cursor Mcp(muster:*) allowlisted" || { echo "  FAIL cursor Mcp(muster:*) allowlisted"; ok=1; }
