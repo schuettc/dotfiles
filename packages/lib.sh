@@ -84,6 +84,75 @@ pkg_brew() {
     || warn "$(basename "$PKG_DIR"): some brew packages failed — re-run 'brew bundle --no-upgrade --file=$PKG_DIR/Brewfile'"
 }
 
+# ─── release-based tool installs ────────────────────────────────────────────
+# The version policy for self-built tools (muster, scratch, …): releases and
+# tags are the source of truth. No gh, no GitHub API — one unauthenticated
+# HEAD request resolves the latest tag (the /releases/latest redirect ends in
+# /tag/vX.Y.Z), and assets come from the stable releases/latest/download URL.
+# See docs/superpowers/specs/2026-08-07-release-based-tool-installs-design.md.
+
+# latest_release_tag <owner/repo> — print the latest release tag (vX.Y.Z).
+# Prints nothing and returns 1 on any failure (offline, no releases yet);
+# callers treat that as "can't know" and keep what they have.
+latest_release_tag() {
+  local url
+  url=$(curl -fsSLI -o /dev/null -w '%{url_effective}' --max-time 10 \
+    "https://github.com/$1/releases/latest" 2>/dev/null) || return 1
+  case "$url" in
+    */releases/tag/*) printf '%s\n' "${url##*/}" ;;
+    *) return 1 ;;
+  esac
+}
+
+# install_release_binary <owner/repo> <asset.tar.gz> <bin-name>
+# Download the latest release's asset plus checksums.txt, verify the sha256,
+# and install the tarball's <bin-name> into ~/.local/bin. Every failure path
+# warns and returns 1 with the previously installed binary untouched.
+install_release_binary() {
+  local repo="$1" asset="$2" bin="$3"
+  local base="https://github.com/$repo/releases/latest/download"
+  local tmp; tmp=$(mktemp -d) || return 1
+  if ! curl -fsSL --max-time 300 -o "$tmp/$asset" "$base/$asset" 2>/dev/null \
+     || ! curl -fsSL --max-time 30 -o "$tmp/checksums.txt" "$base/checksums.txt" 2>/dev/null; then
+    rm -rf "$tmp"
+    warn "$bin: release download failed (offline?) — kept the existing binary."
+    return 1
+  fi
+  local want got
+  want=$(awk -v a="$asset" '$2 == a {print $1}' "$tmp/checksums.txt")
+  got=$(shasum -a 256 "$tmp/$asset" | awk '{print $1}')
+  if [[ -z "$want" || "$want" != "$got" ]]; then
+    rm -rf "$tmp"
+    warn "$bin: sha256 mismatch on $asset — kept the existing binary."
+    return 1
+  fi
+  if ! tar -xzf "$tmp/$asset" -C "$tmp" "$bin" 2>/dev/null; then
+    rm -rf "$tmp"
+    warn "$bin: $asset does not contain '$bin' — kept the existing binary."
+    return 1
+  fi
+  mkdir -p "$HOME/.local/bin"
+  chmod +x "$tmp/$bin"
+  # mv, not cp: atomic swap; a running daemon keeps its old inode.
+  mv -f "$tmp/$bin" "$HOME/.local/bin/$bin"
+  rm -rf "$tmp"
+}
+
+# verify_release_current <owner/repo> <installed-version> <label>
+# pkg_verify's drift check: FAIL (rc 1) when the installed version doesn't
+# match the latest release tag; silent success when the tag can't be
+# resolved (offline verify still stands on the capability checks).
+verify_release_current() {
+  local repo="$1" installed="$2" label="$3" latest
+  latest=$(latest_release_tag "$repo") || return 0
+  if [[ "${latest#v}" == "${installed#v}" && -n "$installed" ]]; then
+    echo "  PASS $label at latest release ($latest)"
+  else
+    echo "  FAIL $label version ${installed:-unknown} != latest release $latest (run dotup)"
+    return 1
+  fi
+}
+
 # Source and run one package in the current shell (keeps WARNINGS shared).
 run_pkg() {
   local name="$1" dir="$PACKAGES_DIR/$1"
