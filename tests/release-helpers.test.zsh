@@ -7,9 +7,12 @@
 # curl is stubbed via a PATH shim so no test touches the network. The stub
 # serves a redirect URL for HEAD-style calls (-I/--head or -w url_effective)
 # and copies fixture files for downloads (-o <file> <url>), driven by:
-#   STUB_TAG      tag the fake /releases/latest redirect resolves to
-#   STUB_ASSETS   dir holding fixture files served by basename of the URL
-#   STUB_FAIL     non-empty → every curl invocation fails (offline)
+#   STUB_TAG            tag the fake /releases/latest redirect resolves to
+#   STUB_ASSETS         dir holding fixture files served by basename of the URL
+#   STUB_FAIL           non-empty → every curl invocation fails (offline)
+#   STUB_BAD_REDIRECT   non-empty → the redirect resolves to this URL verbatim
+#                       instead of a well-formed .../releases/tag/<STUB_TAG>
+#                       (simulates a redirect target latest_release_tag can't parse)
 
 set -u
 
@@ -45,6 +48,10 @@ for ((i=0; i<${#args[@]}; i++)); do
 done
 if [[ "$url" == */releases/latest ]]; then
   # HEAD probe: emulate -w '%{url_effective}' by printing the final URL
+  if [[ -n "${STUB_BAD_REDIRECT:-}" ]]; then
+    printf '%s' "$STUB_BAD_REDIRECT"
+    exit 0
+  fi
   repo_path="${url%/releases/latest}"
   printf '%s/releases/tag/%s' "$repo_path" "${STUB_TAG:?}"
   exit 0
@@ -59,6 +66,7 @@ chmod +x "$FAKE/bin/curl"
 lib() {  # lib <bash snippet…> — fake HOME, stubbed curl first in PATH
   HOME="$FAKE" PATH="$FAKE/bin:$PATH" \
   STUB_TAG="${STUB_TAG:-}" STUB_ASSETS="${STUB_ASSETS:-}" STUB_FAIL="${STUB_FAIL:-}" \
+  STUB_BAD_REDIRECT="${STUB_BAD_REDIRECT:-}" \
     bash -c "source '$REPO/packages/lib.sh' >/dev/null 2>&1; $*" 2>/dev/null
 }
 
@@ -73,6 +81,13 @@ STUB_FAIL=1
 ok "offline prints nothing" "" "$(lib 'latest_release_tag schuettc/muster')"
 ok "offline rc 1" "1" "$(lib 'latest_release_tag schuettc/muster >/dev/null; echo $?')"
 unset STUB_FAIL
+
+# Redirect resolves but doesn't land on a /releases/tag/<tag> URL (eg. GitHub
+# serving something unexpected) — treated the same as "can't know", not a crash.
+STUB_BAD_REDIRECT="https://github.com/schuettc/muster/releases"
+ok "non-tag redirect prints nothing" "" "$(lib 'latest_release_tag schuettc/muster')"
+ok "non-tag redirect rc 1" "1" "$(lib 'latest_release_tag schuettc/muster >/dev/null; echo $?')"
+unset STUB_BAD_REDIRECT
 
 # ── install_release_binary ───────────────────────────────────────────────
 echo "── install_release_binary ──"
@@ -105,6 +120,20 @@ STUB_FAIL=1
 ok "offline rc 1, binary kept" "old" \
    "$(lib 'install_release_binary schuettc/faketool faketool_test.tar.gz faketool'; cat "$FAKE/.local/bin/faketool")"
 unset STUB_FAIL
+
+# Tarball's checksum matches but it doesn't contain the named binary (eg. a
+# packaging mistake upstream) → tar -x for "$bin" fails, rc 1, old binary kept.
+printf '#!/bin/sh\necho wrong-binary\n' > "$ASSETS/stage/faketool"
+mv "$ASSETS/stage/faketool" "$ASSETS/stage/notfaketool"
+chmod +x "$ASSETS/stage/notfaketool"
+tar -C "$ASSETS/stage" -czf "$ASSETS/faketool_missing.tar.gz" notfaketool
+( cd "$ASSETS" && shasum -a 256 faketool_missing.tar.gz > checksums.txt )
+printf 'old3\n' > "$FAKE/.local/bin/faketool"
+ok "missing binary in tarball rc 1" "1" \
+   "$(lib 'install_release_binary schuettc/faketool faketool_missing.tar.gz faketool; echo $?')"
+ok "old binary kept when tarball lacks it" "old3" "$(cat "$FAKE/.local/bin/faketool")"
+mv "$ASSETS/stage/notfaketool" "$ASSETS/stage/faketool"
+( cd "$ASSETS" && shasum -a 256 faketool_test.tar.gz > checksums.txt )
 
 # Unwritable destination → rc 1, binary untouched
 rm -rf "$FAKE/.local/bin"
