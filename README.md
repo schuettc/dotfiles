@@ -151,9 +151,10 @@ Where the Codex bridge is *vertical* (one terminal), **[muster](https://github.c
 is *horizontal*: a local coordination bus that lets standing agent sessions in
 separate terminals (Claude Code, Codex, and/or Cursor) message and hand tasks to each
 other — no copy/paste, subscription-only. The `muster` package self-installs
-the whole stack when Go is present: clones the repo (now public — HTTPS, no
-SSH auth needed) to `~/GitHub/schuettc/muster` if missing, builds
-`~/.local/bin/muster`, installs a **LaunchAgent** (`tools.muster.serve` —
+the whole stack: installed from the latest GitHub release (a checksummed
+binary written to `~/.local/bin/muster` — no clone, no Go toolchain
+required; `~/GitHub/schuettc/muster`, if present, is a dev checkout the
+installer never touches), installs a **LaunchAgent** (`tools.muster.serve` —
 `muster serve` runs at login, restarts on crash, logs to
 `~/.local/share/muster/serve.log`), and registers the MCP server in Claude
 Code, Codex, and Cursor. Session hooks (auto-register on the bus +
