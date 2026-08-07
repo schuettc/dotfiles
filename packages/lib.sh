@@ -115,15 +115,30 @@ install_release_binary() {
   local repo="$1" asset="$2" bin="$3"
   local base="https://github.com/$repo/releases/latest/download"
   local tmp; tmp=$(mktemp -d) || return 1
-  if ! curl -fsSL --max-time 300 -o "$tmp/$asset" "$base/$asset" 2>/dev/null \
-     || ! curl -fsSL --max-time 30 -o "$tmp/checksums.txt" "$base/checksums.txt" 2>/dev/null; then
+  local rc=0
+  curl -fsSL --max-time 300 -o "$tmp/$asset" "$base/$asset" 2>/dev/null || rc=$?
+  if [[ $rc -eq 0 ]]; then
+    curl -fsSL --max-time 30 -o "$tmp/checksums.txt" "$base/checksums.txt" 2>/dev/null || rc=$?
+  fi
+  if [[ $rc -ne 0 ]]; then
     rm -rf "$tmp"
-    warn "$bin: release download failed (offline?) — kept the existing binary."
+    # curl -f turns an HTTP error response (eg. 404) into rc 22 — that's a
+    # missing asset (release assets can lag the tag by a few seconds on a
+    # fresh publish), distinct from a network-level failure.
+    if [[ $rc -eq 22 ]]; then
+      warn "$bin: asset not found (release assets may still be uploading) — kept the existing binary."
+    else
+      warn "$bin: download failed (offline?) — kept the existing binary."
+    fi
     return 1
   fi
   local want got
   want=$(awk -v a="$asset" '$2 == a {print $1}' "$tmp/checksums.txt")
-  got=$(shasum -a 256 "$tmp/$asset" | awk '{print $1}')
+  if command -v shasum &> /dev/null; then
+    got=$(shasum -a 256 "$tmp/$asset" | awk '{print $1}')
+  else
+    got=$(sha256sum "$tmp/$asset" | awk '{print $1}')
+  fi
   if [[ -z "$want" || "$want" != "$got" ]]; then
     rm -rf "$tmp"
     warn "$bin: sha256 mismatch on $asset — kept the existing binary."
@@ -144,8 +159,18 @@ install_release_binary() {
     warn "$bin: couldn't make $bin executable — kept the existing binary."
     return 1
   }
-  # mv, not cp: atomic swap; a running daemon keeps its old inode.
-  mv -f "$tmp/$bin" "$HOME/.local/bin/$bin" || {
+  # Stage inside ~/.local/bin (not straight from $tmp, which may be a
+  # different filesystem/tmpfs) so the final mv is a same-filesystem
+  # rename — genuinely atomic; a running daemon keeps its old inode.
+  local staging="$HOME/.local/bin/.$bin.new.$$"
+  mv -f "$tmp/$bin" "$staging" || {
+    rm -f "$staging"
+    rm -rf "$tmp"
+    warn "$bin: couldn't stage into ~/.local/bin — kept the existing binary."
+    return 1
+  }
+  mv -f "$staging" "$HOME/.local/bin/$bin" || {
+    rm -f "$staging"
     rm -rf "$tmp"
     warn "$bin: couldn't install to ~/.local/bin — kept the existing binary."
     return 1
