@@ -22,7 +22,7 @@ pkg_install() {
       installed="$("$HOME/.local/bin/muster" version 2>/dev/null | awk 'NR==1{print $2}')"
       if [[ -z "$latest" ]]; then
         warn "muster: can't reach github.com to resolve the latest release — kept ${installed:-nothing}."
-      elif [[ "${latest#v}" == "$installed" ]]; then
+      elif [[ "${latest#v}" == "${installed#v}" ]]; then
         echo "muster $installed is current."
       else
         echo "Installing muster $latest (was ${installed:-not installed})..."
@@ -44,7 +44,13 @@ pkg_install() {
     # works but notifications silently never appear.
     MUSTER_PLIST="$HOME/Library/LaunchAgents/tools.muster.serve.plist"
     mkdir -p "$HOME/Library/LaunchAgents" "$HOME/.local/share/muster"
-    cat > "$MUSTER_PLIST" << EOF
+    # Render to a temp file first and cmp before overwriting: bootout/
+    # bootstrap only fire below on replaced-binary or daemon-not-running, so
+    # a plist-only edit (PATH, KeepAlive, log paths, …) with the daemon
+    # already running would otherwise never take effect — the file gets
+    # rewritten every run, but nothing reloads it.
+    MUSTER_PLIST_TMP=$(mktemp) || die "muster: couldn't create temp file for plist render"
+    cat > "$MUSTER_PLIST_TMP" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -66,7 +72,14 @@ pkg_install() {
 </dict>
 </plist>
 EOF
-    if [[ "$replaced" == 1 ]] \
+    local plist_changed=0
+    if ! cmp -s "$MUSTER_PLIST_TMP" "$MUSTER_PLIST" 2>/dev/null; then
+      plist_changed=1
+      mv -f "$MUSTER_PLIST_TMP" "$MUSTER_PLIST"
+    else
+      rm -f "$MUSTER_PLIST_TMP"
+    fi
+    if [[ "$replaced" == 1 || "$plist_changed" == 1 ]] \
        || ! launchctl print "gui/$(id -u)/tools.muster.serve" 2>/dev/null | grep -q "state = running"; then
       echo "Starting muster daemon (LaunchAgent)..."
       launchctl bootout "gui/$(id -u)/tools.muster.serve" 2>/dev/null || true
@@ -202,8 +215,23 @@ pkg_verify() {
   # the usage text, whose format upstream is free to change (and did).
   "$HOME/.local/bin/muster" hook --help >/dev/null 2>&1 \
     && echo "  PASS hook subcommand" || { echo "  FAIL hook subcommand (binary too old for installed hooks)"; ok=1; }
-  verify_release_current schuettc/muster \
-    "$("$HOME/.local/bin/muster" version 2>/dev/null | awk 'NR==1{print $2}')" muster || ok=1
+  # Offline-safe capability check: `muster version` must parse to a real
+  # version, not empty (binary missing/broken) and not "dev" (unstamped
+  # local build). Captured once and reused below so the drift check below
+  # doesn't redundantly FAIL "unknown != latest release" when the binary is
+  # simply missing — that's already covered by the "PASS muster binary"
+  # check above.
+  local mver
+  mver="$("$HOME/.local/bin/muster" version 2>/dev/null | awk 'NR==1{print $2}')"
+  if [[ -n "$mver" && "${mver#v}" != "dev" ]]; then
+    echo "  PASS muster version $mver"
+  else
+    echo "  FAIL muster version unparseable/dev"
+    ok=1
+  fi
+  if [[ -n "$mver" ]]; then
+    verify_release_current schuettc/muster "$mver" muster || ok=1
+  fi
   jq -e '.permissions.allow | index("mcp__muster")' "$s" >/dev/null 2>&1 \
     && echo "  PASS mcp__muster allowlisted" || { echo "  FAIL mcp__muster allowlisted"; ok=1; }
   launchctl print "gui/$(id -u)/tools.muster.serve" 2>/dev/null | grep -q "state = running" \
