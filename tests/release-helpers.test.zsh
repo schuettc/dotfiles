@@ -106,6 +106,14 @@ ok "offline rc 1, binary kept" "old" \
    "$(lib 'install_release_binary schuettc/faketool faketool_test.tar.gz faketool'; cat "$FAKE/.local/bin/faketool")"
 unset STUB_FAIL
 
+# Unwritable destination → rc 1, binary untouched
+rm -rf "$FAKE/.local/bin"
+printf 'old\n' > "$FAKE/.local/bin"  # make .local/bin a file so mkdir fails
+ok "unwritable dest rc 1" "1" \
+   "$(lib 'install_release_binary schuettc/faketool faketool_test.tar.gz faketool >/dev/null 2>&1; echo $?')"
+ok "old binary kept on permission error" "old" "$(cat "$FAKE/.local/bin")"
+rm "$FAKE/.local/bin"  # restore for cleanup
+
 # ── verify_release_current ───────────────────────────────────────────────
 echo "── verify_release_current ──"
 

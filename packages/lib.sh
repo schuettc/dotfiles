@@ -131,11 +131,24 @@ install_release_binary() {
     warn "$bin: $asset does not contain '$bin' — kept the existing binary."
     return 1
   fi
-  mkdir -p "$HOME/.local/bin"
-  chmod +x "$tmp/$bin"
+  mkdir -p "$HOME/.local/bin" || {
+    rm -rf "$tmp"
+    warn "$bin: couldn't create ~/.local/bin — kept the existing binary."
+    return 1
+  }
+  chmod +x "$tmp/$bin" || {
+    rm -rf "$tmp"
+    warn "$bin: couldn't make $bin executable — kept the existing binary."
+    return 1
+  }
   # mv, not cp: atomic swap; a running daemon keeps its old inode.
-  mv -f "$tmp/$bin" "$HOME/.local/bin/$bin"
+  mv -f "$tmp/$bin" "$HOME/.local/bin/$bin" || {
+    rm -rf "$tmp"
+    warn "$bin: couldn't install to ~/.local/bin — kept the existing binary."
+    return 1
+  }
   rm -rf "$tmp"
+  return 0
 }
 
 # verify_release_current <owner/repo> <installed-version> <label>
