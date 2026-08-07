@@ -77,11 +77,14 @@ _harness_ensure_hook() {
   fi
 }
 
-# Install the current package's Brewfile, if it has one. Install-only.
+# Install AND upgrade the current package's Brewfile, if it has one.
+# --no-upgrade was the old policy (install-if-missing, drift forever);
+# dotup is the convergence mechanism now, so listed formulae/casks track
+# brew's latest on every run.
 pkg_brew() {
   [[ -f "$PKG_DIR/Brewfile" ]] || return 0
-  brew bundle --no-upgrade --file="$PKG_DIR/Brewfile" \
-    || warn "$(basename "$PKG_DIR"): some brew packages failed — re-run 'brew bundle --no-upgrade --file=$PKG_DIR/Brewfile'"
+  brew bundle --file="$PKG_DIR/Brewfile" \
+    || warn "$(basename "$PKG_DIR"): some brew packages failed — re-run 'brew bundle --file=$PKG_DIR/Brewfile'"
 }
 
 # ─── release-based tool installs ────────────────────────────────────────────
