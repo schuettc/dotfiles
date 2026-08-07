@@ -87,8 +87,10 @@ pkg_verify() {
     # fallback build reports (devel) and will FAIL the drift check online,
     # which is correct — it isn't a released binary).
     local sver=""
+    local sbin="$HOME/.local/bin/scratch"
+    [[ -x "$sbin" ]] || sbin="$(command -v scratch 2>/dev/null)"
     command -v go &> /dev/null \
-      && sver="$(go version -m "$HOME/.local/bin/scratch" 2>/dev/null | awk '$1=="mod"{print $3}')"
+      && sver="$(go version -m "$sbin" 2>/dev/null | awk '$1=="mod"{print $3}')"
     echo "  PASS scratch (${sver:-unknown})"
     verify_release_current schuettc/scratch "$sver" scratch || ok=1
   else
