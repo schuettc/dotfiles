@@ -129,6 +129,14 @@ STUB_FAIL=1
 ok "offline → silent rc 0" "0" "$(lib 'verify_release_current schuettc/muster 0.9.8 muster >/dev/null; echo $?')"
 unset STUB_FAIL
 
+# PKG_VERIFY_SKIP_DRIFT escape hatch (run.sh's dep-existence precheck must
+# not treat a merely-outdated dep as "not installed" — see F1).
+STUB_TAG="v0.9.9"
+ok "skip-drift → rc 0 even on drift" "0" \
+   "$(lib 'PKG_VERIFY_SKIP_DRIFT=1 verify_release_current schuettc/muster 0.9.8 muster >/dev/null; echo $?')"
+ok "skip-drift → prints nothing" "" \
+   "$(lib 'PKG_VERIFY_SKIP_DRIFT=1 verify_release_current schuettc/muster 0.9.8 muster')"
+
 rm -rf "$ASSETS"
 echo ""
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"

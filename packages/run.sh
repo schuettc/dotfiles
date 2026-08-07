@@ -26,7 +26,12 @@ for name in "$@"; do
       PKG_DIR="$PACKAGES_DIR/$dep"
       unset -f pkg_install pkg_verify 2>/dev/null
       source "$PKG_DIR/pkg.sh"
-      pkg_verify >/dev/null 2>&1 \
+      # PKG_VERIFY_SKIP_DRIFT: this is an existence precheck, not a
+      # freshness check — a merely-outdated release-based dep (muster,
+      # scratch) must not read as "not installed" and kill the install.
+      # Subshell-scoped only; verify_release_current still runs for real
+      # inside `pkg_verify` proper (run_pkg), where drift SHOULD fail.
+      PKG_VERIFY_SKIP_DRIFT=1 pkg_verify >/dev/null 2>&1 \
         || die "$name requires '$dep' — add it to the list (it is not installed on this machine)"
     fi
   done

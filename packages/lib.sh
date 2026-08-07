@@ -159,6 +159,7 @@ install_release_binary() {
 # match the latest release tag; silent success when the tag can't be
 # resolved (offline verify still stands on the capability checks).
 verify_release_current() {
+  [[ -n "${PKG_VERIFY_SKIP_DRIFT:-}" ]] && return 0
   local repo="$1" installed="$2" label="$3" latest
   latest=$(latest_release_tag "$repo") || return 0
   if [[ "${latest#v}" == "${installed#v}" && -n "$installed" ]]; then
