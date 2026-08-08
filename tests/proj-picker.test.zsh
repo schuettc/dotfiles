@@ -71,7 +71,6 @@ tmux() { return 1; }
 # out to bin/proj-right-column.sh and blocks. Screen 1 is what's under test,
 # so stop at its edge.
 __proj_launch() { return 0; }
-__proj_worktree_list() { return 0; }
 
 ADD_ROW="[+ add new project root…]"
 RM_ROW="[- remove a project root…]"
@@ -118,9 +117,70 @@ ok "file untouched by cancel" "$TMP/GitHub" "$(<"$ROOTS")"
 
 echo "── picking a project exits the loop ──"
 print -- "$TMP/GitHub" > "$ROOTS"
+# Screen 1's while loop must not re-show itself for a real project pick (only
+# the add/remove rows loop back) — it hands off to Screen 2 exactly once.
+# proj() always shows Screen 2 next (session-identity: no non-git special
+# case), so the picker is shown twice total: Screen 1, then Screen 2.
 script_picker "$TMP/GitHub/repo-a"
 proj >/dev/null 2>&1
-ok "picker ran once" "1" "$(shown)"
+ok "picker not re-shown for screen 1" "2" "$(shown)"
+
+echo "── Screen 2: sessions, not branches ──"
+print -- "$TMP/GitHub" > "$ROOTS"
+# Re-stub launch to RECORD its arguments (still never runs tmux).
+__proj_launch() { print -r -- "$1|$2|$3|${4:-}" > "$TMP/launch"; }
+rm -f "$TMP/launch"
+script_picker "$TMP/GitHub/repo-a" "$ESC"
+proj >/dev/null 2>&1
+ok "screen 2 shown"          "2" "$(shown)"
+ok "home base row offered"   "1" "$(menu 2 | grep -cF -- '🏠 repo-a')"
+ok "new-work row offered"    "1" "$(menu 2 | grep -cF -- '+ new work…')"
+ok "no worktree rows"        "0" "$(menu 2 | grep -c -- '▸\|worktree\|branch')"
+ok "screen 2 is 2 rows"      "2" "$(menu 2 | wc -l | tr -d ' ')"
+
+echo "── + new work creates <project>/<work> in the primary clone ──"
+__proj_read_work() { print -r -- "nfl-4"; }
+script_picker "$TMP/GitHub/repo-a" "+ new work…"
+proj >/dev/null 2>&1
+ok "launch called with the work name" \
+   "proj-repo-a|repo-a/nfl-4|$TMP/GitHub/repo-a|" "$(cat "$TMP/launch")"
+
+echo "── invalid work names are refused ──"
+__proj_read_work() { print -r -- "bad name"; }
+rm -f "$TMP/launch"
+script_picker "$TMP/GitHub/repo-a" "+ new work…"
+proj >/dev/null 2>&1
+ok "no launch on invalid name" "" "$(cat "$TMP/launch" 2>/dev/null)"
+
+echo "── home base row opens the bare project session ──"
+rm -f "$TMP/launch"
+script_picker "$TMP/GitHub/repo-a" "🏠 repo-a — home base (primary clone)"
+proj >/dev/null 2>&1
+ok "home base launches bare name" \
+   "proj-repo-a|repo-a|$TMP/GitHub/repo-a|" "$(cat "$TMP/launch")"
+
+echo "── proj <project> jumps straight to Screen 2 ──"
+rm -f "$TMP/launch"
+script_picker "$ESC"
+proj repo-a >/dev/null 2>&1
+ok "screen 1 skipped"          "1" "$(shown)"
+ok "screen 2 menu shown first" "1" "$(menu 1 | grep -cF -- '+ new work…')"
+
+echo "── live sessions listed identity-first, legacy names included ──"
+__proj_servers() { print -- fake; }
+tmux() {
+  case "$*" in
+    *" ls -F"*) printf 'repo-a/nfl-3\ttopic x\nrepo-a-2\t\nrepo-b/other\t\n';;
+    *) return 1;;
+  esac
+}
+script_picker "$TMP/GitHub/repo-a" "$ESC"
+proj >/dev/null 2>&1
+ok "named session listed with topic" "1" "$(menu 2 | grep -cF -- '● repo-a/nfl-3  — topic x')"
+ok "legacy numbered slot listed"     "1" "$(menu 2 | grep -cF -- '● repo-a-2')"
+ok "other project's session hidden"  "0" "$(menu 2 | grep -cF -- 'repo-b/other')"
+tmux() { return 1; }
+__proj_servers() { return 0; }
 
 echo
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"

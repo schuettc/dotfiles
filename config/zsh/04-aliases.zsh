@@ -134,34 +134,30 @@ alias c='clear'
 alias h='history'
 alias reload='source ~/.zshrc'
 
-# ─── tmux + projects (worktree-aware) ──────────────────────────────────────
-# Project session picker. Two fzf steps, no flags to remember:
+# ─── tmux + projects (session-identity) ────────────────────────────────────
+# Project session picker. The SESSION NAME is the identity: a session is
+# born named for its work — `<project>/<work>` (home base: bare
+# `<project>`) — and every surface aligns to that one name (tab titles,
+# this picker, and, when muster is installed, the bus alias its
+# SessionStart hook seeds from the session name). Two fzf steps:
 #   1. pick a project (or jump straight to a live session)
-#   2. pick what to work on — and the BRANCH decides isolation:
-#        • the default branch (main/dev — whatever the clone has checked out)
-#          → "home base" session in the primary clone (read / coordinate)
-#        • ANY other branch (existing or new) → proj transparently creates a
-#          git worktree at <repo>/.worktrees/<branch> and opens the session
-#          THERE, so parallel work never collides in a single tree.
-#   You think in branches; proj handles every `git worktree` mechanic.
-#
-# Layout for every session: agent-or-shell on the left, yazi (30%) on the right.
+#   2. pick a session, open the home base, or name new work
+# Isolation is the AGENT'S job (its own worktrees), not the picker's —
+# proj creates every session in the primary clone.
 #
 # Usage:
-#   proj            # default branch = home base, any other branch = worktree
-#   proj --claude   # same, but auto-launch Claude in the left pane
-#   proj --cursor   # same, but auto-launch Cursor in the left pane
-#   proj --edit     # open ~/.config/proj/roots in $EDITOR
-#   proj --add      # add a root, or a single directory as a project
-#   proj --remove   # delete entries from the roots file (Tab = multi-select)
+#   proj              # two-screen picker
+#   proj <project>    # jump straight to Screen 2 for that project
+#   proj --claude     # auto-launch Claude in the new session's left pane
+#   proj --cursor     # auto-launch Cursor in the new session's left pane
+#   proj --edit       # open ~/.config/proj/roots in $EDITOR
+#   proj --add        # add a root, or a single directory as a project
+#   proj --remove     # delete entries from the roots file (Tab = multi-select)
 #
-# Worktrees live at <repo>/.worktrees/<branch>, ignored via .git/info/exclude
-# (the repo's tracked .gitignore is untouched). A <repo>/.worktreeinclude file
-# (gitignore syntax) lists gitignored paths (e.g. .env) to copy into each new
-# worktree. The tmux status bar shows the branch, so you always see which
-# worktree a session is in. Project roots: ~/.config/proj/roots (see proj --edit)
-# — bare lines are roots whose children are projects, `project:<path>` lines are
-# projects in their own right. See 03-proj-roots.zsh.
+# Layout for every session: agent-or-shell on the left, scratch/yazi/shell
+# column on the right. Renames go through prefix T (bin/tmux-session-
+# rename.sh) so no surface is left behind. Project roots:
+# ~/.config/proj/roots — see 03-proj-roots.zsh.
 
 # ─── per-project tmux servers ───────────────────────────────────────────────
 # Every project gets its OWN tmux server (socket "proj-<project>", i.e.
@@ -253,11 +249,12 @@ __tmux_new_session() {  # <srv> <new-session args...>
   ( builtin cd -q -- "$HOME" && tmux -L "$srv" new-session "$@" )
 }
 
-# Create-or-attach a tmux session named $2 on server $1 in dir $3 with the
-# standard layout (agent-or-shell left + yazi right). $4 is "" / "claude" /
-# "cursor"; legacy numeric 1 means Claude. Uses "=name" exact-match targets so
-# prefix-sharing names (proj vs proj/branch) don't clash.
-__proj_launch() {
+# Create a tmux session named $2 on server $1 in dir $3 with the standard
+# layout (agent-or-shell left + yazi right), if it doesn't already exist.
+# $4 is "" / "claude" / "cursor"; legacy numeric 1 means Claude. Uses "=name"
+# exact-match targets so prefix-sharing names (proj vs proj/branch) don't
+# clash. Does not move the client — see __proj_launch below.
+__proj_ensure_session() {
   local srv="$1" name="$2" dir="$3" auto_agent="${4:-}"
   # Legacy: numeric 1 means claude.
   [[ "$auto_agent" == "1" ]] && auto_agent="claude"
@@ -295,133 +292,75 @@ __proj_launch() {
     # panes @sidebar. It forks its work, so it never blocks the goto/attach below.
     __proj_right_column "$srv" "$name" "$dir"
   fi
-  __proj_goto "$srv" "$name"
 }
 
-# Spawn an ADDITIONAL session for a project that already has a home base: find
-# the next free <project>-N (N≥2, matching pt/auto-join numbering) and launch it
-# in <dir> with the standard shell+yazi layout. $3 is an optional auto-agent.
-__proj_launch_numbered() {
-  local project="$1" dir="$2" auto_agent="${3:-}" n=2
-  local srv; srv=$(__proj_srv "$project")
-  while tmux -L "$srv" has-session -t "=${project}-${n}" 2>/dev/null; do
-    (( n++ )); (( n > 50 )) && { echo "too many sessions" >&2; return 1; }
-  done
-  __proj_launch "$srv" "${project}-${n}" "$dir" "$auto_agent"
+# Create-or-attach: ensure the session exists, then move this client to it.
+__proj_launch() {
+  __proj_ensure_session "$@"
+  __proj_goto "$1" "$2"
 }
 
-# Copy gitignored paths listed in <primary>/.worktreeinclude into a new worktree.
-__proj_copy_includes() {
-  local primary="$1" wt="$2" inc="$1/.worktreeinclude"
-  [[ -f "$inc" ]] || return 0
-  local line m rel
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
-    [[ -z "$line" || "$line" == \#* ]] && continue
-    for m in "$primary"/${~line}(N); do
-      rel="${m#$primary/}"
-      mkdir -p "$wt/${rel:h}"
-      cp -R "$m" "$wt/$rel"
-    done
-  done < "$inc"
+# A work name: one path segment of the session identity. Letters, digits,
+# hyphen, underscore — no '.', ':' or whitespace (tmux target separators);
+# '/' is reserved for the <project>/<work> join.
+__proj_valid_work() { [[ "$1" =~ '^[A-Za-z0-9_-]+$' ]]; }
+
+# Prompt for a work name on the tty (factored out so tests can stub it).
+__proj_read_work() {
+  local w
+  printf "Work name (letters digits - _): " >/dev/tty
+  IFS= read -r w </dev/tty || return 1
+  print -r -- "$w"
 }
 
-# Ensure a worktree exists for <branch> in <primary>; echo its path (or fail).
-__proj_ensure_worktree() {
-  local primary="$1" branch="$2" wt existing base excl
-  # Already checked out in some worktree? Reuse it — turns git's "branch
-  # already checked out" error into a jump to that worktree.
-  existing=$(git -C "$primary" worktree list --porcelain 2>/dev/null \
-    | awk -v b="refs/heads/$branch" '/^worktree /{w=substr($0,10)} /^branch /{if($2==b)print w}')
-  [[ -n "$existing" ]] && { print -r -- "$existing"; return 0; }
-
-  wt="$primary/.worktrees/$branch"
-  [[ -d "$wt" ]] && { print -r -- "$wt"; return 0; }
-
-  # Ignore .worktrees/ locally, without touching the repo's tracked .gitignore.
-  excl="$primary/.git/info/exclude"
-  [[ -f "$excl" ]] && ! grep -qxF '.worktrees/' "$excl" 2>/dev/null && print -- '.worktrees/' >> "$excl"
-
-  mkdir -p "${wt:h}"
-  if git -C "$primary" show-ref --verify --quiet "refs/heads/$branch"; then
-    git -C "$primary" worktree add "$wt" "$branch" >/dev/null 2>&1 || return 1
-  else
-    # New branch: base off dev if it exists, else origin/dev, else current HEAD.
-    if   git -C "$primary" show-ref --verify --quiet refs/heads/dev;          then base=dev
-    elif git -C "$primary" show-ref --verify --quiet refs/remotes/origin/dev; then base=origin/dev
-    else base=$(git -C "$primary" symbolic-ref --short HEAD 2>/dev/null); fi
-    git -C "$primary" worktree add "$wt" -b "$branch" "$base" >/dev/null 2>&1 || return 1
-  fi
-  __proj_copy_includes "$primary" "$wt"
-  print -r -- "$wt"
-}
-
-# Build the Screen-2 list for a project: live sessions, home base, worktrees,
-# other branches, and the new/prune actions. Glyphs make rows parseable.
-__proj_worktree_list() {
-  local primary="$1" project="$2" default_branch="$3" b s bare
-  # ── jump to a running session ──  (● = already open)
-  # Rows carry the session's task label (@claude_task, set via prefix T) as
-  # "name  — label"; selection parsing strips everything from "  — " on.
-  local -a live live_branches
-  local lsrv
-  live=(${(f)"$(for lsrv in $(__proj_servers); do
-      tmux -L "$lsrv" ls -F $'#{session_name}\t#{@claude_task}' 2>/dev/null
-    done \
-    | awk -F'\t' -v p="$project" '$1==p || index($1,p"/")==1 {printf "%s%s\n", $1, ($2==""?"":"  — "$2)}' | sort -u)"})
-  for s in $live; do
-    print -r -- "● ${s}"
-    bare="${s%%  — *}"
-    [[ "$bare" == "$project/"* ]] && live_branches+=("${bare#$project/}")   # branch already has a session
-  done
-  # ── home base = the primary clone (read / coordinate), on whatever it's checked out ──
-  print -r -- "🏠 primary clone — on ${default_branch}"
-  # ── extra workspace in the primary clone (project-2, -3, …) ──
-  print -r -- "+ new session here"
-  # ── open a worktree on a branch ──  (skip the default branch = home base, and
-  #    any branch that already has a live session shown above)
-  local -a wt_branches all_branches
-  wt_branches=(${(f)"$(git -C "$primary" worktree list --porcelain 2>/dev/null \
-    | awk '/^branch /{sub("refs/heads/","",$2); print $2}')"})
-  for b in $wt_branches; do
-    [[ "$b" == "$default_branch" ]] && continue
-    (( ${live_branches[(Ie)$b]} )) && continue
-    print -r -- "▸ ${b}  (worktree)"
-  done
-  all_branches=(${(f)"$(git -C "$primary" for-each-ref --format='%(refname:short)' refs/heads 2>/dev/null)"})
-  for b in $all_branches; do
-    [[ "$b" == "$default_branch" ]] && continue
-    (( ${wt_branches[(Ie)$b]} )) && continue
-    (( ${live_branches[(Ie)$b]} )) && continue
-    print -r -- "▸ ${b}  (branch → new worktree)"
-  done
-  print -r -- "+ new branch…"
-  print -r -- "+ prune worktrees…"
-}
-
-# Interactive removal of worktrees (and their sessions). Never force-removes —
-# trees with uncommitted/untracked work are kept and reported.
-__proj_prune_worktrees() {
-  local primary="$1" project="$2"
-  local -a paths
-  paths=(${(f)"$(git -C "$primary" worktree list --porcelain 2>/dev/null | awk '/^worktree /{print substr($0,10)}')"})
-  paths=(${paths:#$primary})    # never offer the primary clone
-  (( ${#paths[@]} == 0 )) && { echo "No worktrees to prune."; return 0; }
-  local picks
-  picks=$(printf '%s\n' "${paths[@]}" | fzf --multi --reverse --height=60% \
-            --prompt='prune › ' --header='Tab=select, Enter=remove. Trees with uncommitted work are kept.')
-  [[ -z "$picks" ]] && return 0
-  local wt rel ksrv
-  for wt in ${(f)picks}; do
-    rel="${wt#$primary/.worktrees/}"
-    ksrv=$(__proj_find_server "$project/$rel") && tmux -L "$ksrv" kill-session -t "=$project/$rel" 2>/dev/null
-    if git -C "$primary" worktree remove "$wt" 2>/dev/null; then
-      echo "removed $wt"
-    else
-      echo "kept $wt (uncommitted/untracked) — force: git -C \"$primary\" worktree remove --force \"$wt\"" >&2
+# Build the Screen-2 list: live sessions of this project (● name — topic),
+# the home base, and the new-work action. Legacy names (<project>-N,
+# <project>/<branch>) keep showing while they're alive — migration is
+# "rename as you touch them", never forced.
+__proj_session_list() {
+  local project="$1" lsrv name label
+  for lsrv in $(__proj_servers); do
+    tmux -L "$lsrv" ls -F $'#{session_name}\t#{@claude_task}' 2>/dev/null
+  done | sort -u | while IFS=$'\t' read -r name label; do
+    if [[ "$name" == "$project" || "$name" == "$project"/* || "$name" == "$project"-<-> ]]; then
+      print -r -- "● ${name}${label:+  — $label}"
     fi
   done
-  git -C "$primary" worktree prune 2>/dev/null
+  print -r -- "🏠 ${project} — home base (primary clone)"
+  print -r -- "+ new work…"
+}
+
+# Screen 2: this project's sessions — jump to one, open the home base, or
+# name new work. New sessions are created as <project>/<work> in the
+# primary clone; isolation (worktrees) is the agent's job, not the picker's.
+__proj_screen2() {
+  local primary="$1" project="$2" auto_agent="${3:-}"
+  local psrv; psrv=$(__proj_srv "$project")
+  local pick
+  pick=$(__proj_session_list "$project" \
+           | fzf --prompt="$project › " --height=60% --reverse)
+  [[ -z "$pick" ]] && return 0
+  case "$pick" in
+    "● "*)
+      local name="${pick#● }" d srv
+      name="${name%%  — *}"   # drop the topic suffix
+      srv=$(__proj_find_server "$name") || { echo "session gone: $name" >&2; return 1; }
+      d=$(tmux -L "$srv" display-message -p -t "=$name" '#{pane_current_path}' 2>/dev/null)
+      [[ -n "$d" && -d "$d" ]] && cd "$d"
+      __proj_goto "$srv" "$name"
+      ;;
+    "🏠 "*)
+      __proj_launch "$psrv" "$project" "$primary" "$auto_agent"
+      ;;
+    "+ new work…")
+      local w
+      w=$(__proj_read_work) || return 0
+      [[ -z "$w" ]] && return 0
+      __proj_valid_work "$w" \
+        || { echo "invalid work name: $w (allowed: letters digits - _)" >&2; return 1; }
+      __proj_launch "$psrv" "$project/$w" "$primary" "$auto_agent"
+      ;;
+  esac
 }
 
 proj() {
@@ -454,6 +393,7 @@ proj() {
     [[ "$1" == "--cursor" ]] && auto_agent="cursor"
     shift
   done
+  local direct_project="${1:-}"
 
   if ! __proj_load_roots; then
     if [[ -t 0 && -t 1 ]]; then
@@ -463,6 +403,16 @@ proj() {
       return 1
     fi
   fi
+
+  # `proj <project>` — skip Screen 1 (auto-join and muscle memory both use it).
+  if [[ -n "$direct_project" ]]; then
+    local dpdir
+    dpdir=$(__proj_dir_for_name "$direct_project") \
+      || { echo "project not found: $direct_project" >&2; return 1; }
+    __proj_screen2 "$dpdir" "${dpdir:t}" "$auto_agent"
+    return
+  fi
+
   # ── Screen 1: pick a project (or jump straight to a live session) ──
   # Candidates come from __proj_all_dirs: the children of every root, plus
   # every `project:`-marked directory. Its fd call passes --no-ignore-vcs
@@ -512,59 +462,7 @@ proj() {
     return
   fi
 
-  local primary="$choice" project="${choice:t}"
-  local psrv; psrv=$(__proj_srv "$project")
-
-  # Non-git dir → plain home-base session, no worktree machinery.
-  if ! git -C "$primary" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    __proj_launch "$psrv" "$project" "$primary" "$auto_agent"
-    return
-  fi
-
-  # ── Screen 2: pick a branch / worktree — the branch decides isolation. ──
-  local default_branch
-  default_branch=$(git -C "$primary" symbolic-ref --short HEAD 2>/dev/null)
-  local pick
-  pick=$(__proj_worktree_list "$primary" "$project" "$default_branch" \
-           | fzf --prompt="$project › " --height=60% --reverse)
-  [[ -z "$pick" ]] && return
-
-  case "$pick" in
-    "● "*)
-      local name="${pick#● }" d srv
-      name="${name%%  — *}"   # drop the task-label suffix
-      srv=$(__proj_find_server "$name") || { echo "session gone: $name" >&2; return 1; }
-      d=$(tmux -L "$srv" display-message -p -t "=$name" '#{pane_current_path}' 2>/dev/null)
-      [[ -n "$d" && -d "$d" ]] && cd "$d"
-      __proj_goto "$srv" "$name"
-      ;;
-    "🏠 "*)
-      # Default branch → home base in the primary clone.
-      __proj_launch "$psrv" "$project" "$primary" "$auto_agent"
-      ;;
-    "+ new session here")
-      # Additional workspace in the primary clone (project-2, -3, …) — never
-      # attaches to the existing home base.
-      __proj_launch_numbered "$project" "$primary" "$auto_agent"
-      ;;
-    "+ new branch…")
-      printf "New branch (off dev): "
-      local nb; IFS= read -r nb </dev/tty || return
-      [[ -z "$nb" ]] && return
-      local wt; wt=$(__proj_ensure_worktree "$primary" "$nb") \
-        || { echo "Could not create worktree for $nb" >&2; return 1; }
-      __proj_launch "$psrv" "$project/$nb" "$wt" "$auto_agent"
-      ;;
-    "+ prune worktrees…")
-      __proj_prune_worktrees "$primary" "$project"
-      ;;
-    "▸ "*)
-      local branch="${pick#▸ }"; branch="${branch%% *}"
-      local wt; wt=$(__proj_ensure_worktree "$primary" "$branch") \
-        || { echo "Could not open worktree for $branch" >&2; return 1; }
-      __proj_launch "$psrv" "$project/$branch" "$wt" "$auto_agent"
-      ;;
-  esac
+  __proj_screen2 "$choice" "${choice:t}" "$auto_agent"
 }
 
 # Project Tab — spawn a new terminal in a project workspace, with the same
