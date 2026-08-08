@@ -90,6 +90,16 @@ if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
     if [[ "$promoted" != "$SESSION_NAME" ]]; then
       tmux set-option -t "$TMUX_PANE" @claude_task_promoted "$SESSION_NAME" 2>/dev/null
     fi
+    # A subtitle equal to #S is pure duplicate noise in status-left and the
+    # picker rows (e.g. left over from a rename that landed after the
+    # subtitle write on the same diverged tick — see the successful-rename
+    # branch below, which clears it too; change the two together). One
+    # show-option + conditional unset keeps this fast path cheap: still no
+    # transcript read.
+    aligned_sub=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task 2>/dev/null)
+    if [[ "$aligned_sub" == "$SESSION_NAME" ]]; then
+      tmux set-option -u -t "$TMUX_PANE" @claude_task 2>/dev/null
+    fi
   else
     # Subtitle first: display-only and safe for every kind of name.
     current_sub=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task 2>/dev/null)
@@ -106,7 +116,9 @@ if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
       fi
       if [[ -n "$custom_title" && "$custom_title" == "$SESSION_NAME" ]]; then
         # Refuse names a live session holds — the name doubles as the
-        # bus-global alias; identity theft must be explicit.
+        # bus-global alias; identity theft must be explicit. Same scan as
+        # bin/tmux-session-rename.sh's prefix-T gesture — change both
+        # together.
         taken=0
         sockdir="${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)"
         for s in "$sockdir"/*; do
@@ -114,15 +126,25 @@ if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
           tmux -S "$s" has-session -t "=$SESSION_NAME" 2>/dev/null && { taken=1; break; }
         done
         if (( ! taken )); then
-          tmux rename-session -t "$TMUX_PANE" "$SESSION_NAME" 2>/dev/null
-          if command -v muster >/dev/null 2>&1; then
-            # A pre-become muster fails the probe; the rename above already
-            # landed — tmux-only is the accepted degradation.
-            muster become --help >/dev/null 2>&1 \
-              && muster become --no-inject "$SESSION_NAME" >/dev/null 2>&1
+          # Guard the whole post-rename block on rename-session's own exit
+          # status: a lost race or an out-of-glob collision makes the
+          # rename fail even past the scan above, and recording the marker
+          # anyway would block every future retry of this name forever.
+          if tmux rename-session -t "$TMUX_PANE" "$SESSION_NAME" 2>/dev/null; then
+            # The subtitle mirrored this same name during the divergence —
+            # now that #S matches it, it's pure duplication (see the
+            # aligned fast path above, which reconciles the same drift on
+            # its own tick — change the two together).
+            tmux set-option -u -t "$TMUX_PANE" @claude_task 2>/dev/null
+            if command -v muster >/dev/null 2>&1; then
+              # A pre-become muster fails the probe; the rename above already
+              # landed — tmux-only is the accepted degradation.
+              muster become --help >/dev/null 2>&1 \
+                && muster become --no-inject "$SESSION_NAME" >/dev/null 2>&1
+            fi
+            tmux set-option -t "$TMUX_PANE" @claude_task_promoted "$SESSION_NAME" 2>/dev/null
+            tmux refresh-client -S 2>/dev/null
           fi
-          tmux set-option -t "$TMUX_PANE" @claude_task_promoted "$SESSION_NAME" 2>/dev/null
-          tmux refresh-client -S 2>/dev/null
         fi
       fi
     fi

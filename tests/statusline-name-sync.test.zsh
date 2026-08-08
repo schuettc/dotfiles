@@ -62,6 +62,7 @@ printf '%s\n' '{"type":"custom-title","customTitle":"dotfiles/nfl-4","sessionId"
 statusline "dotfiles/nfl-4" "$TRANSCRIPT"
 ok "session renamed"  "dotfiles/nfl-4" "$(name)"
 ok "marker recorded"  "dotfiles/nfl-4" "$(marker)"
+ok "subtitle reconciled after rename" "" "$(sub)"
 
 # ── stale title never reverts an operator rename ────────────────────
 print '── stale title vs prefix T ──'
@@ -82,6 +83,30 @@ tmux -S "$SOCKDIR/other" new-session -d -s wanted -x 80 -y 24
 printf '%s\n' '{"type":"custom-title","customTitle":"wanted","sessionId":"u1"}' > "$TRANSCRIPT"
 statusline "wanted" "$TRANSCRIPT"
 ok "held name not stolen" "operator-name" "$(name)"
+
+# ── failed rename must not record the marker (retry stays possible) ─
+# The collision scan already refuses a name that's LIVE anywhere, so a
+# pre-created same-name session can't reach rename-session itself — it's
+# caught above. Exercise the exit-status guard directly instead: shim tmux
+# so rename-session fails (simulating a lost race / out-of-glob collision)
+# while every other tmux call still hits the real server.
+print '── failed rename leaves the marker unset ──'
+REALTMUX="$(command -v tmux)"
+mkdir -p "$WORK/bin2"
+cat > "$WORK/bin2/tmux" <<EOF
+#!/bin/sh
+if [ "\$1" = "rename-session" ]; then
+  exit 1
+fi
+exec "$REALTMUX" "\$@"
+EOF
+chmod +x "$WORK/bin2/tmux"
+export PATH="$WORK/bin2:$NOMUSTER_PATH"
+printf '%s\n' '{"type":"custom-title","customTitle":"rename-boom","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "rename-boom" "$TRANSCRIPT"
+ok "name unchanged on failed rename"   "operator-name"   "$(name)"
+ok "marker not stamped with failed name" "0" "$([[ "$(marker)" == "rename-boom" ]] && echo 1 || echo 0)"
+export PATH="$NOMUSTER_PATH"
 
 # ── muster present: become --no-inject after the rename ─────────────
 print '── delegation (fake muster with become) ──'
@@ -125,6 +150,20 @@ statusline "dotfiles/nfl-7" "$TRANSCRIPT"
 ok "aligned state stays put"      "dotfiles/nfl-7" "$(name)"
 ok "marker seeded by fast path"   "dotfiles/nfl-7" "$(marker)"
 ok "fast path never calls muster" "" "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
+
+# ── aligned fast path also reconciles a stale subtitle == #S ────────
+# Simulate the freeze case: a subtitle left equal to the (now-aligned)
+# session name from an earlier diverged tick. The next aligned tick must
+# clear it — the same reconciliation the successful-rename branch does,
+# just reached from the other side.
+print '── aligned tick clears a stale subtitle equal to #S ──'
+tmux -S "$SOCKDIR/main" set-option -t "$PANE" @claude_task "dotfiles/nfl-7" 2>/dev/null
+rm -f "$MUSTER_ARGS_LOG"
+printf '%s\n' '{"type":"user"}' > "$TRANSCRIPT"
+statusline "dotfiles/nfl-7" "$TRANSCRIPT"
+ok "aligned tick leaves name"       "dotfiles/nfl-7" "$(name)"
+ok "stale subtitle cleared"         ""               "$(sub)"
+ok "still never calls muster"       ""               "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
 
 export PATH="$PATH_SAVE"
 print
