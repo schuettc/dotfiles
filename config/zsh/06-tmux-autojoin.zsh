@@ -1,20 +1,15 @@
 # Workspace auto-join: when a new shell starts inside a project directory
-# and we're not already in tmux, automatically attach to the next free
-# <project>-N tmux session. Together with Ghostty's window-inherit-working-
-# directory = true, this means ⌘T inside a project's Ghostty window just
-# works — each new tab is its own tmux session with its own claude.
+# and we're not already in tmux, open that project's picker. Together with
+# Ghostty's window-inherit-working-directory = true, this means ⌘T inside a
+# project's Ghostty window just works — it lands on proj's Screen 2, ready
+# to attach to a live session or name new work.
 #
 # Behavior:
 #   * Skips if already inside tmux ($TMUX is set).
 #   * Skips if NO_AUTO_TMUX is set (escape hatch for one-off shells).
 #   * Skips if the cwd is not under one of the configured project roots.
-#   * Skips if the *main* project session doesn't exist yet — we don't
-#     create the workspace from a stray shell; `proj` is the entry point
-#     for spawning a new workspace (and creating its yazi pane).
-#   * Otherwise: finds the next free <project>-N slot (N starts at 2) and
-#     creates the session attached to the current shell. `tmux new-session
-#     -d -s name` errors if the name exists, so we loop until we find a
-#     free slot (race-safe).
+#   * Otherwise: opens `proj` for the detected project (Screen 2), or
+#     `proj --claude` if AUTO_CLAUDE is set.
 #
 # To disable for a single shell:    NO_AUTO_TMUX=1 zsh
 # To disable globally:               touch ~/.no-auto-tmux
@@ -45,56 +40,16 @@ __auto_join_project() {
   proj_name=$(__proj_name_for_dir "$PWD") || return 0
   [[ -z "$proj_name" ]] && return 0
 
-  # Each project has its own tmux server (socket proj-<name>) so a flooding
-  # pane can only lag its own project — see "per-project tmux servers" in
-  # 04-aliases.zsh. New sessions always go on the project server; the legacy
-  # shared server is only consulted to decide whether the workspace is open.
-  local srv; srv=$(__proj_srv "$proj_name")
-
-  # In a project dir, but its workspace isn't open yet (on either the project
-  # server or, transitionally, the legacy shared server). `proj` is the entry
-  # point for creating it — launch the picker instead of a bare shell.
-  if ! tmux -L "$srv" has-session -t "$proj_name" 2>/dev/null \
-     && ! tmux has-session -t "$proj_name" 2>/dev/null; then
-    command -v proj >/dev/null 2>&1 && proj
-    return 0
+  # ⌘T in a project dir: never mint an anonymous session. Open the
+  # project's Screen 2 (live sessions · home base · new work) and let the
+  # operator name what they're starting — naming is always an explicit
+  # gesture. AUTO_CLAUDE=1 keeps its meaning: a session created from this
+  # picker auto-launches Claude in the left pane.
+  if [[ -n "${AUTO_CLAUDE:-}" ]]; then
+    proj --claude "$proj_name"
+  else
+    proj "$proj_name"
   fi
-
-  # Find the project root dir (not just $PWD — they may be in a subdir).
-  local proj_dir
-  proj_dir=$(__proj_dir_for_name "$proj_name") || proj_dir=""
-  [[ -z "$proj_dir" ]] && proj_dir="$PWD"
-
-  # Find the next free <project>-N slot starting at 2. tmux new-session
-  # -d fails atomically if the name is taken, so the loop is race-safe.
-  # New sessions get an empty shell by default; the user runs `claude`
-  # (or anything else) themselves. Set AUTO_CLAUDE=1 in the env to have
-  # the hook auto-launch claude in the new pane instead.
-  local n=2 target
-  local launch_cmd=""
-  if [[ -n "${AUTO_CLAUDE:-}" ]] && command -v claude >/dev/null 2>&1; then
-    launch_cmd="$(__claude_launch_cmd)"   # `claude --`; bare opens agent view
-  fi
-  while true; do
-    target="${proj_name}-${n}"
-    if [[ -n "$launch_cmd" ]]; then
-      if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" "$launch_cmd" 2>/dev/null; then break; fi
-    else
-      if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
-    fi
-    n=$((n + 1))
-    (( n > 50 )) && return 0
-  done
-
-  # Build the right column (scratch -> yazi -> shell); see __proj_right_column.
-  # The builder forks its work before the `exec tmux attach` below, so it
-  # survives the exec.
-  __proj_right_column "$srv" "$target" "$proj_dir"
-
-  # Replace the current shell with a tmux client attached to the new
-  # session. `exec` ensures detach (prefix d) closes the Ghostty tab
-  # cleanly instead of dropping back to a stranded shell.
-  exec tmux -L "$srv" attach -t "$target"
 }
 
 # Fire at shell startup. The autoload+precmd dance isn't needed; we want

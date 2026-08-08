@@ -465,20 +465,16 @@ proj() {
   __proj_screen2 "$choice" "${choice:t}" "$auto_agent"
 }
 
-# Project Tab — spawn a new terminal in a project workspace, with the same
-# layout as proj() (shell on the left + yazi on the right). Use it in any
-# new Ghostty tab where auto-join didn't fire (e.g., the tab landed at
-# $HOME or a parent dir instead of the project root).
+# Project Tab — create-or-attach a NAMED work session from the shell, with
+# the standard layout. The session name is <project>/<work> — same identity
+# rule as the proj picker; pt is just the no-picker path for when you
+# already know the name.
 #
 # Usage:
-#   pt now-playing         # next free now-playing-N, shell + yazi
-#   pt                     # auto-detect project from $PWD
-#   pt --claude now-playing  # same, but auto-launch Claude in the left pane
-#   pt --cursor now-playing  # same, but auto-launch Cursor in the left pane
-#
-# Picks the next free <project>-N slot starting at 2 (the unnumbered
-# session is the main one created by proj). Uses exec so the Ghostty tab
-# closes cleanly when you detach.
+#   pt nfl-4              # work "nfl-4" in the project containing $PWD
+#   pt repo-a nfl-4       # explicit project, from anywhere
+#   pt --claude nfl-4     # auto-launch Claude in the left pane
+#   pt --cursor nfl-4     # auto-launch Cursor in the left pane
 pt() {
   local auto_agent=""
   while [[ "$1" == "--claude" || "$1" == "--cursor" ]]; do
@@ -487,59 +483,45 @@ pt() {
     shift
   done
 
-  local proj_name="$1"
   if ! __proj_load_roots; then
     echo "No project roots configured. Run \`proj\` to set them up." >&2
     return 1
   fi
 
-  # If no name given, try to detect from cwd.
-  [[ -z "$proj_name" ]] && proj_name=$(__proj_name_for_dir "$PWD")
-
-  if [[ -z "$proj_name" ]]; then
-    echo "usage: pt [--claude|--cursor] <project>     (or run from inside a project dir)" >&2
+  local project="" work=""
+  if (( $# >= 2 )); then
+    project="$1"; work="$2"
+  elif (( $# == 1 )); then
+    work="$1"
+    project=$(__proj_name_for_dir "$PWD")
+  fi
+  if [[ -z "$project" || -z "$work" ]]; then
+    echo "usage: pt [--claude|--cursor] [<project>] <work>    (project auto-detected inside one)" >&2
     return 1
   fi
+  __proj_valid_work "$work" \
+    || { echo "invalid work name: $work (allowed: letters digits - _)" >&2; return 1; }
 
   local proj_dir
-  if ! proj_dir=$(__proj_dir_for_name "$proj_name"); then
-    echo "project not found: $proj_name" >&2
+  if ! proj_dir=$(__proj_dir_for_name "$project"); then
+    echo "project not found: $project" >&2
     return 1
   fi
 
-  # Find next free <project>-N (race-safe: new-session -d errors if taken).
-  # Sessions live on the project's OWN server (see per-project servers above).
-  local srv; srv=$(__proj_srv "$proj_name")
-  local n=2 target
-  while true; do
-    target="${proj_name}-${n}"
-    if [[ "$auto_agent" == "claude" ]] && command -v claude >/dev/null; then
-      if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" "$(__claude_launch_cmd)" 2>/dev/null; then break; fi
-    elif [[ "$auto_agent" == "cursor" ]]; then
-      local ca=""
-      command -v cursor-agent >/dev/null && ca="cursor-agent"
-      [[ -z "$ca" ]] && command -v agent >/dev/null && ca="agent"
-      if [[ -n "$ca" ]]; then
-        if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" "$ca --trust --approve-mcps" 2>/dev/null; then break; fi
-      else
-        if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
-      fi
-    else
-      if __tmux_new_session "$srv" -d -s "$target" -c "$proj_dir" 2>/dev/null; then break; fi
-    fi
-    n=$((n + 1))
-    (( n > 50 )) && { echo "too many sessions" >&2; return 1; }
-  done
-
-  # Build the right column (scratch -> yazi -> shell); see __proj_right_column.
-  __proj_right_column "$srv" "$target" "$proj_dir"
-
+  local srv name
+  srv=$(__proj_srv "$project")
+  name="$project/$work"
   if [[ -n "$TMUX" ]]; then
-    __proj_goto "$srv" "$target"
+    __proj_launch "$srv" "$name" "$proj_dir" "$auto_agent"
   else
-    exec tmux -L "$srv" attach -t "$target"
+    __proj_ensure_session "$srv" "$name" "$proj_dir" "$auto_agent"
+    __proj_attach_exec "$srv" "$name"
   fi
 }
+
+# exec-attach endgame for pt outside tmux (factored so tests can stub the
+# exec away). `exec` makes detach close the Ghostty tab cleanly.
+__proj_attach_exec() { exec tmux -L "$1" attach -t "=$2"; }
 
 # Quick `tat` (tmux attach + create-if-missing) for a named session.
 # Deliberately stays on the shared default server — it's for ad-hoc scratch
