@@ -161,13 +161,12 @@ proj                 # two-screen fzf picker
 ```
 
 `proj` is a two-screen picker: **Screen 1** picks a project (or jumps to a
-live session); **Screen 2** (git repos only) picks what to work on — the
-**home base** (`🏠 primary clone — on <branch>`) or a branch, which opens in
-its own git worktree. Picking a non-default branch transparently creates a
-worktree at `<repo>/.worktrees/<branch>`. Either way you land in a tmux
-session with a shell on the left (~70%) and yazi on the right (~30%), and that
-Ghostty window becomes the "workspace." See
-[`terminal-usage.md`](terminal-usage.md) for the full worktree workflow.
+live session); **Screen 2** picks a session — jump to a live one, open the
+**home base** (`🏠 <project> — home base (primary clone)`), or name new
+work (`+ new work…`), which creates `<project>/<work>`. Either way you land
+in a tmux session with a shell on the left (~70%) and yazi on the right
+(~30%), and that Ghostty window becomes the "workspace." See
+[`terminal-usage.md`](terminal-usage.md) for the full walkthrough.
 
 To auto-launch Claude in the left pane instead of an empty shell:
 
@@ -179,17 +178,18 @@ proj --claude
 
 Inside a project's Ghostty window, press **⌘T**. The new tab inherits the
 project cwd (`tab-inherit-working-directory = true` in `config/ghostty/config`)
-and the zsh auto-join hook detects the project and spawns the next session
-(`<project>-2`, `-3`, …) with the same shell+yazi layout. Each tab is an
-independent tmux session — run `claude` (or anything) in whichever you like.
+and the zsh auto-join hook opens `proj <project>` — Screen 2 — so you pick a
+live session, the home base, or name new work; naming a tab is always an
+explicit gesture. Each tab is an independent tmux session — run `claude` (or
+anything) in whichever you like.
 
 By contrast, **⌘N (new window)** opens fresh at `$HOME`
 (`window-inherit-working-directory = false`, `working-directory = home`) —
 *outside* any project. Run `proj` there to enter or create a workspace.
 
 If ⌘T ever lands at `$HOME` instead of the project (e.g., OSC 7 didn't
-propagate), use the manual fallback: `pt` (from inside the project dir) or
-`pt <project>`.
+propagate), use the manual fallback: `pt <work>` (from inside the project
+dir) or `pt <project> <work>`.
 
 ## Verifying it works
 
@@ -200,8 +200,8 @@ Run through this checklist:
 2. `Ctrl-A` then `f` → the yazi pane **toggles off**; press again → back.
 3. `Ctrl-A` then `d` → **detach**; `tmux ls` lists the session; `tmux attach`
    → back where you were.
-4. ⌘T inside the window → a new tab auto-joins `<project>-2`; `tmux ls` shows
-   both.
+4. ⌘T inside the window → a new tab opens the Screen-2 picker; name new work
+   there and `tmux ls` shows both sessions.
 5. Start `claude` in a pane, send a prompt, switch away. When Claude **waits for
    your input** (the Notification hook), the session's tab/Dock title gets a 🔔
    and the SwiftBar menu-bar bell turns red with a count — click it in the
@@ -216,11 +216,11 @@ Run through this checklist:
 
 | Command | What it does |
 |---------|--------------|
-| `proj` | Pick / spawn a project workspace (shell + yazi) |
+| `proj` | Two-screen picker → jump to a session, open the home base, or name new work |
 | `proj --claude` | Same, but auto-launch claude in the left pane |
 | `proj --edit` | Edit `~/.config/proj/roots` |
-| `pt [name]` | Spawn another terminal in a project (`<name>-N`) |
-| `pt --claude [name]` | Same, with claude |
+| `pt <work>` / `pt <project> <work>` | Create-or-attach `<project>/<work>` without the picker |
+| `pt --claude <work>` | Same, with claude |
 | `tat <name>` | Attach-or-create a named session |
 | `proj-clean` | Reap idle sessions (shell/yazi only) — `-n` for dry run |
 | `bell-clear` | Dismiss the attention banner — `-k` to kill flagged sessions |
