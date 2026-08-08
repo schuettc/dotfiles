@@ -57,6 +57,15 @@ print '── cross-server collision ──'
 tmux -S "$SOCKDIR/other" new-session -d -s taken-name -x 80 -y 24
 "$REPO/bin/tmux-session-rename.sh" "$PANE" "taken-name"
 ok "name held elsewhere refused" "dotfiles/nfl-4" "$(name)"
+
+# ── collision with a live session on the SAME server ─────────────────
+# The scan globs every socket under TMUX_TMPDIR/tmux-$UID, including the
+# shim's own server — confirm a same-server collision is caught the same
+# way as cross-server, before rename-session is ever attempted.
+print '── same-server collision ──'
+tmux -S "$SOCKDIR/main" new-session -d -s local-taken -x 80 -y 24
+"$REPO/bin/tmux-session-rename.sh" "$PANE" "local-taken"
+ok "name held on same server refused" "dotfiles/nfl-4" "$(name)"
 export PATH="$PATH_SAVE"
 
 # ── muster PRESENT: become delegation AFTER the tmux rename ─────────
@@ -86,6 +95,32 @@ chmod +x "$WORK/bin/muster"
 "$REPO/bin/tmux-session-rename.sh" "$PANE" "dotfiles/nfl-6"
 ok "still renames tmux"          "dotfiles/nfl-6" "$(name)"
 ok "only the probe hit muster"   "become --help" "$(cat "$MUSTER_ARGS_LOG")"
+
+# ── rename-session failure must not report success or call become ───
+# The collision scan can't reach this path directly: a pre-created
+# same-name session is caught by the scan above, before rename-session
+# ever runs (see "same-server collision"). Force the underlying failure
+# instead — shim tmux so rename-session itself errors (simulating a lost
+# race) while every other tmux call still hits the real server — and
+# exercise the exit-status guard.
+print '── rename-session failure is not swallowed ──'
+REALTMUX="$(command -v tmux)"
+mkdir -p "$WORK/bin2"
+cat > "$WORK/bin2/tmux" <<EOF
+#!/bin/sh
+if [ "\$1" = "rename-session" ]; then
+  exit 1
+fi
+exec "$REALTMUX" "\$@"
+EOF
+chmod +x "$WORK/bin2/tmux"
+: > "$MUSTER_ARGS_LOG"
+BEFORE="$(name)"
+export PATH="$WORK/bin2:$WORK/bin:$NOMUSTER_PATH"
+"$REPO/bin/tmux-session-rename.sh" "$PANE" "rename-boom"
+ok "name unchanged on failed rename" "$BEFORE" "$(name)"
+ok "become skipped on failed rename" "" "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
+export PATH="$PATH_SAVE"
 
 print
 print "PASS=$PASS FAIL=$FAIL"

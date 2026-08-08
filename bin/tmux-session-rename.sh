@@ -32,7 +32,8 @@ fi
 
 # Refuse names a LIVE session already holds — on any server, because the
 # name doubles as the bus-global muster alias. Silent identity theft is the
-# failure mode this exists to prevent.
+# failure mode this exists to prevent. Same scan as statusline.sh's
+# name-sync block — change both together.
 sockdir="${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)"
 for s in "$sockdir"/*; do
   [[ -S "$s" ]] || continue
@@ -42,15 +43,20 @@ for s in "$sockdir"/*; do
   fi
 done
 
-tmux rename-session -t "$TMUX_PANE" "$new"
-
-if command -v muster >/dev/null 2>&1 && muster become --help >/dev/null 2>&1; then
-  if out=$(muster become "$new" 2>&1); then
-    tmux display-message "renamed → $new · muster: ${out//$'\n'/ · }"
+# Guard the success report on rename-session's own exit status — a lost
+# race (name taken between the scan above and this call) must not display
+# "renamed" or hand the stale name to muster become.
+if tmux rename-session -t "$TMUX_PANE" "$new"; then
+  if command -v muster >/dev/null 2>&1 && muster become --help >/dev/null 2>&1; then
+    if out=$(muster become "$new" 2>&1); then
+      tmux display-message "renamed → $new · muster: ${out//$'\n'/ · }"
+    else
+      tmux display-message "renamed → $new · muster become FAILED: ${out//$'\n'/ · }"
+    fi
   else
-    tmux display-message "renamed → $new · muster become FAILED: ${out//$'\n'/ · }"
+    tmux display-message "renamed → $new (tmux only)"
   fi
 else
-  tmux display-message "renamed → $new (tmux only)"
+  tmux display-message "rename failed (name just taken?): $new"
 fi
 tmux refresh-client -S
