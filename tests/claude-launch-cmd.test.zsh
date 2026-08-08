@@ -49,8 +49,9 @@ ok "no bare-claude launch" "0" \
    "$(code | grep -cE "([\"']claude[\"'][[:space:]]+Enter|-c[[:space:]]+\"\\\$[a-z_]+\"[[:space:]]+[\"']claude[\"']|launch_cmd=[\"']claude[\"'])")"
 
 echo "── every launch site routes through the helper ──"
-# One per: __proj_launch (send-keys), pt (pane command), auto-join hook.
-ok "three helper call sites" "3" "$(code | grep -c '__claude_launch_cmd)')"
+# pt and the auto-join hook route through __proj_launch rather than calling
+# the helper directly, so there is exactly one call site now.
+ok "one helper call site" "1" "$(code | grep -c '__claude_launch_cmd)')"
 
 echo "── send-keys targets a pane, not a session ──"
 # tmux 3.7b: send-keys takes a target-PANE and will not resolve a bare

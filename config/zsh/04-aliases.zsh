@@ -88,8 +88,8 @@ unalias claude 2> /dev/null
 claude() { (( $# )) && command claude "$@" || command claude -- ; }
 
 # The command every AUTO-launch path types into a fresh pane. One definition
-# so the three call sites (__proj_launch, pt, the tmux auto-join hook) can't
-# drift apart.
+# so the call site (__proj_launch — pt and the tmux auto-join hook both route
+# through it now) can't drift from what a bare `claude` needs.
 #
 # The trailing `--` is load-bearing, and it is the whole point of this
 # function. A BARE `claude` — nothing in argv past the program name — does not
