@@ -99,12 +99,32 @@ statusline "dotfiles/nfl-7" "$TRANSCRIPT"
 ok "renamed with muster present" "dotfiles/nfl-7" "$(name)"
 ok "become --no-inject called"   "become --no-inject dotfiles/nfl-7" "$(tail -1 "$MUSTER_ARGS_LOG")"
 
-# ── aligned fast path: no transcript read ───────────────────────────
+# ── aligned fast path: no transcript read, no muster call ───────────
+# A vacuous version of this block (transcript path that doesn't exist)
+# would pass even if the fast path READ the transcript, because a missing
+# file just yields an empty custom_title either way. Make it detectable:
+# the transcript DOES exist and its custom-title DOES match session_name,
+# a logging fake `muster` sits on PATH, and the marker is unset first so
+# seeding is demonstrably the fast path's own doing. If the fast path ever
+# fell through to the diverged branch (read the transcript, re-entered the
+# rename logic), that branch would call muster — the log would be non-empty.
 print '── aligned fast path ──'
-export PATH="$NOMUSTER_PATH"
-statusline "dotfiles/nfl-7" "$WORK/does-not-exist.jsonl"   # would fail if read mattered
-ok "aligned state stays put" "dotfiles/nfl-7" "$(name)"
-ok "marker seeded"           "dotfiles/nfl-7" "$(marker)"
+mkdir -p "$WORK/bin"
+cat > "$WORK/bin/muster" <<'EOF'
+#!/bin/sh
+echo "$@" >> "${MUSTER_ARGS_LOG:?}"
+[ "$1" = "become" ] || exit 1
+exit 0
+EOF
+chmod +x "$WORK/bin/muster"
+export PATH="$WORK/bin:$NOMUSTER_PATH" MUSTER_ARGS_LOG="$WORK/args-fastpath.log"
+rm -f "$MUSTER_ARGS_LOG"
+tmux -S "$SOCKDIR/main" set-option -u -t "$PANE" @claude_task_promoted 2>/dev/null
+printf '%s\n' '{"type":"custom-title","customTitle":"dotfiles/nfl-7","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "dotfiles/nfl-7" "$TRANSCRIPT"
+ok "aligned state stays put"      "dotfiles/nfl-7" "$(name)"
+ok "marker seeded by fast path"   "dotfiles/nfl-7" "$(marker)"
+ok "fast path never calls muster" "" "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
 
 export PATH="$PATH_SAVE"
 print
