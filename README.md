@@ -45,23 +45,27 @@ only those.
 
 ### The workspace workflow
 
-One **project workspace = one Ghostty window**. `proj` is a two-screen,
-worktree-aware picker: Screen 1 picks a project (or jumps to a live session);
-Screen 2 picks what to work on, and **the branch decides isolation** — the
-default branch opens the project's primary clone (home base, for reading /
-coordinating), any other branch transparently opens a git worktree at
-`<repo>/.worktrees/<branch>` so parallel work never collides in one tree. Each
-tab in a window attaches to its own tmux session (`<project>`, `<project>-2`, …
-for the primary clone; `<project>/<branch>` for a worktree) with a shell + yazi
-layout. Shell helpers (in `config/zsh/04-aliases.zsh`):
+One **project workspace = one Ghostty window**. `proj` is a two-screen
+picker: Screen 1 picks a project (or jumps to a live session); Screen 2
+picks a session — or names new work. **The session name is the identity**:
+sessions are born `<project>/<work>` (home base: bare `<project>`), every
+surface aligns to that name, and renames go through one gesture
+(`prefix T`) so no surface is left behind. Isolation is the agent's job —
+proj opens everything in the primary clone and coding agents make their
+own worktrees when they need them.
+
+Shell helpers (in `config/zsh/04-aliases.zsh`; flags come before the
+positional project — `proj --claude dotfiles` works, `proj dotfiles
+--claude` silently drops the flag):
 
 | Command | What it does |
 |---------|--------------|
-| `proj` | two-screen picker → enter/create a workspace; choose home base or a branch (own worktree) |
+| `proj` | two-screen picker → jump to a session, open the home base, or name new work |
+| `proj <project>` | skip Screen 1 |
 | `proj --claude` | same, but auto-launch `claude` in the left pane |
 | `proj --cursor` | same, but auto-launch Cursor Agent in the left pane |
 | `proj --add` / `--remove` | add or delete an entry in `~/.config/proj/roots` |
-| `pt [name]` | spawn another terminal in a project (next `name-N` session) |
+| `pt <work>` / `pt <project> <work>` | create-or-attach `<project>/<work>` without the picker |
 | `tat <name>` | attach-or-create a named session |
 | `proj-clean` | reap idle sessions (shell/yazi only — no Claude/editor/server) |
 | `bell-clear` | dismiss the attention banner (`-k` to kill flagged sessions) |
@@ -69,9 +73,8 @@ layout. Shell helpers (in `config/zsh/04-aliases.zsh`):
 ⌘T in a project window auto-joins a new tmux session for that project (via
 `config/zsh/06-tmux-autojoin.zsh`); ⌘N opens a fresh window at `$HOME`, outside
 any project. Project roots are configured per-machine in `~/.config/proj/roots`
-(not tracked; first `proj` run sets it up). The full worktree workflow — the
-Screen-2 rows, `.worktreeinclude`, pruning, and the `⚠ primary` status-bar cue
-— is in [`docs/terminal-usage.md`](docs/terminal-usage.md).
+(not tracked; first `proj` run sets it up). See
+[`docs/terminal-usage.md`](docs/terminal-usage.md) for the day-to-day walkthrough.
 
 ### Shell Configuration
 - **Modular zsh** — configs split into numbered files in `config/zsh/`
@@ -98,9 +101,7 @@ The status bar surfaces, for the focused pane:
 - **left** — an attention banner (`⚠ N: session1, session2`) listing any
   session whose Claude finished a turn / is waiting for input and that you
   haven't visited yet. Clears when you switch to the session.
-- **right** — current git branch + dirty count, a peach `⚠ primary` badge
-  when the focused pane is in a project's primary clone while linked worktrees
-  exist (the cue to go work in a worktree), the Claude context-window %
+- **right** — current git branch + dirty count, the Claude context-window %
   (`⌬ 49%`, green/yellow/red) when the focused pane is running Claude, and
   the date/time.
 
@@ -176,36 +177,31 @@ Verify with `claude mcp list` (`muster … ✔ Connected`) or Cursor's
 
 ### The naming contract (tmux ↔ muster)
 
-The tmux option pair `@claude_task` / `@claude_task_manual` is the neutral
-meeting point between this repo and muster (spec:
-`muster/docs/superpowers/specs/2026-08-05-conversation-identity-naming-design.md`).
-Intentional gestures — prefix T, `muster label`, a promoted `/rename` (the
-transcript custom-title proves intent) — set both options. Automatic syncs
-(the statusline copying an auto topic) write only the label and defer to the
-flag. Readers (status-left, tab titles, the proj picker, muster's resolver
-via its stored copy) trust the pair. Each side works alone: without muster,
-prefix T and the statusline still maintain the pair on their own (display
-only). With muster installed, prefix T's existing `muster label` delegation
-already syncs the bus label, making the name addressable (`muster send
-<name>`); the statusline's promoted-`/rename` path picks up the same bus
-sync, via `muster label --no-inject`, once muster ships that half of the
-contract.
+The tmux session name (`#S`) is the identity (spec:
+`docs/superpowers/specs/2026-08-08-proj-session-identity-design.md`). A
+session is born named for its work (`<project>/<work>`, via the proj
+picker or `pt`), and every surface aligns to that one name: tab titles,
+the picker, and — when muster is installed — the bus alias, which its
+SessionStart hook seeds from the session name.
 
-A third option, `@claude_task_promoted`, keeps a stale name from undoing a
-fresh one. The transcript custom-title is the only record of "this name was
-intentional," and it lags: when prefix T sets a new label, the `/rename` it
-types into the pane can be swallowed by a busy turn, leaving the transcript
-on the OLD name. The statusline used to re-promote that old name over the
-new label on the next tick — a revert hours after the gesture. The marker
-records the last title the statusline promoted, and a title equal to the
-marker never promotes again; a genuinely new title still wins, and an
-unlabeled session may always adopt its own title (so prefix T's clear
-gesture stays re-adoptable). Renaming *back* to the marker's exact value
-after a prefix-T divergence is the one ignored case — rename through a
-different name, or use prefix T. Note the guard protects against statusline
-ticks, not against a resume: muster's SessionStart projection re-asserts the
-transcript title, so a prefix-T name is only durable once a `/rename`
-actually lands in the transcript.
+Renames go through one gesture so no surface is left behind. `prefix T`
+(`bin/tmux-session-rename.sh`) validates the name (letters, digits, `-`,
+`_`, `/`), refuses names any live session holds, renames the tmux
+session, and — with muster — calls `muster become`, which claims the
+alias on the bus (mail follows via lineage) and types `/rename` into the
+registered Claude pane. `/rename` inside Claude flows the other way: the
+statusline proves the name is user-set via the transcript custom-title
+record, then renames the tmux session (plus `muster become --no-inject`
+when available — the name already came from `/rename`). Without muster,
+both gestures still work, just tmux-only.
+
+`@claude_task` survives as a display-only subtitle — whatever Claude
+currently calls the conversation (usually its auto topic), rendered in
+the title's middle segment and deduped against the session name. It
+never renames anything. `@claude_task_promoted` records the last title
+the statusline acted on, so a stale transcript title (a swallowed
+`/rename`) can't revert an operator's rename. `@claude_task_manual` is
+retired.
 
 ## Structure
 

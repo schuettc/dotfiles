@@ -85,6 +85,14 @@ echo "── attention bell prefixes everything ──"
 ok "bell leads"          "🔔 @durable-alias · 📬1" "$(render durable-alias '' 1 1)"
 ok "bell on seed"        "🔔 workspace-3"          "$(render '' '' '' 1)"
 
+echo "── subtitle/name dedupe (session-identity era) ──"
+# @claude_task is now a display-only subtitle mirroring Claude's current
+# name; when it equals the session name it must not render twice.
+ok "topic equal to session name dropped" "workspace-3" \
+   "$(render '' workspace-3 '' '')"
+ok "topic equal to name, alias claimed"  "@durable-alias" \
+   "$(render durable-alias workspace-3 '' '')"
+
 echo
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"
 (( FAIL == 0 ))
