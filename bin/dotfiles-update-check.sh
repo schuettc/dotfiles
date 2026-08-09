@@ -32,7 +32,14 @@ case "${1:-status}" in
     printf '\033[2mdotfiles: %s behind · dotup\033[0m\n' "$behind"
     ;;
   refresh)
-    :   # Task 2
+    git -C "$REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+    now=$(date +%s)
+    mtime=$(stat -f %m "$STATE" 2>/dev/null || echo 0)
+    (( now - mtime < MAX_AGE )) && exit 0
+    git -C "$REPO" fetch --quiet origin 2>/dev/null || exit 0
+    git -C "$REPO" rev-parse --verify --quiet origin/main >/dev/null 2>&1 || exit 0
+    behind=$(git -C "$REPO" rev-list --count HEAD..origin/main 2>/dev/null) || exit 0
+    write_state "$behind"
     ;;
   clear)
     :   # Task 3
