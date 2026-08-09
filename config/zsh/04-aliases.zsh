@@ -301,14 +301,19 @@ __proj_launch() {
 }
 
 # A work name: one path segment of the session identity. Letters, digits,
-# hyphen, underscore — no '.', ':' or whitespace (tmux target separators);
-# '/' is reserved for the <project>/<work> join.
+# hyphen, underscore — no '.' or ':' (tmux target separators); '/' is
+# reserved for the <project>/<work> join.
 __proj_valid_work() { [[ "$1" =~ '^[A-Za-z0-9_-]+$' ]]; }
+
+# Names are typed naturally but live as addresses (tmux target, muster
+# alias): collapse whitespace runs to hyphens instead of refusing them.
+# Same slug rule as bin/tmux-session-rename.sh — change both together.
+__proj_slug_work() { local -a w; w=(${=1}); print -r -- "${(j:-:)w}"; }
 
 # Prompt for a work name on the tty (factored out so tests can stub it).
 __proj_read_work() {
   local w
-  printf "Work name (letters digits - _): " >/dev/tty
+  printf "Work name (letters digits - _; spaces become -): " >/dev/tty
   IFS= read -r w </dev/tty || return 1
   print -r -- "$w"
 }
@@ -355,6 +360,7 @@ __proj_screen2() {
     "+ new work…")
       local w
       w=$(__proj_read_work) || return 0
+      w=$(__proj_slug_work "$w")
       [[ -z "$w" ]] && return 0
       __proj_valid_work "$w" \
         || { echo "invalid work name: $w (allowed: letters digits - _)" >&2; return 1; }
@@ -499,6 +505,7 @@ pt() {
     echo "usage: pt [--claude|--cursor] [<project>] <work>    (project auto-detected inside one)" >&2
     return 1
   fi
+  work=$(__proj_slug_work "$work")
   __proj_valid_work "$work" \
     || { echo "invalid work name: $work (allowed: letters digits - _)" >&2; return 1; }
 

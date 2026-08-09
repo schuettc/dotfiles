@@ -145,8 +145,16 @@ proj >/dev/null 2>&1
 ok "launch called with the work name" \
    "proj-repo-a|repo-a/nfl-4|$TMP/GitHub/repo-a|" "$(cat "$TMP/launch")"
 
+echo "── spaced work names are slugified ──"
+__proj_read_work() { print -r -- "fix prefix T"; }
+rm -f "$TMP/launch"
+script_picker "$TMP/GitHub/repo-a" "+ new work…"
+proj >/dev/null 2>&1
+ok "spaces become hyphens" \
+   "proj-repo-a|repo-a/fix-prefix-T|$TMP/GitHub/repo-a|" "$(cat "$TMP/launch")"
+
 echo "── invalid work names are refused ──"
-__proj_read_work() { print -r -- "bad name"; }
+__proj_read_work() { print -r -- "bad.name"; }
 rm -f "$TMP/launch"
 script_picker "$TMP/GitHub/repo-a" "+ new work…"
 proj >/dev/null 2>&1

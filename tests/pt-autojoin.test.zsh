@@ -50,9 +50,14 @@ ok "agent recorded" \
    "ensure:proj-repo-a|repo-a/nfl-6|$TMP/GitHub/repo-a|claude
 attach:proj-repo-a|repo-a/nfl-6" "$(cat "$TMP/log")"
 
-echo "── pt refuses bad or missing names ──"
+echo "── pt slugifies spaces, refuses bad or missing names ──"
 : > "$TMP/log"
-( cd "$TMP/GitHub/repo-a" && pt "bad name" ) >/dev/null 2>&1
+( cd "$TMP/GitHub/repo-a" && pt "fix prefix T" ) >/dev/null 2>&1
+ok "spaces slugified to hyphens" \
+   "ensure:proj-repo-a|repo-a/fix-prefix-T|$TMP/GitHub/repo-a|
+attach:proj-repo-a|repo-a/fix-prefix-T" "$(cat "$TMP/log")"
+: > "$TMP/log"
+( cd "$TMP/GitHub/repo-a" && pt "bad.name" ) >/dev/null 2>&1
 ok "invalid name: nothing launched" "" "$(cat "$TMP/log")"
 ( cd "$TMP" && pt ) >/dev/null 2>&1
 ok "no args outside a project: nothing launched" "" "$(cat "$TMP/log")"

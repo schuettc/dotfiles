@@ -29,7 +29,10 @@ tmux -S "$SOCKDIR/main" new-session -d -s start-name -x 80 -y 24
 PANE=$(tmux -S "$SOCKDIR/main" display-message -p -t start-name '#{pane_id}')
 export TMUX="$SOCKDIR/main,999,0"
 
-name() { tmux -S "$SOCKDIR/main" display-message -p '#{session_name}'; }
+# Target the pane id: with no client and no -t, tmux resolves to the most
+# recently created session, so the extra sessions the collision tests spawn
+# would be the one reported. Pane ids survive renames; session names don't.
+name() { tmux -S "$SOCKDIR/main" display-message -p -t "$PANE" '#{session_name}'; }
 
 # ── muster ABSENT: plain-tmux rename ────────────────────────────────
 print '── fallback (no muster) ──'
@@ -45,7 +48,11 @@ fi
 export PATH="$NOMUSTER_PATH"
 "$REPO/bin/tmux-session-rename.sh" "$PANE" "dotfiles/nfl-4"
 ok "renames the session"        "dotfiles/nfl-4" "$(name)"
-"$REPO/bin/tmux-session-rename.sh" "$PANE" "bad name"
+"$REPO/bin/tmux-session-rename.sh" "$PANE" "fix prefix T"
+ok "spaces slugified to hyphens" "fix-prefix-T" "$(name)"
+"$REPO/bin/tmux-session-rename.sh" "$PANE" "dotfiles/nfl-4"
+ok "restore for later assertions" "dotfiles/nfl-4" "$(name)"
+"$REPO/bin/tmux-session-rename.sh" "$PANE" "bad.name"
 ok "invalid charset refused"    "dotfiles/nfl-4" "$(name)"
 "$REPO/bin/tmux-session-rename.sh" "$PANE" "bad:name"
 ok "colon refused"              "dotfiles/nfl-4" "$(name)"

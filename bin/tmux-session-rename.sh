@@ -18,6 +18,12 @@
 export TMUX_PANE="$1"
 new="$2"
 
+# Names are typed naturally but live as addresses (tmux target, muster
+# alias): collapse whitespace runs to hyphens instead of refusing them.
+# Same slug rule as __proj_slug_work in 04-aliases.zsh — change both together.
+read -ra __words <<<"$new"
+new=$(IFS='-'; printf '%s' "${__words[*]}")
+
 cur=$(tmux display-message -p -t "$TMUX_PANE" '#{session_name}')
 
 if [[ -z "$new" || "$new" == "$cur" ]]; then

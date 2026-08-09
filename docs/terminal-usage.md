@@ -81,7 +81,7 @@ So `prefix → f` means: press `Ctrl-A`, release both keys, then press `f`.
    |---|---|
    | `● <project>/<work>  — <topic>` | Jump to a live session. The suffix is Claude's current subtitle (`@claude_task`). |
    | `🏠 <project> — home base (primary clone)` | Open the home-base session — reading & coordinating. |
-   | `+ new work…` | Prompts for a work name (letters digits `-` `_`), then creates `<project>/<work>` in the primary clone. |
+   | `+ new work…` | Prompts for a work name (letters digits `-` `_`; spaces become `-`), then creates `<project>/<work>` in the primary clone. |
 
 ## Knowing when Claude needs you
 
