@@ -390,7 +390,7 @@ proj() {
   # Update nudge: instant read of the last check's state (one dim line above
   # the picker, or nothing), then refresh in the background for next time —
   # the picker never waits on the network.
-  "$HOME/dotfiles/bin/dotfiles-update-check.sh" status
+  "$HOME/dotfiles/bin/dotfiles-update-check.sh" status 2>/dev/null
   "$HOME/dotfiles/bin/dotfiles-update-check.sh" refresh >/dev/null 2>&1 &!
 
   local auto_agent=""
