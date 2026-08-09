@@ -2,7 +2,9 @@
  * MarkEdit custom styles.
  *
  * MarkEdit injects this file into the editor webview's <head>. The Markdown
- * preview (Shift-Cmd-V) is a QuickLook-style overlay rendered into the *same*
+ * preview (Shift-Cmd-V) comes from the MarkEdit-preview extension — a JS file
+ * in the container's scripts/ folder, installed by packages/markedit/pkg.sh.
+ * It is a QuickLook-style overlay rendered into the *same*
  * document — it just swaps `document.body` to `.quicklook` and wraps the
  * rendered HTML in `.markdown-body`. So a single stylesheet styles both sides,
  * scoped by selector:

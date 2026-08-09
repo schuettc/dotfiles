@@ -16,7 +16,9 @@ packages — not this file — are the source of truth: read every
    (say clearly: merges are additive — their settings are preserved).
 2. **Inventory.** Present the package list with one-line descriptions and
    the dependency graph, then walk packages ONE AT A TIME in canonical
-   order (core terminal nvim markedit claude swiftbar codex cursor muster). For
+   order (core terminal nvim markedit claude swiftbar codex cursor muster
+   docker). docker is opt-in: the full ./install.sh skips it, so only offer
+   it — never pre-select it. For
    each: what it is, how it works, and EXACTLY what it touches — casks
    installed, files symlinked into $HOME, settings files merged, and any
    persistence (login items, LaunchAgents) called out explicitly. Codex
