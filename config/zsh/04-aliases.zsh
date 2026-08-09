@@ -393,6 +393,12 @@ proj() {
     return
   fi
 
+  # Update nudge: instant read of the last check's state (one dim line above
+  # the picker, or nothing), then refresh in the background for next time —
+  # the picker never waits on the network.
+  "$HOME/dotfiles/bin/dotfiles-update-check.sh" status 2>/dev/null
+  "$HOME/dotfiles/bin/dotfiles-update-check.sh" refresh >/dev/null 2>&1 &!
+
   local auto_agent=""
   while [[ "$1" == "--claude" || "$1" == "--cursor" ]]; do
     [[ "$1" == "--claude" ]] && auto_agent="claude"

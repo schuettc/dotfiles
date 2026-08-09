@@ -39,6 +39,12 @@ trap 'rm -rf "$TMP"' EXIT
 
 mkdir -p "$TMP/GitHub/repo-a" "$TMP/dotfiles"
 export XDG_CONFIG_HOME="$TMP/xdg"
+# proj() also fires the update-nudge script; point it at throwaway state and
+# a non-repo so it never touches the real ~/.cache/dotfiles-update-state or
+# does a real network fetch against the user's actual clone.
+export DOTFILES_UPDATE_STATE="$TMP/update-state"
+export DOTFILES_UPDATE_REPO="$TMP/notarepo"    # not a git repo → refresh exits 0 instantly
+mkdir -p "$DOTFILES_UPDATE_REPO"
 mkdir -p "$XDG_CONFIG_HOME/proj"
 ROOTS="$XDG_CONFIG_HOME/proj/roots"
 

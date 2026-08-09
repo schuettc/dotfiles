@@ -17,6 +17,10 @@ if ! git pull --rebase --autostash; then
   exit 1
 fi
 
+# Pull succeeded → we're current; kill the update nudge immediately rather
+# than letting it linger until the next fetch window.
+"$DOTFILES_DIR/bin/dotfiles-update-check.sh" clear
+
 echo "→ Applying (brew packages + symlinks)…"
 ./install.sh
 
