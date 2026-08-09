@@ -11,8 +11,9 @@
 #      by tmux socket name + the inherited TMUX_PANE env var (pane ids are
 #      only unique per server); bin/tmux-claude-context.sh reads it from
 #      the tmux side with the identical key derivation.
-#   3. Sync a custom Claude session name (/rename) into the tmux
-#      session's @claude_task label so it shows on every surface.
+#   3. Keep the tmux session name aligned with a user-set Claude name
+#      (/rename) and mirror Claude's current name/topic into the
+#      @claude_task subtitle.
 
 input=$(cat)
 
@@ -58,95 +59,94 @@ if [[ -n "${TMUX_PANE:-}" ]]; then
     > "$state_dir/$state_key" 2>/dev/null
 fi
 
-# ─── Sync Claude session name → tmux task label ──────────────────────
-# Claude ships `session_name` in the statusline JSON whenever the session
-# has a name — an explicit /rename (or --name) AND the auto-generated topic
-# both land in the same field. The transcript disambiguates (naming-contract
-# plan 2026-08-05): a {"type":"custom-title"} record whose customTitle
-# equals the current session_name proves the name is USER-SET. User-set →
-# PROMOTE: label + @claude_task_manual, bus-synced via `muster label
-# --no-inject` when muster is installed (--no-inject because the name
-# already CAME from /rename — re-typing it would loop text into the pane).
-# Auto topic → display-only, defers to the manual flag (unchanged). Nothing
-# here ever demotes. Newest gesture wins: a fresh /rename overwrites a
-# stale manual label because its custom-title matches the new session_name.
-#
-# …but only a *fresh* one. @claude_task_promoted records the last title this
-# script promoted, and a title equal to that marker never promotes again.
-# Without it a STALE title reverts the operator: prefix T sets a new label
-# and types /rename into the pane; on a busy pane the keystrokes get eaten
-# mid-turn (seen twice on 2026-08-06), so the transcript keeps the OLD
-# custom-title — and the next tick "promoted" that old name back over the
-# fresh label, hours after the gesture. Rules:
-#   • title != marker            → promote (a real /rename; newest wins),
-#                                  then the marker becomes that title.
-#   • aligned fast path          → seed the marker if unset/different. Load
-#                                  bearing: a session aligned from BEFORE
-#                                  this marker existed has none, and an
-#                                  unset marker != a stale title, so the
-#                                  very next prefix-T divergence would
-#                                  still revert. Written only when it
-#                                  differs — the fast path stays cheap
-#                                  (still no transcript read).
-#   • no manual flag + title == session_name → promote regardless of the
-#                                  marker. Prefix T's CLEAR gesture unsets
-#                                  the option pair (bin/tmux-muster-label.sh)
-#                                  but not the marker; an unlabeled session
-#                                  adopting its own title is always safe.
-#   • auto-topic branch          → unchanged, never touches the marker.
-# Accepted limitations: /renaming BACK to the exact marker value after a
-# prefix-T divergence is ignored — indistinguishable from the stale case
-# without timestamps; the workaround is prefix T, or renaming through a
-# different name first. And this guard makes prefix T durable against
-# statusline ticks, NOT against a resume: muster's SessionStart projection
-# re-asserts the transcript title, so a prefix-T name only becomes durable
-# once a /rename actually lands in the transcript.
+# ─── Sync Claude session name ↔ tmux session name ────────────────────
+# The tmux session name IS the identity (session-identity plan 2026-08-08;
+# spec docs/superpowers/specs/2026-08-08-proj-session-identity-design.md).
+# Claude ships `session_name` in the statusline JSON — an explicit /rename
+# AND the auto-generated topic land in the same field; a transcript
+# {"type":"custom-title"} record whose customTitle equals session_name
+# proves the name is USER-SET. Rules:
+#   • user-set + valid charset ([A-Za-z0-9_/-]) + differs from #S and from
+#     the promoted marker + no live session anywhere holds it → RENAME the
+#     tmux session, then `muster become --no-inject` when available (the
+#     name already came from /rename — injecting it back would loop).
+#   • everything else → @claude_task subtitle only: whatever Claude calls
+#     the conversation, for the title's middle segment (the title template
+#     dedupes it against #S). NOTHING here renames from an auto topic.
+# @claude_task_promoted records the last title this script acted on: a
+# STALE transcript title (prefix-T's /rename keystrokes eaten by a busy
+# turn — seen live 2026-08-06) must not revert an operator rename on the
+# next tick. Aligned sessions seed the marker on the cheap path (no
+# transcript read). Accepted limitation (unchanged from the label era):
+# /renaming BACK to the exact marker value after a prefix-T divergence is
+# ignored — rename through a different name first.
 SESSION_NAME=$(echo "$input" | jq -r '.session_name // ""')
 TRANSCRIPT_PATH=$(echo "$input" | jq -r '.transcript_path // ""')
 if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
-  is_manual=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task_manual 2>/dev/null)
-  current_label=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task 2>/dev/null)
+  tmux_name=$(tmux display-message -p -t "$TMUX_PANE" '#{session_name}' 2>/dev/null)
   promoted=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task_promoted 2>/dev/null)
-  if [[ "$current_label" == "$SESSION_NAME" && -n "$is_manual" ]]; then
-    # fast path: already promoted and aligned — no transcript read.
+  if [[ "$SESSION_NAME" == "$tmux_name" ]]; then
+    # fast path: aligned — keep the marker seeded, read nothing else.
     if [[ "$promoted" != "$SESSION_NAME" ]]; then
       tmux set-option -t "$TMUX_PANE" @claude_task_promoted "$SESSION_NAME" 2>/dev/null
     fi
-  else
-    custom_title=""
-    if [[ -n "$TRANSCRIPT_PATH" && -r "$TRANSCRIPT_PATH" ]]; then
-      custom_title=$(grep '"custom-title"' "$TRANSCRIPT_PATH" 2>/dev/null \
-        | tail -1 | jq -r '.customTitle // ""' 2>/dev/null)
+    # A subtitle equal to #S is pure duplicate noise in status-left and the
+    # picker rows (e.g. left over from a rename that landed after the
+    # subtitle write on the same diverged tick — see the successful-rename
+    # branch below, which clears it too; change the two together). One
+    # show-option + conditional unset keeps this fast path cheap: still no
+    # transcript read.
+    aligned_sub=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task 2>/dev/null)
+    if [[ "$aligned_sub" == "$SESSION_NAME" ]]; then
+      tmux set-option -u -t "$TMUX_PANE" @claude_task 2>/dev/null
     fi
-    user_set=0
-    [[ -n "$custom_title" && "$custom_title" == "$SESSION_NAME" ]] && user_set=1
-    # A user-set title promotes when it's NEW (differs from the marker), or
-    # when the session carries no manual label to protect — no flag, or no
-    # label at all. The empty-label half closes an otherwise permanently
-    # un-promotable state: label unset while the manual flag survives and
-    # the marker still holds the title (a partially-failed clear, or a raw
-    # `tmux set-option -u @claude_task`). An empty label, like an unlabeled
-    # session, can't be overriding anybody.
-    if (( user_set )) && [[ "$custom_title" != "$promoted" || -z "$is_manual" || -z "$current_label" ]]; then
-      if command -v muster >/dev/null 2>&1; then
-        # A muster binary predating --no-inject fails the flag parse (exit
-        # non-zero) without touching the pane options at all — guard the
-        # call and fall back to the plain-tmux pair write so the session
-        # still gets labeled. Degradation is tmux-only promotion; the
-        # muster SessionStart projection re-converges the bus later.
-        if ! muster label --no-inject "$SESSION_NAME" >/dev/null 2>&1; then
-          tmux set-option -t "$TMUX_PANE" @claude_task "$SESSION_NAME" 2>/dev/null
-          tmux set-option -t "$TMUX_PANE" @claude_task_manual 1 2>/dev/null
-        fi
-      else
-        tmux set-option -t "$TMUX_PANE" @claude_task "$SESSION_NAME" 2>/dev/null
-        tmux set-option -t "$TMUX_PANE" @claude_task_manual 1 2>/dev/null
-      fi
-      tmux set-option -t "$TMUX_PANE" @claude_task_promoted "$SESSION_NAME" 2>/dev/null
-      tmux refresh-client -S 2>/dev/null
-    elif [[ -z "$is_manual" && "$SESSION_NAME" != "$current_label" ]]; then
+  else
+    # Subtitle first: display-only and safe for every kind of name.
+    current_sub=$(tmux show-option -qv -t "$TMUX_PANE" @claude_task 2>/dev/null)
+    if [[ "$current_sub" != "$SESSION_NAME" ]]; then
       tmux set-option -t "$TMUX_PANE" @claude_task "$SESSION_NAME" 2>/dev/null
       tmux refresh-client -S 2>/dev/null
+    fi
+    # Rename only for a FRESH, machine-shaped, user-set name.
+    if [[ "$SESSION_NAME" != "$promoted" && "$SESSION_NAME" =~ ^[A-Za-z0-9_/-]+$ ]]; then
+      custom_title=""
+      if [[ -n "$TRANSCRIPT_PATH" && -r "$TRANSCRIPT_PATH" ]]; then
+        custom_title=$(grep '"custom-title"' "$TRANSCRIPT_PATH" 2>/dev/null \
+          | tail -1 | jq -r '.customTitle // ""' 2>/dev/null)
+      fi
+      if [[ -n "$custom_title" && "$custom_title" == "$SESSION_NAME" ]]; then
+        # Refuse names a live session holds — the name doubles as the
+        # bus-global alias; identity theft must be explicit. Same scan as
+        # bin/tmux-session-rename.sh's prefix-T gesture — change both
+        # together.
+        taken=0
+        sockdir="${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)"
+        for s in "$sockdir"/*; do
+          [[ -S "$s" ]] || continue
+          tmux -S "$s" has-session -t "=$SESSION_NAME" 2>/dev/null && { taken=1; break; }
+        done
+        if (( ! taken )); then
+          # Guard the whole post-rename block on rename-session's own exit
+          # status: a lost race or an out-of-glob collision makes the
+          # rename fail even past the scan above, and recording the marker
+          # anyway would block every future retry of this name forever.
+          if tmux rename-session -t "$TMUX_PANE" "$SESSION_NAME" 2>/dev/null; then
+            # The subtitle mirrored this same name during the divergence —
+            # now that #S matches it, it's pure duplication (see the
+            # aligned fast path above, which reconciles the same drift on
+            # its own tick — change the two together).
+            tmux set-option -u -t "$TMUX_PANE" @claude_task 2>/dev/null
+            if command -v muster >/dev/null 2>&1; then
+              # A pre-become muster fails the probe; the rename above already
+              # landed — tmux-only is the accepted degradation.
+              muster become --help >/dev/null 2>&1 \
+                && muster become --no-inject "$SESSION_NAME" >/dev/null 2>&1
+            fi
+            tmux set-option -t "$TMUX_PANE" @claude_task_promoted "$SESSION_NAME" 2>/dev/null
+            tmux refresh-client -S 2>/dev/null
+          fi
+        fi
+      fi
     fi
   fi
 fi

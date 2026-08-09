@@ -1,12 +1,10 @@
 #!/usr/bin/env zsh
-# Tests for statusline.sh's name-sync block: a user-set name (transcript
-# custom-title == session_name) is PROMOTED to a manual label; an auto topic
-# stays display-only and defers to the manual flag; nothing ever demotes.
-# (naming-contract plan, 2026-08-05). Real throwaway tmux server; a fake
-# `muster` script records delegation.
-
+# Tests for statusline.sh's name-sync block (session-identity plan
+# 2026-08-08): a user-set name (transcript custom-title == session_name)
+# RENAMES the tmux session; auto topics only write the @claude_task
+# subtitle; a stale title (== the promoted marker) never reverts an
+# operator rename; collisions with live sessions refuse the rename.
 set -u
-
 REPO="${0:A:h:h}"
 
 typeset -g PASS=0 FAIL=0
@@ -17,234 +15,157 @@ ok() {
     (( FAIL++ )); printf '  FAIL %s\n       expected: %s\n       actual:   %s\n' "$1" "$2" "$3"
   fi
 }
-
 command -v tmux >/dev/null || { echo "tmux required"; exit 1; }
-command -v jq   >/dev/null || { echo "jq required"; exit 1; }
+command -v jq   >/dev/null || { echo "jq required";   exit 1; }
 
 WORK=$(mktemp -d)
-trap 'tmux -S "$WORK/sock" kill-server 2>/dev/null; rm -rf "$WORK"' EXIT
-tmux -S "$WORK/sock" new-session -d -s t -x 80 -y 24
-PANE=$(tmux -S "$WORK/sock" display-message -p -t t '#{pane_id}')
-export TMUX="$WORK/sock,999,0" TMUX_PANE="$PANE"
+export TMUX_TMPDIR="$WORK"          # scoped: the collision scan globs this
+SOCKDIR="$WORK/tmux-$(id -u)"
+trap 'tmux -S "$SOCKDIR/main" kill-server 2>/dev/null;
+      tmux -S "$SOCKDIR/other" kill-server 2>/dev/null; rm -rf "$WORK"' EXIT
+mkdir -p "$SOCKDIR"
+tmux -S "$SOCKDIR/main" new-session -d -s start-name -x 80 -y 24
+PANE=$(tmux -S "$SOCKDIR/main" display-message -p -t start-name '#{pane_id}')
+export TMUX="$SOCKDIR/main,999,0" TMUX_PANE="$PANE"
 
-opt()    { tmux -S "$WORK/sock" show-option -qv -t t @claude_task; }
-manual() { tmux -S "$WORK/sock" show-option -qv -t t @claude_task_manual; }
-reset()  { tmux -S "$WORK/sock" set-option -u -t t @claude_task 2>/dev/null
-           tmux -S "$WORK/sock" set-option -u -t t @claude_task_manual 2>/dev/null; }
+name()   { tmux -S "$SOCKDIR/main" display-message -p '#{session_name}'; }
+sub()    { tmux -S "$SOCKDIR/main" show-option -qv -t "$PANE" @claude_task; }
+marker() { tmux -S "$SOCKDIR/main" show-option -qv -t "$PANE" @claude_task_promoted; }
 
 TRANSCRIPT="$WORK/t.jsonl"
 statusline() {  # $1 = session_name, $2 = transcript path ("" for none)
   jq -n --arg n "$1" --arg tp "$2" \
     '{model:{display_name:"Fable"},context_window:{used_percentage:10},
       workspace:{current_dir:"/w"},session_name:$n,transcript_path:$tp}' \
-    | "$REPO/config/claude/statusline.sh" >/dev/null 2>&1
+    | bash "$REPO/config/claude/statusline.sh" >/dev/null 2>&1
 }
 
-# ── auto topic: display-only (today's behavior, must survive) ───────
-reset
-printf '%s\n' '{"type":"user"}' > "$TRANSCRIPT"   # no custom-title record
-statusline "Debug tmux titles" "$TRANSCRIPT"
-ok "auto topic lands in label" "Debug tmux titles" "$(opt)"
-ok "auto topic sets NO manual flag" "" "$(manual)"
-
-# ── user-set name, muster absent: plain-tmux promotion ──────────────
-reset
-printf '%s\n' '{"type":"custom-title","customTitle":"nfl-3","sessionId":"u1"}' > "$TRANSCRIPT"
 PATH_SAVE="$PATH"
-# Strip muster (and everything else non-core) but keep tmux+jq reachable —
-# on Homebrew/Apple Silicon they live in /opt/homebrew/bin, not /usr/bin.
-TMUX_DIR="${$(command -v tmux):h}"
-export PATH="$TMUX_DIR:/usr/bin:/bin"
-statusline "nfl-3" "$TRANSCRIPT"
-export PATH="$PATH_SAVE"
-ok "custom title promotes label"  "nfl-3" "$(opt)"
-ok "custom title promotes manual" "1"     "$(manual)"
+# Keep tmux and jq reachable while dropping muster (~/.local/bin): a bare
+# /usr/bin:/bin would strip the Homebrew binaries the script under test uses.
+NOMUSTER_PATH="$(dirname "$(command -v tmux)"):$(dirname "$(command -v jq)"):/usr/bin:/bin"
+if PATH="$NOMUSTER_PATH" command -v muster >/dev/null 2>&1; then
+  echo "muster still reachable on NOMUSTER_PATH — adjust the test"; exit 1
+fi
 
-# ── user-set name, muster present: --no-inject delegation ───────────
-reset
+# ── auto topic: subtitle only, session name untouched ───────────────
+print '── auto topic → subtitle only ──'
+printf '%s\n' '{"type":"user"}' > "$TRANSCRIPT"
+export PATH="$NOMUSTER_PATH"
+statusline "Debug tmux titles" "$TRANSCRIPT"
+ok "session name untouched"  "start-name"        "$(name)"
+ok "topic lands in subtitle" "Debug tmux titles" "$(sub)"
+
+# ── user-set valid name, muster absent: tmux rename ─────────────────
+print '── user-set name → rename (no muster) ──'
+printf '%s\n' '{"type":"custom-title","customTitle":"dotfiles/nfl-4","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "dotfiles/nfl-4" "$TRANSCRIPT"
+ok "session renamed"  "dotfiles/nfl-4" "$(name)"
+ok "marker recorded"  "dotfiles/nfl-4" "$(marker)"
+ok "subtitle reconciled after rename" "" "$(sub)"
+
+# ── stale title never reverts an operator rename ────────────────────
+print '── stale title vs prefix T ──'
+tmux -S "$SOCKDIR/main" rename-session -t "=dotfiles/nfl-4" "operator-name"
+statusline "dotfiles/nfl-4" "$TRANSCRIPT"   # transcript still holds the OLD title
+ok "operator rename survives" "operator-name" "$(name)"
+
+# ── invalid charset: subtitle only, even when user-set ──────────────
+print '── invalid charset never renames ──'
+printf '%s\n' '{"type":"custom-title","customTitle":"has spaces","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "has spaces" "$TRANSCRIPT"
+ok "no rename on bad charset" "operator-name" "$(name)"
+ok "subtitle still updates"   "has spaces"    "$(sub)"
+
+# ── collision: a live session elsewhere holds the name ──────────────
+print '── collision refusal ──'
+tmux -S "$SOCKDIR/other" new-session -d -s wanted -x 80 -y 24
+printf '%s\n' '{"type":"custom-title","customTitle":"wanted","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "wanted" "$TRANSCRIPT"
+ok "held name not stolen" "operator-name" "$(name)"
+
+# ── failed rename must not record the marker (retry stays possible) ─
+# The collision scan already refuses a name that's LIVE anywhere, so a
+# pre-created same-name session can't reach rename-session itself — it's
+# caught above. Exercise the exit-status guard directly instead: shim tmux
+# so rename-session fails (simulating a lost race / out-of-glob collision)
+# while every other tmux call still hits the real server.
+print '── failed rename leaves the marker unset ──'
+REALTMUX="$(command -v tmux)"
+mkdir -p "$WORK/bin2"
+cat > "$WORK/bin2/tmux" <<EOF
+#!/bin/sh
+if [ "\$1" = "rename-session" ]; then
+  exit 1
+fi
+exec "$REALTMUX" "\$@"
+EOF
+chmod +x "$WORK/bin2/tmux"
+export PATH="$WORK/bin2:$NOMUSTER_PATH"
+printf '%s\n' '{"type":"custom-title","customTitle":"rename-boom","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "rename-boom" "$TRANSCRIPT"
+ok "name unchanged on failed rename"   "operator-name"   "$(name)"
+ok "marker not stamped with failed name" "0" "$([[ "$(marker)" == "rename-boom" ]] && echo 1 || echo 0)"
+export PATH="$NOMUSTER_PATH"
+
+# ── muster present: become --no-inject after the rename ─────────────
+print '── delegation (fake muster with become) ──'
 mkdir -p "$WORK/bin"
 cat > "$WORK/bin/muster" <<'EOF'
 #!/bin/sh
 echo "$@" >> "${MUSTER_ARGS_LOG:?}"
-# Simulate the real `muster label --no-inject <name>` side effect (that
-# flag doesn't exist on this machine yet — pending muster PR, see
-# task-2-brief.md). Production `muster label` sets the pane's tmux option
-# pair itself (bin/tmux-muster-label.sh's delegation branch relies on the
-# same fact); the "never demote" block right after this one needs that
-# state to have landed, same as it would against a real muster.
-if [ "$1" = "label" ]; then
-  shift
-  [ "$1" = "--no-inject" ] && shift
-  if [ -n "${1:-}" ] && [ -n "${TMUX_PANE:-}" ]; then
-    tmux set-option -t "$TMUX_PANE" @claude_task "$1"
-    tmux set-option -t "$TMUX_PANE" @claude_task_manual 1
-  fi
-fi
+[ "$1" = "become" ] || exit 1
+exit 0
 EOF
 chmod +x "$WORK/bin/muster"
-export PATH="$WORK/bin:$PATH" MUSTER_ARGS_LOG="$WORK/args.log"
-statusline "nfl-3" "$TRANSCRIPT"
-ok "delegates with --no-inject" "label --no-inject nfl-3" "$(tail -1 "$WORK/args.log")"
+export PATH="$WORK/bin:$NOMUSTER_PATH" MUSTER_ARGS_LOG="$WORK/args.log"
+printf '%s\n' '{"type":"custom-title","customTitle":"dotfiles/nfl-7","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "dotfiles/nfl-7" "$TRANSCRIPT"
+ok "renamed with muster present" "dotfiles/nfl-7" "$(name)"
+ok "become --no-inject called"   "become --no-inject dotfiles/nfl-7" "$(tail -1 "$MUSTER_ARGS_LOG")"
 
-# ── user-set name, muster present but rejects --no-inject: a binary
-# predating the flag fails the parse and exits non-zero without touching
-# pane options at all. The caller must fall back to the plain-tmux pair
-# write itself — same two lines as the muster-absent branch — or the
-# pane goes unlabeled and every future tick re-greps + re-spawns muster
-# for nothing. ─────────────────────────────────────────────────────────
-reset
+# ── aligned fast path: no transcript read, no muster call ───────────
+# A vacuous version of this block (transcript path that doesn't exist)
+# would pass even if the fast path READ the transcript, because a missing
+# file just yields an empty custom_title either way. Make it detectable:
+# the transcript DOES exist and its custom-title DOES match session_name,
+# a logging fake `muster` sits on PATH, and the marker is unset first so
+# seeding is demonstrably the fast path's own doing. If the fast path ever
+# fell through to the diverged branch (read the transcript, re-entered the
+# rename logic), that branch would call muster — the log would be non-empty.
+print '── aligned fast path ──'
+mkdir -p "$WORK/bin"
 cat > "$WORK/bin/muster" <<'EOF'
 #!/bin/sh
 echo "$@" >> "${MUSTER_ARGS_LOG:?}"
-# Simulate a muster binary predating --no-inject: the flag parse fails,
-# it exits non-zero, and — like the real failure mode — never touches
-# the pane's tmux options.
-exit 1
+[ "$1" = "become" ] || exit 1
+exit 0
 EOF
 chmod +x "$WORK/bin/muster"
-export PATH="$WORK/bin:$PATH" MUSTER_ARGS_LOG="$WORK/args-fail.log"
-statusline "nfl-3" "$TRANSCRIPT"
-ok "failing muster still sets tmux-only label" "nfl-3" "$(opt)"
-ok "failing muster still sets manual flag"     "1"     "$(manual)"
-
-# ── never demote: manual flag blocks a later auto topic ─────────────
-printf '%s\n' '{"type":"user"}' > "$TRANSCRIPT"   # custom-title gone from a NEW transcript
-statusline "Some auto topic" "$TRANSCRIPT"
-ok "auto topic never clobbers manual label" "nfl-3" "$(opt)"
-ok "manual flag survives"                   "1"     "$(manual)"
-
-# ── fast path: aligned state reads no transcript ────────────────────
+export PATH="$WORK/bin:$NOMUSTER_PATH" MUSTER_ARGS_LOG="$WORK/args-fastpath.log"
 rm -f "$MUSTER_ARGS_LOG"
-statusline "nfl-3" "$WORK/does-not-exist.jsonl"   # would fail if read mattered
-ok "aligned state does nothing" "" "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
+tmux -S "$SOCKDIR/main" set-option -u -t "$PANE" @claude_task_promoted 2>/dev/null
+printf '%s\n' '{"type":"custom-title","customTitle":"dotfiles/nfl-7","sessionId":"u1"}' > "$TRANSCRIPT"
+statusline "dotfiles/nfl-7" "$TRANSCRIPT"
+ok "aligned state stays put"      "dotfiles/nfl-7" "$(name)"
+ok "marker seeded by fast path"   "dotfiles/nfl-7" "$(marker)"
+ok "fast path never calls muster" "" "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
 
-# ── fast path, stronger version: still skips muster even when the
-# transcript DOES exist and its custom-title DOES match — proving the
-# early-return happens before the transcript is ever read, not that it
-# happens to re-derive the same no-op result after reading it. A fake
-# muster that would log a call sits on PATH the whole time. ─────────
-tmux -S "$WORK/sock" set-option -t t @claude_task "nfl-3"
-tmux -S "$WORK/sock" set-option -t t @claude_task_manual 1
-printf '%s\n' '{"type":"custom-title","customTitle":"nfl-3","sessionId":"u1"}' > "$TRANSCRIPT"
-cat > "$WORK/bin/muster" <<'EOF'
-#!/bin/sh
-echo "$@" >> "${MUSTER_ARGS_LOG:?}"
-EOF
-chmod +x "$WORK/bin/muster"
-export MUSTER_ARGS_LOG="$WORK/args-fastpath.log"
+# ── aligned fast path also reconciles a stale subtitle == #S ────────
+# Simulate the freeze case: a subtitle left equal to the (now-aligned)
+# session name from an earlier diverged tick. The next aligned tick must
+# clear it — the same reconciliation the successful-rename branch does,
+# just reached from the other side.
+print '── aligned tick clears a stale subtitle equal to #S ──'
+tmux -S "$SOCKDIR/main" set-option -t "$PANE" @claude_task "dotfiles/nfl-7" 2>/dev/null
 rm -f "$MUSTER_ARGS_LOG"
-statusline "nfl-3" "$TRANSCRIPT"
-ok "fast path skips muster even with matching transcript present" "" "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
+printf '%s\n' '{"type":"user"}' > "$TRANSCRIPT"
+statusline "dotfiles/nfl-7" "$TRANSCRIPT"
+ok "aligned tick leaves name"       "dotfiles/nfl-7" "$(name)"
+ok "stale subtitle cleared"         ""               "$(sub)"
+ok "still never calls muster"       ""               "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
 
-# ── promotion marker: a prefix-T label must survive a STALE title ────
-# The live bug (hit twice, 2026-08-06): prefix T sets a new label and types
-# /rename into the pane; on a busy pane the keystrokes are eaten, so the
-# transcript keeps the OLD custom-title. Every later tick then re-promoted
-# that old title over the operator's fresh label — a revert hours after the
-# gesture. @claude_task_promoted records the last title this script acted
-# on, so an unchanged title can't promote twice.
-marker() { tmux -S "$WORK/sock" show-option -qv -t t @claude_task_promoted; }
-clear_marker() { tmux -S "$WORK/sock" set-option -u -t t @claude_task_promoted 2>/dev/null; }
-set_pair() {  # $1 = label — simulate a prefix-T gesture (bypasses statusline)
-  tmux -S "$WORK/sock" set-option -t t @claude_task "$1"
-  tmux -S "$WORK/sock" set-option -t t @claude_task_manual 1
-}
-
-# Restore the side-effecting fake muster (the fast-path block above left a
-# log-only one on PATH, which would make promotions look like no-ops).
-cat > "$WORK/bin/muster" <<'EOF'
-#!/bin/sh
-echo "$@" >> "${MUSTER_ARGS_LOG:?}"
-if [ "$1" = "label" ]; then
-  shift
-  [ "$1" = "--no-inject" ] && shift
-  if [ -n "${1:-}" ] && [ -n "${TMUX_PANE:-}" ]; then
-    tmux set-option -t "$TMUX_PANE" @claude_task "$1"
-    tmux set-option -t "$TMUX_PANE" @claude_task_manual 1
-  fi
-fi
-EOF
-chmod +x "$WORK/bin/muster"
-export MUSTER_ARGS_LOG="$WORK/args-marker.log"
-
-reset; clear_marker
-printf '%s\n' '{"type":"custom-title","customTitle":"T1","sessionId":"u1"}' > "$TRANSCRIPT"
-statusline "T1" "$TRANSCRIPT"
-ok "promotion sets label"  "T1" "$(opt)"
-ok "promotion sets marker" "T1" "$(marker)"
-
-set_pair "T2"                                     # prefix T; /rename never landed
-statusline "T1" "$TRANSCRIPT"                     # transcript still says T1
-ok "stale title does NOT revert the prefix-T label" "T2" "$(opt)"
-ok "skipped promotion leaves the marker alone"      "T1" "$(marker)"
-
-# ── a REAL /rename still wins from that same diverged state ─────────
-printf '%s\n' '{"type":"custom-title","customTitle":"T3","sessionId":"u1"}' > "$TRANSCRIPT"
-statusline "T3" "$TRANSCRIPT"
-ok "a new title still promotes over a manual label" "T3" "$(opt)"
-ok "marker advances to the new title"               "T3" "$(marker)"
-ok "manual flag still set"                          "1"  "$(manual)"
-
-# ── seeding: a session aligned BEFORE the marker existed ────────────
-# Its marker is unset, and unset != the stale title — so without the fast
-# path seeding it, the next prefix-T divergence would revert exactly as
-# before. The seed happens with no transcript read and no muster call.
-reset; clear_marker
-set_pair "T1"
-rm -f "$MUSTER_ARGS_LOG"
-statusline "T1" "$WORK/does-not-exist.jsonl"      # fast path
-ok "fast path seeds the marker"          "T1" "$(marker)"
-ok "seeding still skips muster"          ""   "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
-
-set_pair "T2"                                     # prefix T; /rename eaten again
-printf '%s\n' '{"type":"custom-title","customTitle":"T1","sessionId":"u1"}' > "$TRANSCRIPT"
-statusline "T1" "$TRANSCRIPT"
-ok "seeded marker prevents the revert"   "T2" "$(opt)"
-
-# ── clear gesture: prefix T unsets the pair but not the marker ──────
-# The still-current title must be re-adoptable — an unlabeled session
-# taking its own name back can't be overriding anybody.
-reset                                             # marker stays at T1
-statusline "T1" "$TRANSCRIPT"
-ok "cleared label re-adopts its own title" "T1" "$(opt)"
-ok "re-adoption re-sets the manual flag"   "1"  "$(manual)"
-ok "re-adoption keeps the marker"          "T1" "$(marker)"
-
-# ── an EMPTY label can't be overriding anybody either ───────────────
-# Label unset while the manual flag survives and the marker still holds the
-# title — reachable via a partially-failed clear or a raw `set-option -u
-# @claude_task`. Without the empty-label clause this state is permanently
-# un-promotable: the marker blocks it and the flag blocks the auto branch,
-# so the session shows no label forever.
-reset; clear_marker
-tmux -S "$WORK/sock" set-option -t t @claude_task_promoted "T1"
-tmux -S "$WORK/sock" set-option -t t @claude_task_manual 1     # label left unset
-statusline "T1" "$TRANSCRIPT"
-ok "empty label re-promotes despite the marker" "T1" "$(opt)"
-
-# ── the marker write lives OUTSIDE the muster if/else ───────────────
-# All three promotion paths (muster ok, muster failing, muster absent) must
-# record the marker. This block pins the muster-ABSENT path, so a refactor
-# that relocated the write INTO the muster-present branch can't pass — the
-# reverse relocation (into the else) is already held by the muster-present
-# assertions above. Either way the guard would silently die while the rest
-# of this suite stayed green.
-# NB the PATH strip assumes muster lives outside $TMUX_DIR (~/.local/bin,
-# not Homebrew's bin); installed alongside tmux it would survive the strip
-# and this block would quietly re-test the muster-PRESENT path instead.
-reset; clear_marker
-printf '%s\n' '{"type":"custom-title","customTitle":"T1","sessionId":"u1"}' > "$TRANSCRIPT"
-PATH_SAVE="$PATH"
-export PATH="$TMUX_DIR:/usr/bin:/bin"             # muster off PATH, tmux+jq on it
-statusline "T1" "$TRANSCRIPT"
-ok "muster-absent promotion sets the label"  "T1" "$(opt)"
-ok "muster-absent promotion sets the marker" "T1" "$(marker)"
-
-set_pair "T2"                                     # prefix T; /rename eaten
-statusline "T1" "$TRANSCRIPT"                     # stale tick, still no muster
-ok "muster-absent marker blocks the revert"  "T2" "$(opt)"
 export PATH="$PATH_SAVE"
-
 print
 print "PASS=$PASS FAIL=$FAIL"
 (( FAIL == 0 ))

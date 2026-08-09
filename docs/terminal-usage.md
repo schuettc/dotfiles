@@ -6,21 +6,18 @@ for in week 2 when the muscle memory hasn't fully landed.
 ## The mental model
 
 ```
-Ghostty window  =  workspace  =  a project, on one branch
+Ghostty window  =  workspace  =  a project
                                   ├── Tab 1  (main terminal: shell + yazi)
                                   ├── Tab 2  (another terminal, own claude conversation)
                                   └── Tab 3  (another terminal)
 ```
 
-* **One workspace per project workspace.** Each Ghostty window is rooted at
-  one working tree — either the project's primary clone (your "home base")
-  or a per-branch git worktree.
-* **The branch decides isolation.** When you enter a project with `proj`, the
-  branch you pick determines *where* the workspace is rooted: the default
-  branch opens the primary clone (read / coordinate), any other branch opens
-  a dedicated git worktree at `<repo>/.worktrees/<branch>` so parallel lines
-  of work never collide in one tree. You think in branches; `proj` handles the
-  `git worktree` plumbing.
+Sessions are named for their work and live in the primary clone. Coding
+agents create their own worktrees when they need isolation — those are
+the agent's to manage, and the picker never touches them.
+
+* **One Ghostty window per project.** Each tab attaches to a tmux session
+  named for the work it's doing.
 * **Multiple independent terminals per workspace.** Each tab in the window
   is its own tmux session with its own state — typically running its own
   Claude conversation.
@@ -33,10 +30,9 @@ The vocabulary, in case you read these elsewhere:
 |---|---|
 | Ghostty window | Top-level macOS window. One per workspace. |
 | Ghostty tab | A tab in the tab bar at the top of the window. One per terminal. |
-| tmux session | What each Ghostty tab is attached to. Sessions are named `<project>`, `<project>-2`, … for the primary clone, and `<project>/<branch>` for a worktree. |
+| tmux session | What each Ghostty tab is attached to. Sessions are named `<project>` (home base) or `<project>/<work>` (named work). |
 | tmux pane | A split inside a session — like the shell + yazi side-by-side in the main tab. |
-| primary clone | The project's original clone — your home base for reading and coordinating, *not* for editing while parallel work is live. |
-| worktree | A linked working tree at `<repo>/.worktrees/<branch>`, one per branch, where you actually edit. |
+| primary clone | The project's original clone — every session lives here; agents make their own worktrees when they need isolation. |
 
 ---
 
@@ -76,56 +72,16 @@ So `prefix → f` means: press `Ctrl-A`, release both keys, then press `f`.
    `~/GitHub/schuettc/`, `~/learning-with-court/`), and a
    `[+ add new project root…]` entry. Pick a `[session]` row to jump straight
    back to a running session; pick a project directory to continue to Screen 2.
+   `proj <project>` skips straight to Screen 2 (flags come first: `proj
+   --claude dotfiles`, not `proj dotfiles --claude`).
 
-   **Screen 2 — pick what to work on (git repos only).** This is where **the
-   branch decides isolation.** The rows:
+   **Screen 2 — pick a session, or name new work.**
 
    | Row | What it does |
    |---|---|
-   | `● <session>` | Jump to an already-open session for this project. |
-   | `🏠 primary clone — on <branch>` | Open the **home base** session in the primary clone, on whatever it has checked out (`main`/`dev`). For reading & coordinating — not for editing while worktrees are live. |
-   | `+ new session here` | Spawn *another* session in the primary clone (`<project>-2`, `-3`, …). |
-   | `▸ <branch>  (worktree)` | Open the session for a branch that **already has** a worktree. |
-   | `▸ <branch>  (branch → new worktree)` | A branch that exists but has no worktree yet — creates the worktree at `<repo>/.worktrees/<branch>`, then opens it. |
-   | `+ new branch…` | Prompts for a name, creates the branch off `dev` (falls back to `origin/dev`, else current HEAD), makes its worktree, and opens it. |
-   | `+ prune worktrees…` | Interactive cleanup of worktrees you're done with. |
-
-   A non-git project directory skips Screen 2 and just opens a plain home-base
-   session (no worktree machinery).
-
-## Worktrees — how the plumbing works
-
-You rarely touch any of this directly — `proj` drives it — but it helps to
-know what's on disk:
-
-* **Worktrees live at `<repo>/.worktrees/<branch>`.** Picking any non-default
-  branch in Screen 2 creates one there if it doesn't already exist.
-* **They're ignored locally via `.git/info/exclude`**, *not* the repo's
-  tracked `.gitignore` — so the project's committed ignore rules are never
-  touched. `proj` appends `.worktrees/` to `.git/info/exclude` the first time.
-* **`.worktreeinclude` seeds each new worktree.** A `<repo>/.worktreeinclude`
-  file (gitignore syntax) lists gitignored paths — e.g. `.env` — that should
-  be copied into every new worktree so it's immediately runnable. `proj` copies
-  them in when it creates the tree.
-* **`+ prune worktrees…` never force-removes.** It offers a multi-select list
-  of worktrees (never the primary clone), kills each one's session, and removes
-  the tree — but a tree with **uncommitted or untracked work is kept** and
-  reported, with the exact `git worktree remove --force …` command printed so
-  you can force it yourself if you really mean to.
-
-### The `⚠ primary` status-bar marker
-
-When the focused pane is in the **primary clone** *and* one or more linked
-worktrees exist, the status bar shows a peach `⚠ primary` badge. That's the
-cue: you're about to edit the shared tree while parallel work is live — the
-collision trap. Go run `proj` and pick a branch (which puts you in its own
-worktree) instead. The badge never appears inside a worktree, and never when
-the project has no worktrees at all.
-
-> How it's detected (`bin/tmux-git-status.sh`): a linked worktree's git-dir
-> path contains `/worktrees/`; the primary clone's does not. So the script
-> flags the pane only when its git-dir is *not* under `/worktrees/` **and**
-> `git worktree list` shows more than one tree.
+   | `● <project>/<work>  — <topic>` | Jump to a live session. The suffix is Claude's current subtitle (`@claude_task`). |
+   | `🏠 <project> — home base (primary clone)` | Open the home-base session — reading & coordinating. |
+   | `+ new work…` | Prompts for a work name (letters digits `-` `_`), then creates `<project>/<work>` in the primary clone. |
 
 ## Knowing when Claude needs you
 
@@ -170,18 +126,18 @@ First, the window-vs-tab distinction — they behave differently on purpose
   A plain shell at `~`. Run `proj` to enter or create a workspace from there.
 * **⌘T (new *tab*) inside a project window** inherits the project's cwd
   (`tab-inherit-working-directory = true`). The zsh auto-join hook
-  (`06-tmux-autojoin.zsh`) sees you're in a project and creates the next
-  available session (`<project>-2`, `<project>-3`, …) with the same
-  shell + yazi layout as the main tab. The new tab is **independent** — run
-  `claude` (or vim, or anything else) yourself when you want it.
+  (`06-tmux-autojoin.zsh`) sees you're in a project and opens `proj
+  <project>` — Screen 2 (live sessions · home base · new work) — so naming
+  the tab is always an explicit gesture, never an anonymous slot.
 
 The manual fallback:
 
-* **`pt`** → when ⌘T auto-join didn't fire (e.g., the tab landed at `$HOME`
-  instead of the project dir, because tmux didn't forward the cwd via OSC 7).
-  From inside the project dir, `pt` auto-detects the name; from elsewhere,
-  `pt now-playing` works. It picks the same next-free `<project>-N` slot the
-  auto-join would have.
+* **`pt <work>`** → when ⌘T auto-join didn't fire (e.g., the tab landed at
+  `$HOME` instead of the project dir, because tmux didn't forward the cwd via
+  OSC 7), or when you just want to skip the picker. From inside the project
+  dir, `pt <work>` auto-detects the project; from elsewhere,
+  `pt <project> <work>` names both. Either creates or attaches
+  `<project>/<work>` directly.
 
 Each tab persists across reboots via `tmux-continuum`.
 
@@ -300,8 +256,8 @@ straight back into yazi.
 **Closing a Ghostty tab does NOT kill the tmux session** — it only
 detaches. The session keeps running in the background (that's what lets
 you reattach and what `tmux-continuum` restores after a reboot). The
-side effect: detached sessions accumulate, especially the `-2`/`-3`
-sub-sessions.
+side effect: detached sessions accumulate, especially short-lived named
+work.
 
 To reap the leftovers:
 
@@ -320,15 +276,15 @@ detached on purpose, so most people run it manually.)
 To kill one specific session by hand:
 
 ```bash
-tmux kill-session -t now-playing-3
+tmux kill-session -t now-playing/notes
 ```
 
 ## Which command, when
 
 | Command | Reach for it when… |
 |---|---|
-| `proj` | You want to **enter or create a workspace** — pick a project, then choose home base (the primary clone) or a branch (its own worktree). Also the way to jump back to any live session. |
-| `pt [name]` | You opened a new ⌘T tab and **auto-join didn't fire** — add another terminal to the current project manually. |
+| `proj` | You want to **jump to a live session, open the home base, or name new work** — the two-screen picker. |
+| `pt <work>` / `pt <project> <work>` | You opened a new ⌘T tab and **auto-join didn't fire**, or you just want to skip the picker — create-or-attach `<project>/<work>` directly. |
 | `proj-clean` | `tmux ls` is cluttered — **reap idle** shell/yazi-only sessions (never Claude/editor/server, never the one you're in). |
 
 The opt-ins/opt-outs (`pt --claude`, `proj --claude`, `AUTO_CLAUDE`,
@@ -337,18 +293,19 @@ The opt-ins/opt-outs (`pt --claude`, `proj --claude`, `AUTO_CLAUDE`,
 
 ## Switching projects
 
-Multiple projects (and multiple branches of one project) run simultaneously as
-separate tmux sessions. You don't need to close one to use another.
+Multiple projects (and multiple pieces of work within one project) run
+simultaneously as separate tmux sessions. You don't need to close one to
+use another.
 
 ```
-proj                                 # picker → switch session, or open a project/branch
+proj                                 # picker → switch session, or name new work
 prefix → d                           # detach completely
 tmux ls                              # list every alive session
 tmux kill-session -t now-playing     # tear down a specific session
 ```
 
 While inside any session, `prefix → s` opens an interactive picker of all
-live sessions. Worktree sessions show up as `<project>/<branch>`.
+live sessions. Named-work sessions show up as `<project>/<work>`.
 
 ---
 
