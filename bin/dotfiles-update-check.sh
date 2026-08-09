@@ -42,7 +42,7 @@ case "${1:-status}" in
     write_state "$behind"
     ;;
   clear)
-    :   # Task 3
+    write_state 0
     ;;
 esac
 exit 0

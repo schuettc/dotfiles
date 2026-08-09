@@ -91,6 +91,17 @@ rm -f "$FAKE/state"
 DOTFILES_UPDATE_REPO="$FAKE/notarepo" "$SCRIPT" refresh
 ok "not a git repo → silent, no state written" "no-state" "$([[ -e $FAKE/state ]] && echo state || echo no-state)"
 
+# ── clear ────────────────────────────────────────────────────────────────
+echo "clear:"
+
+printf 'behind=7\n' > "$FAKE/state"
+"$SCRIPT" clear
+out=$(cat "$FAKE/state" 2>/dev/null)
+ok "clear → behind=0" "behind=0" "$out"
+
+out=$("$SCRIPT" status)
+ok "status after clear → silent" "" "$out"
+
 # ── summary ──────────────────────────────────────────────────────────────
 echo ""
 echo "$PASS passed, $FAIL failed"
