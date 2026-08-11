@@ -331,7 +331,7 @@ __proj_session_list() {
       print -r -- "● ${name}${label:+  — $label}"
     fi
   done
-  print -r -- "🏠 ${project} — home base (primary clone)"
+  print -r -- "🏠 ${project} — home base"
   print -r -- "+ new work…"
 }
 

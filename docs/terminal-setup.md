@@ -162,7 +162,7 @@ proj                 # two-screen fzf picker
 
 `proj` is a two-screen picker: **Screen 1** picks a project (or jumps to a
 live session); **Screen 2** picks a session — jump to a live one, open the
-**home base** (`🏠 <project> — home base (primary clone)`), or name new
+**home base** (`🏠 <project> — home base`), or name new
 work (`+ new work…`), which creates `<project>/<work>`. Either way you land
 in a tmux session with a shell on the left (~70%) and yazi on the right
 (~30%), and that Ghostty window becomes the "workspace." See
