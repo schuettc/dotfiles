@@ -168,7 +168,7 @@ ok "no launch on invalid name" "" "$(cat "$TMP/launch" 2>/dev/null)"
 
 echo "── home base row opens the bare project session ──"
 rm -f "$TMP/launch"
-script_picker "$TMP/GitHub/repo-a" "🏠 repo-a — home base (primary clone)"
+script_picker "$TMP/GitHub/repo-a" "🏠 repo-a — home base"
 proj >/dev/null 2>&1
 ok "home base launches bare name" \
    "proj-repo-a|repo-a|$TMP/GitHub/repo-a|" "$(cat "$TMP/launch")"
