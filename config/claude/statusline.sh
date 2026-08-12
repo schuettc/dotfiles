@@ -139,9 +139,27 @@ if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
             if command -v muster >/dev/null 2>&1; then
               # A pre-become muster fails the probe; the rename above already
               # landed — tmux-only is the accepted degradation.
-              muster become --help >/dev/null 2>&1 \
-                && muster become --no-inject "$SESSION_NAME" >/dev/null 2>&1
+              if muster become --help >/dev/null 2>&1; then
+                # Capture instead of discarding: a failed claim used to be
+                # swallowed entirely (both streams to /dev/null, exit status
+                # ignored), leaving #S and the bus alias silently diverged
+                # with nothing reported anywhere — that's how a live session
+                # ended up tmux-named "bettor-help-workspace/debug-alarms"
+                # while its alias stayed "debug-alarms". Same report shape
+                # as bin/tmux-session-rename.sh's identical situation.
+                # stdout here IS the rendered status line, so the failure
+                # goes to display-message (→ tmux), never echo/printf.
+                if ! out=$(muster become --no-inject "$SESSION_NAME" 2>&1); then
+                  tmux display-message -t "$TMUX_PANE" \
+                    "renamed → $SESSION_NAME · muster become FAILED: ${out//$'\n'/ · }" 2>/dev/null
+                fi
+              fi
             fi
+            # Stamped even when become failed above: this block only runs
+            # once per rename, gated by @claude_task_promoted below — an
+            # unset marker would re-enter on every future tick and repeat
+            # the display-message on every status-line render. The marker
+            # tracks tmux/Claude-name sync, not the separate muster claim.
             tmux set-option -t "$TMUX_PANE" @claude_task_promoted "$SESSION_NAME" 2>/dev/null
             tmux refresh-client -S 2>/dev/null
           fi

@@ -165,6 +165,64 @@ ok "aligned tick leaves name"       "dotfiles/nfl-7" "$(name)"
 ok "stale subtitle cleared"         ""               "$(sub)"
 ok "still never calls muster"       ""               "$(cat "$MUSTER_ARGS_LOG" 2>/dev/null)"
 
+# ── muster become FAILS: surfaced, not swallowed ─────────────────────
+# The rename lands (tmux is the source of truth), but the alias claim
+# fails — e.g. a tombstoned row already holds the name ("already has
+# history"). Before the fix, both stdout and stderr of `become` went to
+# /dev/null and its exit status was discarded: #S and the bus alias
+# silently diverged with nothing reported anywhere (the "bettor-help-
+# workspace/debug-alarms" incident). Pin: the failure text reaches
+# display-message, stdout (the rendered status line) stays byte-clean,
+# and the marker is still stamped so this doesn't re-fire every tick.
+#
+# Real display-message can't be asserted directly here: with no client
+# attached to the test's headless tmux server the message has nowhere to
+# land and is discarded rather than logged anywhere queryable. So this
+# shims tmux itself (same passthrough technique as the rename-session
+# failure shims above) to intercept only bare `display-message ...`
+# calls (the form statusline.sh uses) and log their argv; every other
+# subcommand — including the name()/sub()/marker() helpers' own
+# `-S <sock> display-message -p ...` queries, whose $1 is "-S", not
+# "display-message" — still hits the real binary.
+print '── become failure is surfaced, not swallowed ──'
+cat > "$WORK/bin/muster" <<'EOF'
+#!/bin/sh
+if [ "$1" = "become" ] && [ "$2" = "--help" ]; then
+  exit 0
+fi
+if [ "$1" = "become" ]; then
+  echo "alias \"become-boom\" already has history; pick another name, or purge it with 'muster gc --purge-agents'" >&2
+  exit 1
+fi
+exit 1
+EOF
+chmod +x "$WORK/bin/muster"
+mkdir -p "$WORK/bin3"
+cat > "$WORK/bin3/tmux" <<EOF
+#!/bin/sh
+if [ "\$1" = "display-message" ]; then
+  echo "\$@" >> "$WORK/display.log"
+  exit 0
+fi
+exec "$REALTMUX" "\$@"
+EOF
+chmod +x "$WORK/bin3/tmux"
+export PATH="$WORK/bin3:$WORK/bin:$NOMUSTER_PATH"
+: > "$WORK/display.log"
+printf '%s\n' '{"type":"custom-title","customTitle":"become-boom","sessionId":"u1"}' > "$TRANSCRIPT"
+STDOUT=$(jq -n --arg n "become-boom" --arg tp "$TRANSCRIPT" \
+  '{model:{display_name:"Fable"},context_window:{used_percentage:10},
+    workspace:{current_dir:"/w"},session_name:$n,transcript_path:$tp}' \
+  | bash "$REPO/config/claude/statusline.sh" 2>/dev/null)
+ok "tmux rename still lands despite become failure" "become-boom" "$(name)"
+ok "marker still stamped despite become failure"    "become-boom" "$(marker)"
+ok "failure surfaced via display-message" "1" \
+  "$(grep -c 'muster become FAILED' "$WORK/display.log" 2>/dev/null || echo 0)"
+ok "muster's error text is included" "1" \
+  "$(grep -c 'already has history' "$WORK/display.log" 2>/dev/null || echo 0)"
+ok "stdout stays byte-clean" "" "$STDOUT"
+export PATH="$NOMUSTER_PATH"
+
 export PATH="$PATH_SAVE"
 print
 print "PASS=$PASS FAIL=$FAIL"
