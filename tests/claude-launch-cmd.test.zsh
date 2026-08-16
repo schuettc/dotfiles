@@ -43,6 +43,34 @@ ok "__claude_launch_cmd defined once" "1" \
 ok "emits 'claude --'" "claude --" \
    "$(zsh -c "source '$ZSHDIR/04-aliases.zsh' 2>/dev/null; __claude_launch_cmd")"
 
+echo "── the session name carries into Claude ──"
+# proj/pt create the session already named for the work, but nothing used to
+# tell Claude that name: the only tmux→Claude naming channel was `muster
+# become` typing /rename, which fires on prefix T and nowhere else. So a
+# session born as dotfiles/nfl-4 launched an agent that called itself
+# something else entirely. `--name` closes that at launch — no injection, no
+# waiting for the agent to boot. Verified on 2.1.220: it accepts a '/' and
+# writes a transcript custom-title record, which is exactly what
+# config/claude/statusline.sh reads to decide a name is user-set — so the
+# very first status tick sees Claude and #S already aligned and takes its
+# cheap path instead of treating them as diverged.
+ok "names the session" "claude --name 'dotfiles/nfl-4' --" \
+   "$(zsh -c "source '$ZSHDIR/04-aliases.zsh' 2>/dev/null; __claude_launch_cmd 'dotfiles/nfl-4'")"
+# The `--` survives alongside the name. It is not redundant belt-and-braces:
+# it is what the no-name branch relies on, and dropping it here would make
+# the two branches disagree about how agent view is avoided.
+ok "keeps the -- with a name" "1" \
+   "$(zsh -c "source '$ZSHDIR/04-aliases.zsh' 2>/dev/null; __claude_launch_cmd x" | grep -c -- ' --$')"
+# An empty argument must fall back to the bare form rather than emitting
+# `--name '' --`, which claude rejects.
+ok "empty name falls back" "claude --" \
+   "$(zsh -c "source '$ZSHDIR/04-aliases.zsh' 2>/dev/null; __claude_launch_cmd ''")"
+
+echo "── the auto-launch site passes the session name ──"
+# Not the literal string 'claude' — the session name proj just created.
+ok "launch site passes \$name" "1" \
+   "$(code | grep -c '__claude_launch_cmd "\$name"')"
+
 echo "── no auto-launch path types a bare claude ──"
 # Any of: send-keys ... 'claude' Enter, or claude as a bare pane command.
 ok "no bare-claude launch" "0" \
@@ -51,7 +79,7 @@ ok "no bare-claude launch" "0" \
 echo "── every launch site routes through the helper ──"
 # pt and the auto-join hook route through __proj_launch rather than calling
 # the helper directly, so there is exactly one call site now.
-ok "one helper call site" "1" "$(code | grep -c '__claude_launch_cmd)')"
+ok "one helper call site" "1" "$(code | grep -c '\$(__claude_launch_cmd')"
 
 echo "── send-keys targets a pane, not a session ──"
 # tmux 3.7b: send-keys takes a target-PANE and will not resolve a bare
