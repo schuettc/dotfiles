@@ -81,9 +81,25 @@ chmod +x "$TMP/claude"
 # script text. Interpolating re-parses them in the outer shell first, which
 # splits `-p "two words"` before the wrapper ever sees it — the test would
 # then pass no matter what the wrapper did with quoting.
+# TMUX is unset explicitly: the bare branch now asks tmux for #S, and this
+# suite usually runs from inside a tmux pane, so an inherited $TMUX would
+# quietly put every "outside tmux" assertion on the named path.
 drive() {  # drive <arg>... -> what the real binary received
-  zsh -c "source '$ZSHDIR/04-aliases.zsh' 2>/dev/null; unalias -m '*' 2>/dev/null
+  zsh -c "unset TMUX; source '$ZSHDIR/04-aliases.zsh' 2>/dev/null; unalias -m '*' 2>/dev/null
           PATH='$TMP':\$PATH; claude \"\$@\"" zsh "$@" 2>/dev/null | grep '^ARGV:'
+}
+
+# Same, but with the shell believing it sits in a tmux session named $1.
+# The fake tmux answers the one question the wrapper asks (#S); anything
+# else it is asked would be a widening of scope and shows up as a diff here.
+drive_in_tmux() {  # drive_in_tmux <session-name> <arg>... -> received argv
+  local sname="$1"; shift
+  print -r -- '#!/bin/sh'                                  > "$TMP/tmux"
+  print -r -- "printf '%s\\n' '$sname'"                   >> "$TMP/tmux"
+  chmod +x "$TMP/tmux"
+  zsh -c "source '$ZSHDIR/04-aliases.zsh' 2>/dev/null; unalias -m '*' 2>/dev/null
+          PATH='$TMP':\$PATH; TMUX=/tmp/fake,1,0; claude \"\$@\"" zsh "$@" 2>/dev/null \
+    | grep '^ARGV:'
 }
 
 ok "bare gets --"            "ARGV:[--]"             "$(drive)"
@@ -96,10 +112,36 @@ ok "explicit -- not doubled" "ARGV:[--]"             "$(drive --)"
 # what catches a wrapper that rebuilds argv instead of forwarding "$@".
 ok "quoting preserved"       "ARGV:[-p][two words]"  "$(drive -p 'two words')"
 
+echo "── inside tmux, a bare claude adopts the session name ──"
+# The session name IS the identity, and proj/pt already picked it. A
+# hand-typed `claude` in that pane should not have to be renamed afterwards
+# — prefix T exists for CHANGING the name, not for setting it the first
+# time. This is display-name shaping, not identity seeding: `--name` names
+# the conversation, it does not claim a bus alias or mint a session id, and
+# the three bans above still assert zero hits.
+ok "adopts #S"              "ARGV:[--name][dotfiles/nfl-4][--]" \
+   "$(drive_in_tmux 'dotfiles/nfl-4')"
+# Home base sessions are bare <project> — still a name worth carrying.
+ok "adopts a bare #S"       "ARGV:[--name][dotfiles][--]" \
+   "$(drive_in_tmux 'dotfiles')"
+# Passthrough is untouched inside tmux: --resume picks the conversation (and
+# its name) interactively, so forcing a name onto it would fight the picker.
+ok "resume still passes"    "ARGV:[--resume]"       "$(drive_in_tmux 'dotfiles/nfl-4' --resume)"
+# A tmux that answers nothing (server gone, pane detached) must degrade to
+# the plain form rather than emitting `--name '' --`.
+ok "empty #S falls back"    "ARGV:[--]"             "$(drive_in_tmux '')"
+
 echo "── it cannot recurse into itself ──"
 # Without `command`, `claude` inside claude() re-enters the function forever.
-ok "dispatches via command" "1" \
-   "$(code | grep -cE '^[[:space:]]*claude[[:space:]]*\(\).*command claude')"
+# Scan the whole body rather than the definition line: the wrapper stopped
+# being a one-liner when it grew the name branch, and an assertion that only
+# reads line 1 would have gone quietly vacuous.
+body() { awk '/^claude\(\) \{/,/^\}/' "$ZSHDIR/04-aliases.zsh"; }
+ok "body found"             "1" "$(body | grep -c '^claude() {')"
+ok "dispatches via command" "1" "$(body | grep -c 'command claude "\$@"')"
+# Delete every `command claude` and no bare `claude` token may remain.
+ok "no recursive call"      "0" \
+   "$(body | tail -n +2 | grep -vE '^[[:space:]]*#' | sed 's/command claude//g' | grep -cE '(^|[^[:alnum:]_-])claude([^[:alnum:]_-]|$)')"
 
 echo "── claude is reachable at all ──"
 if [[ -x "$HOME/.local/bin/claude" ]]; then

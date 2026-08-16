@@ -49,8 +49,10 @@ One **project workspace = one Ghostty window**. `proj` is a two-screen
 picker: Screen 1 picks a project (or jumps to a live session); Screen 2
 picks a session — or names new work. **The session name is the identity**:
 sessions are born `<project>/<work>` (home base: bare `<project>`), every
-surface aligns to that name, and renames go through one gesture
-(`prefix T`) so no surface is left behind. Isolation is the agent's job —
+surface aligns to that name — Claude included, which is launched with
+`--name <session>` — and renames go through one gesture (`prefix T`,
+where you type only the work half) so no surface is left behind.
+Isolation is the agent's job —
 proj opens everything in the primary clone and coding agents make their
 own worktrees when they need them.
 
@@ -182,19 +184,39 @@ The tmux session name (`#S`) is the identity (spec:
 `docs/superpowers/specs/2026-08-08-proj-session-identity-design.md`). A
 session is born named for its work (`<project>/<work>`, via the proj
 picker or `pt`), and every surface aligns to that one name: tab titles,
-the picker, and — when muster is installed — the bus alias, which its
-SessionStart hook seeds from the session name.
+the picker, Claude's own conversation name, and — when muster is
+installed — the bus alias, which its SessionStart hook seeds from the
+session name.
 
-Renames go through one gesture so no surface is left behind. `prefix T`
-(`bin/tmux-session-rename.sh`) validates the name (letters, digits, `-`,
+Claude gets that name at launch, via `claude --name <session>`. Both
+launch paths carry it: `proj --claude` / `pt --claude` type it into the
+pane (`__claude_launch_cmd`), and a hand-typed bare `claude` picks up
+`#S` through the wrapper in `04-aliases.zsh`. Nothing is injected and
+nothing waits for the agent to boot. `--name` writes a transcript
+custom-title record, which is what `config/claude/statusline.sh` reads to
+decide a name is user-set — so the first status tick already sees Claude
+and `#S` aligned.
+
+Renames go through one gesture so no surface is left behind. **You type
+the work, never the project.** `prefix T` runs
+`bin/tmux-session-rename.sh --prompt`, which pre-fills the prompt with
+the work segment alone (a home-base session, whose `#S` is a bare
+`<project>`, starts empty); the rename half re-attaches the project
+prefix to whatever comes back. A typed name that already contains a `/`
+is taken verbatim — the escape hatch for re-homing a session under
+another project. From there it validates the name (letters, digits, `-`,
 `_`, `/`), refuses names any live session holds, renames the tmux
 session, and — with muster — calls `muster become`, which claims the
 alias on the bus (mail follows via lineage) and types `/rename` into the
-registered Claude pane. `/rename` inside Claude flows the other way: the
-statusline proves the name is user-set via the transcript custom-title
-record, then renames the tmux session (plus `muster become --no-inject`
-when available — the name already came from `/rename`). Without muster,
-both gestures still work, just tmux-only.
+registered Claude pane.
+
+`/rename` inside Claude flows the other way: the statusline proves the
+name is user-set via the transcript custom-title record, then renames the
+tmux session (plus `muster become --no-inject` when available — the name
+already came from `/rename`). Note the asymmetry: that path takes the
+name literally and does **not** re-attach a project prefix, so
+`/rename foo` on `dotfiles/nfl-4` leaves a bare `foo`. Use `prefix T`.
+Without muster, both gestures still work, just tmux-only.
 
 `@claude_task` survives as a display-only subtitle — whatever Claude
 currently calls the conversation (usually its auto topic), rendered in

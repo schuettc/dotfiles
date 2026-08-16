@@ -3,6 +3,12 @@
 # name is the identity — session-identity plan 2026-08-08). Must validate
 # the charset, refuse names live sessions hold on ANY server, work with
 # and without muster, and never send-keys.
+#
+# It also owns BOTH halves of the prefix-T gesture now: `--prompt` computes
+# the pre-fill (the work segment alone) and issues the command-prompt, and
+# the rename half re-attaches the project prefix to a bare work name. The
+# project half of the identity is never typed — see the header comment in
+# the script for why.
 set -u
 REPO="${0:A:h:h}"
 
@@ -48,10 +54,6 @@ fi
 export PATH="$NOMUSTER_PATH"
 "$REPO/bin/tmux-session-rename.sh" "$PANE" "dotfiles/nfl-4"
 ok "renames the session"        "dotfiles/nfl-4" "$(name)"
-"$REPO/bin/tmux-session-rename.sh" "$PANE" "fix prefix T"
-ok "spaces slugified to hyphens" "fix-prefix-T" "$(name)"
-"$REPO/bin/tmux-session-rename.sh" "$PANE" "dotfiles/nfl-4"
-ok "restore for later assertions" "dotfiles/nfl-4" "$(name)"
 "$REPO/bin/tmux-session-rename.sh" "$PANE" "bad.name"
 ok "invalid charset refused"    "dotfiles/nfl-4" "$(name)"
 "$REPO/bin/tmux-session-rename.sh" "$PANE" "bad:name"
@@ -59,9 +61,70 @@ ok "colon refused"              "dotfiles/nfl-4" "$(name)"
 "$REPO/bin/tmux-session-rename.sh" "$PANE" ""
 ok "empty input is a no-op"     "dotfiles/nfl-4" "$(name)"
 
+# ── composition: a bare work name inherits the project prefix ───────
+# The operator types the WORK, never the project — the project half is a
+# property of where the session lives, and re-typing it was the whole
+# reason a cleared prompt used to strip a session out of its project.
+print '── project prefix is re-attached ──'
+"$REPO/bin/tmux-session-rename.sh" "$PANE" "nfl-5"
+ok "bare work gets the prefix"   "dotfiles/nfl-5" "$(name)"
+"$REPO/bin/tmux-session-rename.sh" "$PANE" "fix prefix T"
+ok "slugified, then prefixed"    "dotfiles/fix-prefix-T" "$(name)"
+# Escape hatch: a typed name that already carries a '/' is taken verbatim,
+# which is the only way to re-home a session (or leave it deliberately bare
+# under a one-segment name).
+"$REPO/bin/tmux-session-rename.sh" "$PANE" "otherproj/nfl-4"
+ok "slashed name taken verbatim" "otherproj/nfl-4" "$(name)"
+# Home base (#S has no '/'): the whole name IS the project, so a bare work
+# name promotes it into <project>/<work> rather than replacing it.
+tmux -S "$SOCKDIR/main" rename-session -t "$PANE" "homebase"
+"$REPO/bin/tmux-session-rename.sh" "$PANE" "nfl-7"
+ok "home base promotes to work"   "homebase/nfl-7" "$(name)"
+# Re-typing the work you already have is a no-op, not a self-collision:
+# composition happens BEFORE the equality check.
+"$REPO/bin/tmux-session-rename.sh" "$PANE" "nfl-7"
+ok "same work is a no-op"         "homebase/nfl-7" "$(name)"
+tmux -S "$SOCKDIR/main" rename-session -t "$PANE" "dotfiles/nfl-4"
+
+# ── prefill: the prompt offers the work segment alone ───────────────
+# --prompt needs an attached client for command-prompt, which a headless
+# test server has none of. Shim tmux to log the command-prompt argv (and
+# pass everything else through to the real server) and assert on -I.
+print '── prompt pre-fill ──'
+REALTMUX="$(command -v tmux)"
+mkdir -p "$WORK/bin3"
+cat > "$WORK/bin3/tmux" <<EOF
+#!/bin/sh
+if [ "\$1" = "command-prompt" ]; then
+  printf '%s\n' "\$*" > "\${PROMPT_LOG:?}"
+  exit 0
+fi
+exec "$REALTMUX" "\$@"
+EOF
+chmod +x "$WORK/bin3/tmux"
+export PROMPT_LOG="$WORK/prompt.log"
+PATH="$WORK/bin3:$NOMUSTER_PATH" "$REPO/bin/tmux-session-rename.sh" --prompt "$PANE"
+ok "pre-fills the work only"  "nfl-4" "$(sed -n 's/^command-prompt -I \(.*\) -p .*/\1/p' "$PROMPT_LOG")"
+ok "prompts for work, not session" "1" \
+   "$(grep -c 'rename work:' "$PROMPT_LOG")"
+ok "hands the pane id back"   "1" \
+   "$(grep -c "tmux-session-rename.sh $PANE" "$PROMPT_LOG")"
+# The binding passes #{client_tty}: a run-shell child is client-less, so an
+# untargeted prompt would land on whichever client tmux used last — wrong on
+# a server with one client per session.
+PATH="$WORK/bin3:$NOMUSTER_PATH" "$REPO/bin/tmux-session-rename.sh" --prompt "$PANE" /dev/ttys999
+ok "targets the pressing client" "1" \
+   "$(grep -c -- '-t /dev/ttys999' "$PROMPT_LOG")"
+tmux -S "$SOCKDIR/main" rename-session -t "$PANE" "homebase"
+PATH="$WORK/bin3:$NOMUSTER_PATH" "$REPO/bin/tmux-session-rename.sh" --prompt "$PANE"
+ok "home base pre-fills empty" "" "$(sed -n 's/^command-prompt -I \(.*\) -p .*/\1/p' "$PROMPT_LOG")"
+tmux -S "$SOCKDIR/main" rename-session -t "$PANE" "dotfiles/nfl-4"
+
 # ── collision with a live session on ANOTHER server ─────────────────
+# The typed work composes to dotfiles/taken-name, so the session that
+# holds the name has to be created under that composed name.
 print '── cross-server collision ──'
-tmux -S "$SOCKDIR/other" new-session -d -s taken-name -x 80 -y 24
+tmux -S "$SOCKDIR/other" new-session -d -s dotfiles/taken-name -x 80 -y 24
 "$REPO/bin/tmux-session-rename.sh" "$PANE" "taken-name"
 ok "name held elsewhere refused" "dotfiles/nfl-4" "$(name)"
 
@@ -70,7 +133,7 @@ ok "name held elsewhere refused" "dotfiles/nfl-4" "$(name)"
 # shim's own server — confirm a same-server collision is caught the same
 # way as cross-server, before rename-session is ever attempted.
 print '── same-server collision ──'
-tmux -S "$SOCKDIR/main" new-session -d -s local-taken -x 80 -y 24
+tmux -S "$SOCKDIR/main" new-session -d -s dotfiles/local-taken -x 80 -y 24
 "$REPO/bin/tmux-session-rename.sh" "$PANE" "local-taken"
 ok "name held on same server refused" "dotfiles/nfl-4" "$(name)"
 export PATH="$PATH_SAVE"

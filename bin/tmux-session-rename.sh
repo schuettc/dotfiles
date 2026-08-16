@@ -11,12 +11,59 @@
 # rename stays tmux-only (Claude's internal name catches up on the
 # operator's next /rename).
 #
+# THE OPERATOR TYPES THE WORK, NEVER THE PROJECT. A session identity is
+# <project>/<work>, but only the work half is the operator's to choose —
+# the project half is a property of where the session lives. So this script
+# owns both ends of the gesture: `--prompt` pre-fills the command-prompt
+# with the work segment alone, and the rename half re-attaches the project
+# prefix to whatever comes back. The binding used to pre-fill the whole #S
+# instead, which meant clearing the prompt and typing a bare label silently
+# renamed the session OUT of its project — it stopped matching proj's
+# Screen-2 <project>/* scan and rendered differently in status-left. A
+# typed name that already carries a '/' is taken verbatim; that is the
+# escape hatch for re-homing a session under a different project.
+#
 # tmux run-shell children inherit $TMUX but NOT $TMUX_PANE — $1 is
 # #{pane_id}, expanded by the binding at press time; $2 is the new name.
 # Output goes through display-message: run-shell opens a full-screen view
 # for ANY stdout, which reads as an error screen instead of feedback.
+
+# Absolute path to this script, so the command-prompt below can hand the
+# rename half back to the same copy that raised it (the worktree copy under
+# test, not whatever ~/dotfiles happens to hold).
+case "$0" in
+  */*) self="$(cd "${0%/*}" && pwd)/${0##*/}" ;;
+  *)   self="$0" ;;
+esac
+
+# ── prompt half: raise the command-prompt, pre-filled with the work ──
+# Bound to prefix T. Computing the pre-fill here rather than in the binding
+# keeps one definition of "which part of #S is the work" — a tmux format
+# string could strip the prefix too, but it cannot express the home-base
+# case (no '/' at all, so the whole name is the project and there is no
+# work to offer yet).
+if [[ "$1" == "--prompt" ]]; then
+  pane="$2"
+  client="${3:-}"
+  cur=$(tmux display-message -p -t "$pane" '#{session_name}')
+  work=""
+  [[ "$cur" == */* ]] && work="${cur#*/}"
+  # -t <client> because a run-shell child reaches the server as a fresh
+  # client-less command: untargeted, the prompt lands on whichever client
+  # tmux used most recently, and these servers carry one client per session.
+  client_arg=()
+  [[ -n "$client" ]] && client_arg=(-t "$client")
+  # Same shape the .tmux.conf binding used to carry: the inner \"%%\" keeps
+  # a name with spaces as ONE argument once command-prompt substitutes it.
+  tmux command-prompt "${client_arg[@]}" -I "$work" -p 'rename work:' \
+    "run-shell -b \"$self $pane \\\"%%\\\"\""
+  exit 0
+fi
+
 export TMUX_PANE="$1"
 new="$2"
+
+cur=$(tmux display-message -p -t "$TMUX_PANE" '#{session_name}')
 
 # Names are typed naturally but live as addresses (tmux target, muster
 # alias): collapse whitespace runs to hyphens instead of refusing them.
@@ -24,15 +71,27 @@ new="$2"
 read -ra __words <<<"$new"
 new=$(IFS='-'; printf '%s' "${__words[*]}")
 
-cur=$(tmux display-message -p -t "$TMUX_PANE" '#{session_name}')
-
-if [[ -z "$new" || "$new" == "$cur" ]]; then
+if [[ -z "$new" ]]; then
   tmux display-message "rename cancelled (still: $cur)"
   exit 0
 fi
 
 if [[ ! "$new" =~ ^[A-Za-z0-9_/-]+$ ]]; then
   tmux display-message "invalid name: $new (allowed: letters digits - _ /)"
+  exit 0
+fi
+
+# Re-attach the project prefix to a bare work name. The project is the
+# FIRST segment of the current name; for a home-base session (no '/') that
+# is the whole name, so typing a work name promotes <project> into
+# <project>/<work>. Composition happens BEFORE the equality check below, so
+# re-typing the work you already have still reads as "no change".
+if [[ "$new" != */* ]]; then
+  new="${cur%%/*}/$new"
+fi
+
+if [[ "$new" == "$cur" ]]; then
+  tmux display-message "rename cancelled (still: $cur)"
   exit 0
 fi
 

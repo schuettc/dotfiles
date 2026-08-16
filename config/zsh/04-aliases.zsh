@@ -68,6 +68,15 @@ export AWS_PAGER=""
 # the function below, so `reload` must drop it rather than leave it live.
 unalias claude 2> /dev/null
 
+# The name a bare `claude` adopts: this tmux session's name, which IS the
+# identity proj/pt already chose. Silent and empty outside tmux, or when the
+# server can't answer (detached pane, server gone) — callers fall back to the
+# unnamed form rather than passing `--name ''`, which claude rejects.
+__claude_session_name() {
+  [[ -n "${TMUX:-}" ]] || return 0
+  tmux display-message -p '#S' 2>/dev/null
+}
+
 # Argv-shaping only: add `--` when called with NO arguments, otherwise pass
 # through untouched.
 #
@@ -85,7 +94,26 @@ unalias claude 2> /dev/null
 # is never what was meant — you were opening a pane to work in.
 #
 # `command` is load-bearing: without it this recurses into itself.
-claude() { (( $# )) && command claude "$@" || command claude -- ; }
+#
+# The no-argument branch also carries the session name through to Claude.
+# That is argv-shaping, not the identity seeding this file spent a page
+# banning above: `--name` sets the CONVERSATION's display name, it claims no
+# bus alias and mints no session id, and it is derived from #S rather than
+# used to guess one. The bans are about who assigns bus identity (muster),
+# and this touches none of it.
+#
+# Without it, a session born `dotfiles/nfl-4` launched an agent calling
+# itself something else, and the only way to reconcile them was prefix T —
+# a gesture for CHANGING a name, being used to set one that was already
+# decided. config/claude/statusline.sh compares Claude's name against #S on
+# every tick; starting them equal is what keeps it on its cheap path.
+claude() {
+  (( $# )) && { command claude "$@"; return }
+  local -a name_args
+  local n; n=$(__claude_session_name)
+  [[ -n "$n" ]] && name_args=(--name "$n")
+  command claude "${name_args[@]}" --
+}
 
 # The command every AUTO-launch path types into a fresh pane. One definition
 # so the call site (__proj_launch — pt and the tmux auto-join hook both route
@@ -122,7 +150,16 @@ claude() { (( $# )) && command claude "$@" || command claude -- ; }
 #
 # So the command is spelled out at the call site rather than relying on the
 # receiving shell to have been reloaded.
-__claude_launch_cmd() { print -r -- 'claude --'; }
+#
+# $1 is the session name to carry into Claude (`--name`), omitted or empty
+# for the plain form. The receiving pane's shell may predate the claude()
+# wrapper above — that is this function's whole reason to exist — so the name
+# is baked into the typed text rather than left for the wrapper to resolve.
+__claude_launch_cmd() {
+  local n="${1:-}"
+  [[ -n "$n" ]] && { print -r -- "claude --name ${(qq)n} --"; return }
+  print -r -- 'claude --'
+}
 
 # Quick navigation
 alias ..='cd ..'
@@ -277,7 +314,7 @@ __proj_ensure_session() {
       # This silently ate the auto-launch — `proj --claude` opened an empty
       # pane and said nothing, because send-keys' failure goes to stderr in a
       # detached context and nothing checks its exit code.
-      tmux -L "$srv" send-keys -t "=$name:" "$(__claude_launch_cmd)" Enter
+      tmux -L "$srv" send-keys -t "=$name:" "$(__claude_launch_cmd "$name")" Enter
     elif [[ "$auto_agent" == "cursor" ]]; then
       local ca=""
       command -v cursor-agent >/dev/null && ca="cursor-agent"
