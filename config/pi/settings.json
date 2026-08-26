@@ -1,0 +1,10 @@
+{
+  "defaultProvider": "llama.cpp",
+  "defaultModel": "unsloth/Qwen3.8-27B-GGUF:Q8_0",
+  "defaultThinkingLevel": "medium",
+  "compaction": {
+    "enabled": true,
+    "reserveTokens": 16384,
+    "keepRecentTokens": 24000
+  }
+}

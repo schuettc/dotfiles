@@ -20,12 +20,29 @@ See [`docs/terminal-usage.md`](docs/terminal-usage.md) for the day-to-day
 cheat sheet, and [`docs/setup-notes.md`](docs/setup-notes.md) for the full
 design rationale behind the migration off cmux.
 
-### Selective install
+### Installation options
 
-Don't want everything `install.sh` installs? Clone the repo, open `claude`
-in it, and ask it to run the install wizard — it walks you through each
-package (what it is, what it touches), lets you pick a subset, and installs
-only those.
+| What you want | Command |
+|---|---|
+| Standard terminal and agent setup | `./install.sh` |
+| Guided selective setup | Open `claude` here and ask it to run the install wizard |
+| An explicit package list | `./packages/run.sh core terminal claude` |
+| Pi CLI only, without local-model management | `npm install -g @earendil-works/pi-coding-agent` |
+| Managed Pi + llama.cpp local-model stack after the standard install | `./packages/run.sh pi` |
+| Managed Pi + llama.cpp when `core` is not installed (Homebrew required) | `./packages/run.sh core pi` |
+
+`install.sh` installs the standard packages; it deliberately skips the local
+Pi model stack. The package runner resolves packages in dependency order and
+refuses to proceed when a required dependency is neither selected nor already
+installed. Every install path is idempotent and safe to rerun.
+
+The standard set is `core`, `terminal`, `nvim`, `markedit`, `claude`,
+`swiftbar`, `codex`, `cursor`, and `muster`. The available opt-in package is
+`pi`; it is also offered by the guided install wizard.
+
+The Pi CLI-only option leaves provider and model setup to Pi. The managed Pi
+package adds llama.cpp, the loopback router, its LaunchAgent, and reproducible
+local model defaults. It does not download model weights during installation.
 
 ## What's Included
 
@@ -82,6 +99,20 @@ any project. Project roots are configured per-machine in `~/.config/proj/roots`
 - **Modular zsh** — configs split into numbered files in `config/zsh/`
 - **Lazy-loaded NVM** — Node available immediately, NVM loads on demand
 - **Starship prompt** — two-line prompt with git status, language versions, AWS profile
+
+### Pi with local models
+
+This is an optional component. Install it explicitly with:
+
+```bash
+~/dotfiles/packages/run.sh pi
+```
+
+The `pi` package installs Pi and a launchd-managed llama.cpp router on the
+loopback-only port 42137. Pi's native `/llama` command downloads, loads, and
+unloads GGUF models; normal `pi`, `pi --resume`, and `pi --session ...` commands
+need no wrapper. The model, port, defaults, runtime tuning, and service controls
+are documented in [`docs/pi-local-models.md`](docs/pi-local-models.md).
 
 ### Modern CLI Tools (via packages/*/Brewfile)
 | Tool | Replaces | Purpose |
@@ -232,12 +263,12 @@ retired.
 ~/dotfiles/
 ├── .zshrc                 # Minimal loader, sources config/zsh/*
 ├── .tmux.conf             # tmux config (prefix C-a, plugins, status bar)
-├── install.sh             # One-command setup — runs every package below
+├── install.sh             # One-command setup — runs standard packages
 ├── packages/
 │   ├── lib.sh             # Shared install helpers (run_pkg, warn/die, backups)
-│   ├── run.sh             # Runs an explicit package list (the wizard's entry point)
+│   ├── run.sh             # Runs explicit packages, including opt-in packages
 │   └── <name>/pkg.sh      # Per-package install/verify + its own Brewfile
-│       # core terminal nvim markedit claude swiftbar codex cursor muster
+│       # core terminal nvim markedit claude swiftbar codex pi cursor muster
 ├── bin/
 │   ├── tmux-git-status.sh      # branch + dirty count for status-right
 │   ├── tmux-claude-context.sh  # Claude context % for status-right
@@ -263,6 +294,7 @@ retired.
 │       ├── statusline.sh      # Claude Code status line (model + dir)
 │       └── claude-notify.sh   # Notification/Stop hooks → tmux bell
 └── docs/
+    ├── pi-local-models.md # Pi + local llama.cpp models
     ├── terminal-usage.md  # day-to-day cheat sheet
     ├── terminal-setup.md  # install tutorial
     ├── codex-bridge.md    # Claude Code + Codex (GPT) workflow

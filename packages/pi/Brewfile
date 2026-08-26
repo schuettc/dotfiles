@@ -1,0 +1,2 @@
+# Local model runtime for Pi. Model weights are downloaded separately via /llama.
+brew "llama.cpp"

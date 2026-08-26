@@ -16,7 +16,10 @@ packages — not this file — are the source of truth: read every
    (say clearly: merges are additive — their settings are preserved).
 2. **Inventory.** Present the package list with one-line descriptions and
    the dependency graph, then walk packages ONE AT A TIME in canonical
-   order (core terminal nvim markedit claude swiftbar codex cursor muster). For
+   order (core terminal nvim markedit claude swiftbar codex pi cursor muster).
+   Pi is an opt-in local-model package and is not part of root `install.sh`;
+   explicitly call out that it installs llama.cpp, writes additive Pi provider
+   defaults, and creates a persistent loopback-only router LaunchAgent. For
    each: what it is, how it works, and EXACTLY what it touches — casks
    installed, files symlinked into $HOME, settings files merged, and any
    persistence (login items, LaunchAgents) called out explicitly. Codex
@@ -37,6 +40,6 @@ packages — not this file — are the source of truth: read every
 - One question per message. No compound questions.
 - Explain before asking — the user should understand a package before
   deciding. Answer side-questions from the pkg.sh/README content.
-- Never run root ./install.sh from this skill (that is the install-all
+- Never run root ./install.sh from this skill (that is the standard-package
   path); the wizard only runs packages/run.sh with the confirmed set.
 - If a package's verify FAILs, say so plainly — no "mostly worked".

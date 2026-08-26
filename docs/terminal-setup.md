@@ -23,7 +23,26 @@ the design rationale see [`setup-notes.md`](setup-notes.md).
 - [Homebrew](https://brew.sh) — `install.sh` installs it if missing
 - A GitHub SSH key (to clone the repo via `git@`)
 
-## One-command install
+## Choose an installation path
+
+| Installation | Use when | Command |
+|---|---|---|
+| Standard | You want the normal terminal and coding-agent setup | `./install.sh` |
+| Guided selective | You want to review and approve packages individually | Open `claude` in the repo and ask for the install wizard |
+| Explicit selective | You already know which packages you want | `./packages/run.sh <package>…` |
+| Local Pi models | You want the opt-in Pi + llama.cpp stack | `./packages/run.sh pi` after a standard install, or `./packages/run.sh core pi` when `core` is not installed (Homebrew required) |
+
+The local Pi model stack is intentionally excluded from the standard install.
+Installing the Pi app by itself is also supported with
+`npm install -g @earendil-works/pi-coding-agent`; that does not install or
+configure llama.cpp. See [`pi-local-models.md`](pi-local-models.md) for the full
+set of local-model choices.
+
+The standard package set is `core`, `terminal`, `nvim`, `markedit`, `claude`,
+`swiftbar`, `codex`, `cursor`, and `muster`; `pi` is available only when it is
+explicitly selected.
+
+## Standard one-command install
 
 ```bash
 git clone git@github.com:schuettc/dotfiles.git ~/dotfiles
@@ -31,11 +50,12 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-`install.sh` is idempotent — safe to re-run. It will:
+`install.sh` is idempotent — safe to re-run. It installs the standard package
+set and will:
 
-1. Install Homebrew (if missing) and run `brew bundle` to install everything
-   in the `Brewfile`: Ghostty, tmux, yazi, neovim, fzf, fd, ripgrep, bat, eza,
-   zoxide, atuin, starship, gh, jq, VS Code, Nerd Font casks, …
+1. Install Homebrew (if missing) and apply the selected packages' Brewfiles:
+   Ghostty, tmux, yazi, neovim, fzf, fd, ripgrep, bat, eza, zoxide, atuin,
+   starship, gh, jq, VS Code, Nerd Font casks, …
 2. Symlink configs into place (backing up any existing file to `*.bak`):
    - `~/.zshrc`, `~/.tmux.conf`
    - `~/.config/zsh/`, `~/.config/ghostty/`, `~/.config/yazi/`,
