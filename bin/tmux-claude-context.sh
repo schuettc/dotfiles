@@ -17,12 +17,13 @@ set -u
 pane_id="${1:-}"
 [[ -z "$pane_id" ]] && exit 0
 
-# Liveness gate: only show the indicator if this pane is actually running
-# Claude. A Claude pane's current command is the version string (e.g.
-# "2.1.156") or "claude". This beats guessing from file age — statusline.sh
-# only rewrites the state file at each turn boundary, so during a long turn
-# the file looks "stale" while Claude is very much alive. If the command
-# isn't Claude, the pane moved on → no icon.
+# Liveness gate: only show the indicator if this pane is actually running a
+# coding agent. A Claude pane's current command is the version string (e.g.
+# "2.1.156") or "claude"; a pi pane's is "pi", because pi sets process.title
+# at startup. This beats guessing from file age — the writer only rewrites the
+# state file at each turn boundary, so during a long turn the file looks
+# "stale" while the session is very much alive. If the command is neither,
+# the pane moved on → no icon.
 #
 # The same query also yields '#{socket_path}' — the server that owns this pane
 # — so one tmux call covers both the liveness gate and the state key below.
@@ -30,7 +31,7 @@ info=$(tmux display-message -p -t "$pane_id" '#{pane_current_command}
 #{socket_path}' 2>/dev/null)
 cmd=${info%%$'\n'*}
 sock_path=${info#*$'\n'}
-[[ "$cmd" == claude || "$cmd" =~ ^[0-9]+\.[0-9]+ ]] || exit 0
+[[ "$cmd" == claude || "$cmd" == pi || "$cmd" =~ ^[0-9]+\.[0-9]+ ]] || exit 0
 
 # Stable path: $HOME/.cache is identical for the Claude process (even when
 # its sandbox sets a different $TMPDIR) and for tmux — so both sides agree.
