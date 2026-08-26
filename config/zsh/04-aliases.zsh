@@ -161,6 +161,18 @@ __claude_launch_cmd() {
   print -r -- 'claude --'
 }
 
+# The pi analog of __claude_launch_cmd. pi takes --name/-n for the session
+# display name and starts an interactive session with no message argument; it
+# needs no trailing `--` (there is no bare-pi agent-view trap the way `claude`
+# has). The name passed is the tmux session name, so pi's session identity —
+# which the harness extension stamps onto the pane and reports to muster —
+# matches the pane it launched in, exactly as the claude path does.
+__pi_launch_cmd() {
+  local n="${1:-}"
+  [[ -n "$n" ]] && { print -r -- "pi --name ${(qq)n}"; return }
+  print -r -- 'pi'
+}
+
 # Quick navigation
 alias ..='cd ..'
 alias ...='cd ../..'
@@ -186,6 +198,7 @@ alias reload='source ~/.zshrc'
 #   proj              # two-screen picker
 #   proj <project>    # jump straight to Screen 2 for that project
 #   proj --claude     # auto-launch Claude in the new session's left pane
+#   proj --pi         # auto-launch pi in the new session's left pane
 #   proj --cursor     # auto-launch Cursor in the new session's left pane
 #   proj --edit       # open ~/.config/proj/roots in $EDITOR
 #   proj --add        # add a root, or a single directory as a project
@@ -315,6 +328,12 @@ __proj_ensure_session() {
       # pane and said nothing, because send-keys' failure goes to stderr in a
       # detached context and nothing checks its exit code.
       tmux -L "$srv" send-keys -t "=$name:" "$(__claude_launch_cmd "$name")" Enter
+    elif [[ "$auto_agent" == "pi" ]] && command -v pi >/dev/null; then
+      # Same shape and rationale as the claude branch: type the launch command
+      # into the pane's shell (quitting pi leaves a usable shell), and target
+      # "=$name:" with the trailing colon so send-keys resolves the pane on
+      # tmux 3.7b. __pi_launch_cmd bakes the session name into `pi --name`.
+      tmux -L "$srv" send-keys -t "=$name:" "$(__pi_launch_cmd "$name")" Enter
     elif [[ "$auto_agent" == "cursor" ]]; then
       local ca=""
       command -v cursor-agent >/dev/null && ca="cursor-agent"
@@ -437,9 +456,10 @@ proj() {
   "$HOME/dotfiles/bin/dotfiles-update-check.sh" refresh >/dev/null 2>&1 &!
 
   local auto_agent=""
-  while [[ "$1" == "--claude" || "$1" == "--cursor" ]]; do
+  while [[ "$1" == "--claude" || "$1" == "--cursor" || "$1" == "--pi" ]]; do
     [[ "$1" == "--claude" ]] && auto_agent="claude"
     [[ "$1" == "--cursor" ]] && auto_agent="cursor"
+    [[ "$1" == "--pi" ]] && auto_agent="pi"
     shift
   done
   local direct_project="${1:-}"
@@ -523,12 +543,14 @@ proj() {
 #   pt nfl-4              # work "nfl-4" in the project containing $PWD
 #   pt repo-a nfl-4       # explicit project, from anywhere
 #   pt --claude nfl-4     # auto-launch Claude in the left pane
+#   pt --pi nfl-4         # auto-launch pi in the left pane
 #   pt --cursor nfl-4     # auto-launch Cursor in the left pane
 pt() {
   local auto_agent=""
-  while [[ "$1" == "--claude" || "$1" == "--cursor" ]]; do
+  while [[ "$1" == "--claude" || "$1" == "--cursor" || "$1" == "--pi" ]]; do
     [[ "$1" == "--claude" ]] && auto_agent="claude"
     [[ "$1" == "--cursor" ]] && auto_agent="cursor"
+    [[ "$1" == "--pi" ]] && auto_agent="pi"
     shift
   done
 
