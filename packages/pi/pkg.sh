@@ -87,6 +87,18 @@ pkg_install() {
 
   echo "Pi uses llama.cpp at $base_url."
   echo "Run Pi normally, then use /llama to download or manage models."
+
+  # Optional: deploy the pi harness stack (extensions, managed settings, config
+  # symlinks) from the schuettc/pi repo if it is cloned. Kept optional so this
+  # bootstrap never hard-depends on that repo being present. Override the path
+  # with PI_HARNESS_REPO.
+  local pi_repo="${PI_HARNESS_REPO:-$HOME/GitHub/schuettc/pi}"
+  if [[ -x "$pi_repo/deploy.sh" ]]; then
+    echo "Deploying pi harness stack from $pi_repo ..."
+    "$pi_repo/deploy.sh" || warn "pi harness deploy.sh failed — run it by hand: $pi_repo/deploy.sh"
+  else
+    echo "pi harness repo not found at $pi_repo — clone schuettc/pi and run ./deploy.sh to add the extension stack (optional)."
+  fi
 }
 
 pkg_verify() {
