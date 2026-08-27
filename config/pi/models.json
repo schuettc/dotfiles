@@ -7,9 +7,48 @@
           "name": "Qwen3.8 27B Q8 (local)",
           "api": "openai-completions",
           "reasoning": true,
-          "input": ["text", "image"],
+          "input": [
+            "text",
+            "image"
+          ],
           "contextWindow": 262144,
           "maxTokens": 32768,
+          "thinkingLevelMap": {
+            "off": "none",
+            "minimal": "low",
+            "low": "low",
+            "medium": "medium",
+            "high": "xhigh",
+            "xhigh": "xhigh",
+            "max": "xhigh"
+          },
+          "samplingParams": {
+            "temperature": 1.0,
+            "top_p": 0.95,
+            "top_k": 20,
+            "min_p": 0.0,
+            "presence_penalty": 0.0,
+            "repeat_penalty": 1.0
+          },
+          "compat": {
+            "supportsStore": false,
+            "supportsDeveloperRole": true,
+            "supportsReasoningEffort": true,
+            "supportsUsageInStreaming": true,
+            "maxTokensField": "max_tokens",
+            "thinkingFormat": "openai"
+          }
+        },
+        {
+          "id": "empero-ai/Qwen3.8-9B-Distill-GGUF:Q8_0",
+          "name": "Qwen3.8 9B Distill Q8 (local reviewer)",
+          "api": "openai-completions",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 32768,
+          "maxTokens": 8192,
           "thinkingLevelMap": {
             "off": "none",
             "minimal": "low",

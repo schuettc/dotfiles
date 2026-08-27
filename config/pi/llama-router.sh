@@ -32,7 +32,7 @@ exec "$llama_server" \
   --api-key "$api_key" \
   --models-preset "$models_preset" \
   --models-autoload \
-  --models-max 1 \
+  --models-max 2 \
   --jinja \
   --log-file "$HOME/Library/Logs/pi-llama-router.log" \
   --log-timestamps
