@@ -29,6 +29,14 @@
 
 set -u
 
+# A harness running inside another agent's process tree inherits
+# AGENT_SESSION_ID from that outer agent (pi exports it into every
+# subprocess, including the Claude Code children its model bridge spawns —
+# and each of those fires SessionStart). The outer agent owns the pane's
+# identity and stamps it itself; a child stamping here would steal the slot
+# and yank session-scoped state (scratch pads) to a throwaway id.
+[ -z "${AGENT_SESSION_ID:-}" ] || exit 0
+
 payload=$(cat 2>/dev/null || true)
 
 command -v jq >/dev/null 2>&1 || exit 0

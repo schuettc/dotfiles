@@ -57,7 +57,11 @@ run_in_pane() {  # run_in_pane <socket> <session> <command…>
   # wait below returned instantly and the assertions raced the pane.
   out=$(mktemp "$TMPROOT/out.XXXXXX")
   rm -f "$out"
-  tmux -L "$sock" send-keys -t "$pane" "{ $* ; } > '$out' 2>&1" Enter
+  # Scrub the outer-agent marker first: when this test itself runs inside an
+  # agent session, the throwaway tmux server inherits AGENT_SESSION_ID and
+  # every pane would trip the stamp script's child-of-an-agent guard. A case
+  # that wants the marker sets it explicitly in its own command.
+  tmux -L "$sock" send-keys -t "$pane" "{ unset AGENT_SESSION_ID; $* ; } > '$out' 2>&1" Enter
   for i in {1..60}; do
     [[ -s "$out" ]] && break
     sleep 0.1
@@ -101,6 +105,15 @@ ok "resume re-stamps same id" "abc-123" "$(opt)"
 # not inherit the previous one's identity.
 stamp_in_pane '{"session_id":"def-456","cwd":"/tmp"}'
 ok "new session replaces id" "def-456" "$(opt)"
+
+# A harness spawned INSIDE another agent's process tree (pi's claude-bridge
+# children, subagents) inherits AGENT_SESSION_ID from the outer agent. The
+# outer agent owns the pane's identity and stamps it itself — the child's
+# hook must not steal the slot.
+run_in_pane "$SOCK" workproj "printf %s '{\"session_id\":\"bridge-child\"}' | AGENT_SESSION_ID=outer-agent TMUX_TMPDIR='$TMPROOT' '$STAMP'; echo done" >/dev/null
+ok "child of another agent does not stamp" "def-456" "$(opt)"
+rc=$(run_in_pane "$SOCK" workproj "printf %s '{\"session_id\":\"bridge-child\"}' | AGENT_SESSION_ID=outer-agent TMUX_TMPDIR='$TMPROOT' '$STAMP'; echo \$?")
+ok "child skip still exits 0" "0" "$rc"
 
 # Junk must never reach tmux: the value ends up in file paths downstream.
 stamp_in_pane '{"session_id":"../../etc/passwd"}'
