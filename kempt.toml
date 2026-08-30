@@ -222,6 +222,24 @@ notes = ["run `codex login` to authenticate"]
   command-exists = "codex"
 
 # ---------------------------------------------------------------------------
+# swiftbar — menu-bar attention indicator (🔔 turn-done / 🔐 waiting-on-you per
+# Claude/pi session; the plugin at config/swiftbar/plugins/ is driven by
+# claude-attn + the pi harness). Actively used, so kempt installs the app; the
+# three macOS one-offs (plugin folder, autostart, accessibility) are manual notes.
+# ---------------------------------------------------------------------------
+[packages.swiftbar]
+description = "SwiftBar menu-bar attention indicator for Claude/pi sessions"
+needs = ["claude"]
+notes = [
+  "point SwiftBar at the repo plugins: defaults write com.ameba.SwiftBar PluginDirectory ~/dotfiles/config/swiftbar/plugins",
+  "add SwiftBar to Login Items (System Settings) to auto-start it",
+  "grant SwiftBar Accessibility permission (System Settings → Privacy) so click-to-focus works",
+]
+
+  [[packages.swiftbar.install]]
+  brew.casks = ["swiftbar"]
+
+# ---------------------------------------------------------------------------
 # cursor — DROPPED: cursor-agent CLI is not installed on this machine (the
 # Cursor editor app is present but the CLI/hooks were never set up). Like
 # swiftbar, it's out of the managed set. Re-add a [packages.cursor] block if the
@@ -378,7 +396,7 @@ notes = ["pi-provider-guard reads your private policy prose from ~/.pi/agent/ext
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "codex", "muster", "pi"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "pi"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
