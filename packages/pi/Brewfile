@@ -1,7 +1,0 @@
-# Local model runtime for Pi. Model weights are downloaded separately via /llama.
-brew "llama.cpp"
-
-# Web tools for the pi harness (@bitcraft-apps/pi-web-tools): ddgr powers
-# websearch, pandoc converts fetched HTML to markdown.
-brew "ddgr"
-brew "pandoc"

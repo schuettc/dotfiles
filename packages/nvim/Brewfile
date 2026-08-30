@@ -1,1 +1,0 @@
-brew "neovim"             # Editor — $EDITOR, LazyVim config in config/nvim

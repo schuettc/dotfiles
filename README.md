@@ -6,10 +6,18 @@ yazi** with Claude Code integration.
 
 ## Quick Start
 
-**1. Clone and install:**
+This machine is set up declaratively with **[kempt](https://github.com/schuettc/kempt)** —
+the config lives in [`kempt.toml`](kempt.toml), and kempt installs, verifies, and
+updates everything from it. You read the whole plan before anything runs.
+
+**1. Install kempt, then set up this machine:**
 ```bash
-git clone https://github.com/schuettc/dotfiles.git ~/dotfiles && cd ~/dotfiles && ./install.sh
+curl -fsSL https://kempt.tools/install.sh | sh      # install the kempt binary
+kempt init https://github.com/schuettc/dotfiles.git  # clone → pick packages → plan → apply
 ```
+`kempt init` walks a picker to choose a profile (`developer` = everything,
+`minimal` = just the shell) and package set, shows the full plan, and applies
+it on your confirmation.
 
 **2. Open Ghostty, then:**
 ```bash
@@ -20,29 +28,24 @@ See [`docs/terminal-usage.md`](docs/terminal-usage.md) for the day-to-day
 cheat sheet, and [`docs/setup-notes.md`](docs/setup-notes.md) for the full
 design rationale behind the migration off cmux.
 
-### Installation options
+### Day-to-day
 
 | What you want | Command |
 |---|---|
-| Standard terminal and agent setup | `./install.sh` |
-| Guided selective setup | Open `claude` here and ask it to run the install wizard |
-| An explicit package list | `./packages/run.sh core terminal claude` |
-| Pi CLI only, without local-model management | `npm install -g @earendil-works/pi-coding-agent` |
-| Managed Pi + llama.cpp local-model stack after the standard install | `./packages/run.sh pi` |
-| Managed Pi + llama.cpp when `core` is not installed (Homebrew required) | `./packages/run.sh core pi` |
+| See what would change (nothing runs) | `kempt plan` |
+| Apply the manifest / converge this machine | `kempt apply` |
+| Pull latest + self-update + converge | `kempt update` (aliased `dotup`) |
+| Prompt-safe status line (used by `proj`) | `kempt status` |
+| Add / drop a package from this machine's selection | `kempt adopt <pkg>` / `kempt drop <pkg>` |
 
-`install.sh` installs the standard packages; it deliberately skips the local
-Pi model stack. The package runner resolves packages in dependency order and
-refuses to proceed when a required dependency is neither selected nor already
-installed. Every install path is idempotent and safe to rerun.
+Every kempt run is idempotent and shows its plan first. The packages are
+`core`, `terminal`, `nvim`, `markedit`, `claude`, `codex`, `muster`, and the
+macOS-only `pi` (Pi coding agent + llama.cpp router). `developer` selects all;
+`minimal` selects `core`.
 
-The standard set is `core`, `terminal`, `nvim`, `markedit`, `claude`,
-`swiftbar`, `codex`, `cursor`, and `muster`. The available opt-in package is
-`pi`; it is also offered by the guided install wizard.
-
-The Pi CLI-only option leaves provider and model setup to Pi. The managed Pi
-package adds llama.cpp, the loopback router, its LaunchAgent, and reproducible
-local model defaults. It does not download model weights during installation.
+**Manual follow-ups** kempt can't automate (it prints these after `apply`):
+run `codex login` to authenticate Codex; optionally deploy the private Pi
+harness extensions with `schuettc/pi ./deploy.sh`.
 
 ## What's Included
 
@@ -102,11 +105,9 @@ any project. Project roots are configured per-machine in `~/.config/proj/roots`
 
 ### Pi with local models
 
-This is an optional component. Install it explicitly with:
-
-```bash
-~/dotfiles/packages/run.sh pi
-```
+This is an optional, macOS-only component (part of the `developer` profile).
+It's declared as the `pi` package in `kempt.toml`; `kempt apply` installs it.
+To add it to an existing selection: `kempt adopt pi && kempt apply`.
 
 The `pi` package installs Pi and a launchd-managed llama.cpp router on the
 loopback-only port 42137. Pi's native `/llama` command downloads, loads, and
@@ -158,7 +159,7 @@ Claude Code stays the primary harness, with [OpenAI Codex](https://github.com/op
 (`cask "codex"`) wired in two complementary ways so you get GPT for a second
 opinion without leaving Claude Code:
 
-- **MCP bridge** — `install.sh` registers Codex as a user-scope MCP server
+- **MCP bridge** — the `codex` package registers Codex as a user-scope MCP server
   (`claude mcp add codex -s user -- codex mcp-server`), so Claude Code can
   delegate a discrete coding task or ask GPT for a second opinion mid-session
   via the `codex` MCP tool. Verify with `claude mcp list` (look for
@@ -263,12 +264,7 @@ retired.
 ~/dotfiles/
 ├── .zshrc                 # Minimal loader, sources config/zsh/*
 ├── .tmux.conf             # tmux config (prefix C-a, plugins, status bar)
-├── install.sh             # One-command setup — runs standard packages
-├── packages/
-│   ├── lib.sh             # Shared install helpers (run_pkg, warn/die, backups)
-│   ├── run.sh             # Runs explicit packages, including opt-in packages
-│   └── <name>/pkg.sh      # Per-package install/verify + its own Brewfile
-│       # core terminal nvim markedit claude swiftbar codex pi cursor muster
+├── kempt.toml             # declarative machine manifest (kempt reads this)
 ├── bin/
 │   ├── tmux-git-status.sh      # branch + dirty count for status-right
 │   ├── tmux-claude-context.sh  # Claude context % for status-right

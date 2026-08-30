@@ -1,5 +1,6 @@
-# Dotfiles: one-step update on this machine (pull latest + re-apply). See update.sh.
-alias dotup='~/dotfiles/update.sh'
+# Dotfiles: one-step update on this machine (pull latest + converge). kempt
+# pulls the config repo, self-updates its binary, and applies the manifest.
+alias dotup='kempt update'
 
 # Modern replacements (only if tools are installed)
 command -v eza &> /dev/null && alias ls='eza --icons --group-directories-first'
@@ -451,9 +452,14 @@ proj() {
 
   # Update nudge: instant read of the last check's state (one dim line above
   # the picker, or nothing), then refresh in the background for next time —
-  # the picker never waits on the network.
-  "$HOME/dotfiles/bin/dotfiles-update-check.sh" status 2>/dev/null
-  "$HOME/dotfiles/bin/dotfiles-update-check.sh" refresh >/dev/null 2>&1 &!
+  # the picker never waits on the network. Driven by kempt (the declarative
+  # machine-setup tool): `kempt status` is prompt-safe (reads a cache, always
+  # exits 0), `kempt refresh` re-plans against the saved selection in the
+  # background. Silently no-ops if kempt is not installed.
+  if command -v kempt >/dev/null 2>&1; then
+    kempt status 2>/dev/null
+    kempt refresh >/dev/null 2>&1 &!
+  fi
 
   local auto_agent=""
   while [[ "$1" == "--claude" || "$1" == "--cursor" || "$1" == "--pi" ]]; do

@@ -19,7 +19,7 @@ if [[ ! -x "$llama_server" ]]; then
   llama_server=$(command -v llama-server || true)
 fi
 if [[ -z "$llama_server" || ! -x "$llama_server" ]]; then
-  printf 'llama-server is not installed. Run ~/dotfiles/packages/run.sh pi.\n' >&2
+  printf 'llama-server is not installed. Install it (brew install llama.cpp) or run `kempt update`.\n' >&2
   exit 1
 fi
 
