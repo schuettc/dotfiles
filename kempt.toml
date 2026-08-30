@@ -343,9 +343,9 @@ notes = ["pi-provider-guard reads your private policy prose from ~/.pi/agent/ext
     "npm:@nicknisi/pi-artifacts",
     "npm:pi-memory",
     "npm:channels.tools",
-    "npm:pi-provider-guard",
-    "npm:pi-tmux-bridge",
-    "npm:pi-wakeup",
+    "npm:pi-provider-guard@0.1.0",
+    "npm:pi-tmux-bridge@0.1.1",
+    "npm:pi-wakeup@0.1.0",
   ]
 
   # llama.cpp provider subtree — SUBSET of live models.json (append array mode).
