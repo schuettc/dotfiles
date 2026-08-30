@@ -289,17 +289,18 @@ only = { os = "darwin" }
 # ---------------------------------------------------------------------------
 #
 # AUTHORING NOTES (not user-facing; kept as comments, not `notes`):
-#  - 3 private pi extensions (guardrails, harness, wakeup) are intentionally
-#    NOT declared here — they're private local-path packages; install.pi is
-#    additive/subset so omitting them still no-ops. They relocate to a private
-#    layer when the pi repo retires.
+#  - pi-provider-guard / pi-tmux-bridge / pi-wakeup (formerly the private
+#    local-path guardrails/harness/wakeup) are now published npm packages in
+#    the pi-extensions monorepo and declared in install.pi below. guardrails'
+#    private policy prose lives in the overlay, read at runtime from
+#    ~/.pi/agent/extensions/pi-provider-guard/config.json.
 #  - models.json/auth.json baseUrl+key below are inlined from config/pi/local.json
 #    (127.0.0.1:42137, apiKey local-pi) — maintenance coupling: keep in sync.
 [packages.pi]
 description = "Pi coding agent + native llama.cpp router integration"
 needs = ["core"]
 only = { os = "darwin" }
-notes = ["optional: run the pi harness extension deploy (schuettc/pi ./deploy.sh) to install private extensions"]
+notes = ["pi-provider-guard reads your private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json (sourced from the private pi-overlay)"]
 
   [[packages.pi.install]]
   brew.formulas = ["llama.cpp", "ddgr", "pandoc"]
@@ -311,7 +312,9 @@ notes = ["optional: run the pi harness extension deploy (schuettc/pi ./deploy.sh
   # private local-path packages are intentionally omitted, additive no-op).
   [[packages.pi.install]]
   # kempt's pi inventory strips @version, so desired entries are unversioned to
-  # match the reduced `pi list` output (no-op).
+  # match the reduced `pi list` output (no-op). pi-provider-guard / pi-tmux-bridge /
+  # pi-wakeup are Court's own extensions, published to the pi-extensions monorepo
+  # (formerly the private local packages in the now-retired schuettc/pi repo).
   pi = [
     "npm:@gotgenes/pi-permission-system",
     "npm:@tintinweb/pi-subagents",
@@ -322,6 +325,9 @@ notes = ["optional: run the pi harness extension deploy (schuettc/pi ./deploy.sh
     "npm:@nicknisi/pi-artifacts",
     "npm:pi-memory",
     "npm:channels.tools",
+    "npm:pi-provider-guard",
+    "npm:pi-tmux-bridge",
+    "npm:pi-wakeup",
   ]
 
   # llama.cpp provider subtree — SUBSET of live models.json (append array mode).
