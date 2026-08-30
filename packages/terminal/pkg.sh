@@ -55,24 +55,25 @@ pkg_install() {
     env -u TMUX tmux -L _bootstrap_tpm kill-server 2>/dev/null || true
   fi
 
-  # scratch: the per-worktree markdown scratchpad TUI (github.com/schuettc/scratch,
-  # public). It is the top pane of every tmux workspace's right column (see
-  # config/zsh/04-aliases.zsh -> __proj_right_column). Install the published module
-  # into ~/.local/bin; if `go install` can't reach the network, fall back to
-  # building a local clone if one is present. Idempotent; skips if Go is absent.
+  # scratch: the per-worktree markdown scratchpad TUI. It now lives in the tackle
+  # monorepo (github.com/schuettc/tackle, at cmd/scratch) — this whole block is
+  # transitional and is replaced by a kempt `download` step (site tackle.tools)
+  # in kempt.toml once tackle.tools/dl is live. Prefixed release tags
+  # (scratch/vX.Y.Z) are NOT @latest-resolvable on the root module, so install
+  # from @main. Idempotent; skips if Go is absent.
   if command -v go &> /dev/null; then
     echo "Installing scratch (notes pane)..."
-    if ! GOBIN="$HOME/.local/bin" go install github.com/schuettc/scratch@latest 2>/dev/null; then
+    if ! GOBIN="$HOME/.local/bin" go install github.com/schuettc/tackle/cmd/scratch@main 2>/dev/null; then
       # Local-clone fallback is ONLY for bootstrapping a machine that has no
       # scratch binary yet. If one is already installed, a transient
       # `go install @latest` failure (network blip) must not downgrade a
       # good released binary to a (devel) local build.
       if [[ ! -x "$HOME/.local/bin/scratch" ]] && ! command -v scratch &> /dev/null; then
-        SCRATCH_REPO="$HOME/GitHub/schuettc/scratch"
-        if [[ -d "$SCRATCH_REPO" ]] && go -C "$SCRATCH_REPO" build -o "$HOME/.local/bin/scratch" . 2>/dev/null; then
+        SCRATCH_REPO="$HOME/GitHub/schuettc/tackle"
+        if [[ -d "$SCRATCH_REPO" ]] && go -C "$SCRATCH_REPO" build -o "$HOME/.local/bin/scratch" ./cmd/scratch 2>/dev/null; then
           : # offline: built from the local clone
         else
-          warn "scratch install failed — try: GOBIN=~/.local/bin go install github.com/schuettc/scratch@latest"
+          warn "scratch install failed — try: GOBIN=~/.local/bin go install github.com/schuettc/tackle/cmd/scratch@main"
         fi
       else
         warn "scratch: go install @latest failed — kept the existing binary."
@@ -103,7 +104,10 @@ pkg_verify() {
       && sver="$(go version -m "$sbin" 2>/dev/null | awk '$1=="mod"{print $3}')"
     if [[ -n "$sver" ]]; then
       echo "  PASS scratch ($sver)"
-      verify_release_current schuettc/scratch "$sver" scratch || ok=1
+      # Drift check skipped: @main installs report a pseudo-version
+      # (v0.0.0-<date>-<hash>) that never matches a release tag, and tackle has
+      # cut no scratch/v* release under the new scheme yet. The kempt `download`
+      # step (tackle.tools) replaces this whole block + owns freshness once live.
     else
       # Undetermined isn't the same as drifted: without `go` (or with go but
       # a probe failure) there's no version to compare, so don't claim a

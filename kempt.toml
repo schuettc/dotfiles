@@ -1,0 +1,379 @@
+# kempt.toml — declarative description of this machine's dotfiles + tools.
+# Authored from packages/*/pkg.sh, the Brewfiles, and the live machine config.
+# Scope: core, terminal, nvim, markedit, claude, codex, cursor, muster.
+# (pi handled separately; swiftbar dropped.)
+
+[kempt]
+spec = 1
+
+# ---------------------------------------------------------------------------
+# core — shell foundation: brew CLI tools, zsh, starship, atuin
+# ---------------------------------------------------------------------------
+[packages.core]
+description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt, Atuin history"
+
+  [[packages.core.install]]
+  brew.taps = ["1password/tap"]
+  brew.formulas = [
+    "starship", "atuin", "zsh-completions", "eza", "bat", "zoxide", "fzf",
+    "fd", "ripgrep", "git-delta", "lazygit", "tlrc", "htop", "tree", "jq",
+    "yq", "gh", "git", "git-lfs", "pipx", "uv", "awscli",
+  ]
+  brew.casks = ["1password-cli", "visual-studio-code", "docker-desktop"]
+
+  [[packages.core.symlink]]
+  from = ".zshrc"
+  to = "~/.zshrc"
+  backup = true
+
+  [[packages.core.symlink]]
+  from = "config/zsh"
+  to = "~/.config/zsh"
+  backup = true
+
+  [[packages.core.symlink]]
+  from = "config/starship.toml"
+  to = "~/.config/starship.toml"
+  backup = true
+
+  [[packages.core.symlink]]
+  from = "config/atuin"
+  to = "~/.config/atuin"
+  backup = true
+
+  [[packages.core.verify]]
+  command-exists = "starship"
+
+  [[packages.core.verify]]
+  command-exists = "atuin"
+
+  [[packages.core.verify]]
+  symlink-target = { link = "~/.zshrc", target = ".zshrc" }
+
+# ---------------------------------------------------------------------------
+# terminal — Ghostty, tmux (+plugins), yazi, nerd fonts, scratch
+# ---------------------------------------------------------------------------
+[packages.terminal]
+description = "Terminal workspace: Ghostty, tmux (+plugins), yazi file explorer, nerd fonts"
+needs = ["core"]
+
+  [[packages.terminal.install]]
+  brew.formulas = ["tmux", "yazi", "go"]
+  brew.casks = [
+    "ghostty", "font-fira-code-nerd-font", "font-meslo-lg-nerd-font",
+    "font-jetbrains-mono-nerd-font", "font-monaspice-nerd-font",
+  ]
+
+  [[packages.terminal.symlink]]
+  from = "config/ghostty/config"
+  to = "~/.config/ghostty/config"
+  backup = true
+
+  [[packages.terminal.symlink]]
+  from = ".tmux.conf"
+  to = "~/.tmux.conf"
+  backup = true
+
+  [[packages.terminal.symlink]]
+  from = "bin/tmux-reopen"
+  to = "~/.local/bin/tmux-reopen"
+  backup = false
+
+  [[packages.terminal.symlink]]
+  from = "config/yazi"
+  to = "~/.config/yazi"
+  backup = true
+
+  # tmux plugins — origin strings taken verbatim from `git remote get-url origin`.
+  [[packages.terminal.git-clone]]
+  repo = "https://github.com/tmux-plugins/tpm"
+  to = "~/.tmux/plugins/tpm"
+
+  [[packages.terminal.git-clone]]
+  repo = "https://git::@github.com/tmux-plugins/tmux-resurrect"
+  to = "~/.tmux/plugins/tmux-resurrect"
+
+  [[packages.terminal.git-clone]]
+  repo = "https://git::@github.com/tmux-plugins/tmux-continuum"
+  to = "~/.tmux/plugins/tmux-continuum"
+
+  [[packages.terminal.git-clone]]
+  repo = "https://git::@github.com/tmux-plugins/tmux-sensible"
+  to = "~/.tmux/plugins/tmux-sensible"
+
+  # scratch — domain distribution. Inspect is offline (checks the binary
+  # exists), so this no-ops today even though tackle.tools/dl isn't live yet.
+  # TODO: not apply-ready until tackle publishes /dl for scratch.
+  [[packages.terminal.download]]
+  site = "tackle.tools"
+  tool = "scratch"
+  bin = "scratch"
+
+  [[packages.terminal.verify]]
+  command-exists = "tmux"
+
+  [[packages.terminal.verify]]
+  command-exists = "scratch"
+
+# ---------------------------------------------------------------------------
+# nvim — Neovim ($EDITOR) with LazyVim config
+# ---------------------------------------------------------------------------
+[packages.nvim]
+description = "Neovim ($EDITOR) with LazyVim config"
+needs = ["core"]
+
+  [[packages.nvim.install]]
+  brew.formulas = ["neovim"]
+
+  [[packages.nvim.symlink]]
+  from = "config/nvim"
+  to = "~/.config/nvim"
+  backup = true
+
+  [[packages.nvim.verify]]
+  command-exists = "nvim"
+
+  [[packages.nvim.verify]]
+  symlink-target = { link = "~/.config/nvim", target = "config/nvim" }
+
+# ---------------------------------------------------------------------------
+# markedit — MarkEdit markdown-editor styles
+# ---------------------------------------------------------------------------
+[packages.markedit]
+description = "MarkEdit markdown-editor styles"
+needs = ["core"]
+
+  [[packages.markedit.install]]
+  brew.casks = ["markedit"]
+
+  [[packages.markedit.symlink]]
+  from = "config/markedit/editor.css"
+  to = "~/Library/Containers/app.cyan.markedit/Data/Documents/editor.css"
+  backup = true
+
+  [[packages.markedit.verify]]
+  symlink-target = { link = "~/Library/Containers/app.cyan.markedit/Data/Documents/editor.css", target = "config/markedit/editor.css" }
+
+# ---------------------------------------------------------------------------
+# claude — Claude Code statusline, hooks, claude-attn CLI
+# ---------------------------------------------------------------------------
+[packages.claude]
+description = "Claude Code integration: tmux-aware statusline, attention-bell hooks, claude-attn CLI"
+needs = ["core"]
+
+  [[packages.claude.symlink]]
+  from = "config/claude"
+  to = "~/.config/claude"
+  backup = true
+
+  [[packages.claude.symlink]]
+  from = "bin/claude-attn"
+  to = "~/.local/bin/claude-attn"
+  backup = false
+
+  [[packages.claude.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { statusLine = { type = "command", command = "~/.config/claude/statusline.sh" } }
+
+  [[packages.claude.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { permissions = { allow = ["Bash(*/.claude/sessions/*)"] } }
+
+  [[packages.claude.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { Notification = [ { hooks = [ { type = "command", command = "~/.config/claude/claude-notify.sh" } ] } ] } }
+
+  [[packages.claude.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { Stop = [ { hooks = [ { type = "command", command = "~/.config/claude/claude-notify.sh" } ] }, { hooks = [ { type = "command", command = "~/.config/claude/claude-teammate-idle.sh" } ] } ] } }
+
+  [[packages.claude.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "~/dotfiles/bin/harness-session-stamp.sh" } ] } ] } }
+
+  [[packages.claude.verify]]
+  symlink-target = { link = "~/.config/claude", target = "config/claude" }
+
+  [[packages.claude.verify]]
+  command-exists = "claude"
+
+# ---------------------------------------------------------------------------
+# codex — OpenAI Codex CLI + MCP bridge into Claude Code
+# ---------------------------------------------------------------------------
+[packages.codex]
+description = "OpenAI Codex CLI (GPT agent) + MCP bridge into Claude Code"
+needs = ["core"]
+notes = ["run `codex login` to authenticate"]
+
+  [[packages.codex.install]]
+  brew.casks = ["codex"]
+
+  # session-stamp hook (codex hooks.json uses absolute command paths)
+  [[packages.codex.json-merge]]
+  file = "~/.codex/hooks.json"
+  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "/Users/courtschuett/dotfiles/bin/harness-session-stamp.sh" } ] } ] } }
+
+  # `claude mcp add codex` writes into ~/.claude.json .mcpServers
+  [[packages.codex.json-merge]]
+  file = "~/.claude.json"
+  merge = { mcpServers = { codex = { type = "stdio", command = "codex", args = ["mcp-server"], env = {} } } }
+
+  [[packages.codex.verify]]
+  command-exists = "codex"
+
+# ---------------------------------------------------------------------------
+# cursor — DROPPED: cursor-agent CLI is not installed on this machine (the
+# Cursor editor app is present but the CLI/hooks were never set up). Like
+# swiftbar, it's out of the managed set. Re-add a [packages.cursor] block if the
+# cursor-agent CLI ever joins the setup.
+# ---------------------------------------------------------------------------
+# muster — cross-terminal agent coordination bus
+# ---------------------------------------------------------------------------
+[packages.muster]
+description = "Cross-terminal agent coordination bus (daemon, MCP in Claude/Codex/Cursor, session hooks)"
+needs = ["terminal"]
+only = { os = "darwin" }
+
+  # muster publishes GitHub releases today; the binary exists so Inspect no-ops.
+  # TODO: swap to the `download` primitive (site muster.tools) once that domain
+  # serves /dl.
+  [[packages.muster.github-release]]
+  repo = "schuettc/muster"
+  asset = "muster_{os}_{arch}.tar.gz"
+  bin = "muster"
+
+  [[packages.muster.service]]
+  label = "tools.muster.serve"
+  program = ["muster", "serve"]
+  env = { PATH = "/opt/homebrew/bin:~/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin" }
+  stdout = "~/.local/share/muster/serve.log"
+  stderr = "~/.local/share/muster/serve.log"
+
+  # MCP registration into Claude (~/.claude.json), Cursor (~/.cursor/mcp.json),
+  # and Codex (~/.codex/config.toml).
+  [[packages.muster.json-merge]]
+  file = "~/.claude.json"
+  merge = { mcpServers = { muster = { type = "stdio", command = "muster", args = ["mcp"], env = {} }, "muster-channel" = { type = "stdio", command = "muster", args = ["channel"], env = {} } } }
+
+  [[packages.muster.toml-merge]]
+  file = "~/.codex/config.toml"
+  merge = { mcp_servers = { muster = { command = "muster", args = ["mcp"] } } }
+
+  # muster hooks into claude settings + permission allowlist
+  [[packages.muster.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { permissions = { allow = ["mcp__muster"] } }
+
+  [[packages.muster.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { Stop = [ { hooks = [ { type = "command", command = "~/.local/bin/muster hook Stop claude" } ] } ] } }
+
+  [[packages.muster.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { SessionStart = [ { matcher = "startup|resume", hooks = [ { type = "command", command = "~/.local/bin/muster hook SessionStart claude" } ] } ] } }
+
+  [[packages.muster.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { SessionEnd = [ { hooks = [ { type = "command", command = "~/.local/bin/muster hook SessionEnd claude" } ] } ] } }
+
+  # muster hooks into codex hooks.json (absolute command paths)
+  [[packages.muster.json-merge]]
+  file = "~/.codex/hooks.json"
+  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "/Users/courtschuett/.local/bin/muster hook SessionStart codex" } ] } ], Stop = [ { hooks = [ { type = "command", command = "/Users/courtschuett/.local/bin/muster hook Stop codex" } ] } ] } }
+
+  [[packages.muster.verify]]
+  command-exists = "muster"
+
+# ---------------------------------------------------------------------------
+# pi — Pi coding agent + native llama.cpp router integration
+# ---------------------------------------------------------------------------
+#
+# AUTHORING NOTES (not user-facing; kept as comments, not `notes`):
+#  - 3 private pi extensions (guardrails, harness, wakeup) are intentionally
+#    NOT declared here — they're private local-path packages; install.pi is
+#    additive/subset so omitting them still no-ops. They relocate to a private
+#    layer when the pi repo retires.
+#  - models.json/auth.json baseUrl+key below are inlined from config/pi/local.json
+#    (127.0.0.1:42137, apiKey local-pi) — maintenance coupling: keep in sync.
+[packages.pi]
+description = "Pi coding agent + native llama.cpp router integration"
+needs = ["core"]
+only = { os = "darwin" }
+notes = ["optional: run the pi harness extension deploy (schuettc/pi ./deploy.sh) to install private extensions"]
+
+  [[packages.pi.install]]
+  brew.formulas = ["llama.cpp", "ddgr", "pandoc"]
+
+  [[packages.pi.install]]
+  npm = ["@earendil-works/pi-coding-agent"]
+
+  # pi extensions — npm: identifiers as displayed by `pi list` (subset; the 3
+  # private local-path packages are intentionally omitted, additive no-op).
+  [[packages.pi.install]]
+  # kempt's pi inventory strips @version, so desired entries are unversioned to
+  # match the reduced `pi list` output (no-op).
+  pi = [
+    "npm:@gotgenes/pi-permission-system",
+    "npm:@tintinweb/pi-subagents",
+    "npm:@bitcraft-apps/pi-web-tools",
+    "npm:pi-quiet",
+    "npm:@hank-warren/pi-plan-mode",
+    "npm:pi-schedule",
+    "npm:@nicknisi/pi-artifacts",
+    "npm:pi-memory",
+    "npm:channels.tools",
+  ]
+
+  # llama.cpp provider subtree — SUBSET of live models.json (append array mode).
+  [[packages.pi.json-merge]]
+  file = "~/.pi/agent/models.json"
+  merge = { providers = { "llama.cpp" = { baseUrl = "http://127.0.0.1:42137/v1", models = [ { id = "unsloth/Qwen3.8-27B-GGUF:Q8_0", name = "Qwen3.8 27B Q8 (local)", api = "openai-completions", reasoning = true, input = ["text", "image"], contextWindow = 262144, maxTokens = 32768, thinkingLevelMap = { off = "none", minimal = "low", low = "low", medium = "medium", high = "xhigh", xhigh = "xhigh", max = "xhigh" }, samplingParams = { temperature = 1.0, top_p = 0.95, top_k = 20, min_p = 0.0, presence_penalty = 0.0, repeat_penalty = 1.0 }, compat = { supportsStore = false, supportsDeveloperRole = true, supportsReasoningEffort = true, supportsUsageInStreaming = true, maxTokensField = "max_tokens", thinkingFormat = "openai" } }, { id = "empero-ai/Qwen3.8-9B-Distill-GGUF:Q8_0", name = "Qwen3.8 9B Distill Q8 (local reviewer)", api = "openai-completions", reasoning = true, input = ["text"], contextWindow = 32768, maxTokens = 8192, thinkingLevelMap = { off = "none", minimal = "low", low = "low", medium = "medium", high = "xhigh", xhigh = "xhigh", max = "xhigh" }, samplingParams = { temperature = 1.0, top_p = 0.95, top_k = 20, min_p = 0.0, presence_penalty = 0.0, repeat_penalty = 1.0 }, compat = { supportsStore = false, supportsDeveloperRole = true, supportsReasoningEffort = true, supportsUsageInStreaming = true, maxTokensField = "max_tokens", thinkingFormat = "openai" } } ] } } }
+
+  # llama.cpp auth entry — SUBSET of live auth.json.
+  [[packages.pi.json-merge]]
+  file = "~/.pi/agent/auth.json"
+  merge = { "llama.cpp" = { type = "api_key", key = "local-pi", env = { LLAMA_BASE_URL = "http://127.0.0.1:42137" } } }
+
+  # settings — SUBSET of live settings.json (append array mode; only npm:
+  # packages already present are listed so the subset no-ops).
+  [[packages.pi.json-merge]]
+  file = "~/.pi/agent/settings.json"
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@gotgenes/pi-permission-system@27.0.1", "npm:@tintinweb/pi-subagents@0.18.2", "npm:@bitcraft-apps/pi-web-tools@1.6.0", "npm:pi-quiet@0.1.2", "npm:@hank-warren/pi-plan-mode@1.4.0", "npm:pi-schedule@0.3.6", "npm:@nicknisi/pi-artifacts@1.1.0", "npm:pi-memory@0.4.2", "npm:channels.tools@0.1.4" ] }
+
+  # router launcher — bare `ln -sf`, no backup.
+  [[packages.pi.symlink]]
+  from = "config/pi/llama-router.sh"
+  to = "~/.local/bin/pi-llama-router"
+  backup = false
+
+  # llama.cpp router LaunchAgent — content matches the live plist. kempt renders
+  # a canonical plist, so expect "+ service (update agent)" from format
+  # normalization even when content matches (one-time, like muster).
+  [[packages.pi.service]]
+  label = "dev.pi.llama-router"
+  program = ["/bin/zsh", "-lc", "exec \"$HOME/.local/bin/pi-llama-router\""]
+  keep-alive = true
+  run-at-load = true
+  process-type = "Interactive"
+  throttle-interval = 10
+  session-type = "Aqua"
+
+  [[packages.pi.verify]]
+  command-exists = "pi"
+
+  [[packages.pi.verify]]
+  command-exists = "llama-server"
+
+  [[packages.pi.verify]]
+  http-ok = "http://127.0.0.1:42137/health"
+
+# ---------------------------------------------------------------------------
+# Profiles
+# ---------------------------------------------------------------------------
+[profiles.developer]
+description = "Everything: shell, terminal, editors, agents"
+packages = ["core", "terminal", "nvim", "markedit", "claude", "codex", "muster", "pi"]
+
+[profiles.minimal]
+description = "Just the core command-line tools"
+packages = ["core"]
