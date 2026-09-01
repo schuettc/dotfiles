@@ -41,6 +41,15 @@ description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt
   to = "~/.config/atuin"
   backup = true
 
+  # harness session-stamp — referenced by the claude + codex SessionStart hooks
+  # through this stable ~/.local/bin path, so it resolves no matter where the
+  # config repo is cloned (kempt init defaults to ~/.config/kempt/repo, not
+  # ~/dotfiles). Lives in core because both harnesses depend on core.
+  [[packages.core.symlink]]
+  from = "bin/harness-session-stamp.sh"
+  to = "~/.local/bin/harness-session-stamp"
+  backup = false
+
   [[packages.core.verify]]
   command-exists = "starship"
 
@@ -101,9 +110,8 @@ needs = ["core"]
   repo = "https://git::@github.com/tmux-plugins/tmux-sensible"
   to = "~/.tmux/plugins/tmux-sensible"
 
-  # scratch — domain distribution. Inspect is offline (checks the binary
-  # exists), so this no-ops today even though tackle.tools/dl isn't live yet.
-  # TODO: not apply-ready until tackle publishes /dl for scratch.
+  # scratch — installed from tackle.tools/dl (the family download contract),
+  # verified against its .sha256 sidecar.
   [[packages.terminal.download]]
   site = "tackle.tools"
   tool = "scratch"
@@ -189,7 +197,7 @@ needs = ["core"]
 
   [[packages.claude.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "~/dotfiles/bin/harness-session-stamp.sh" } ] } ] } }
+  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "~/.local/bin/harness-session-stamp" } ] } ] } }
 
   [[packages.claude.verify]]
   symlink-target = { link = "~/.config/claude", target = "config/claude" }
@@ -208,10 +216,11 @@ notes = ["run `codex login` to authenticate"]
   [[packages.codex.install]]
   brew.casks = ["codex"]
 
-  # session-stamp hook (codex hooks.json uses absolute command paths)
+  # session-stamp hook. codex hooks.json does not expand ~, so kempt expands the
+  # ${HOME} token at write time into an absolute, per-machine path.
   [[packages.codex.json-merge]]
   file = "~/.codex/hooks.json"
-  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "/Users/courtschuett/dotfiles/bin/harness-session-stamp.sh" } ] } ] } }
+  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "${HOME}/.local/bin/harness-session-stamp" } ] } ] } }
 
   # `claude mcp add codex` writes into ~/.claude.json .mcpServers
   [[packages.codex.json-merge]]
@@ -294,34 +303,36 @@ only = { os = "darwin" }
   file = "~/.claude/settings.json"
   merge = { hooks = { SessionEnd = [ { hooks = [ { type = "command", command = "~/.local/bin/muster hook SessionEnd claude" } ] } ] } }
 
-  # muster hooks into codex hooks.json (absolute command paths)
+  # muster hooks into codex hooks.json. codex does not expand ~, so kempt expands
+  # the ${HOME} token at write time into an absolute, per-machine path.
   [[packages.muster.json-merge]]
   file = "~/.codex/hooks.json"
-  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "/Users/courtschuett/.local/bin/muster hook SessionStart codex" } ] } ], Stop = [ { hooks = [ { type = "command", command = "/Users/courtschuett/.local/bin/muster hook Stop codex" } ] } ] } }
+  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "${HOME}/.local/bin/muster hook SessionStart codex" } ] } ], Stop = [ { hooks = [ { type = "command", command = "${HOME}/.local/bin/muster hook Stop codex" } ] } ] } }
 
   [[packages.muster.verify]]
   command-exists = "muster"
 
 # ---------------------------------------------------------------------------
-# pi — Pi coding agent + native llama.cpp router integration
+# pi — Pi coding agent (portable). Runs on the claude-bridge provider out of the
+# box; no machine-specific inference required. The optional local llama.cpp rig
+# lives in the separate `pi-llama` package below.
 # ---------------------------------------------------------------------------
 #
 # AUTHORING NOTES (not user-facing; kept as comments, not `notes`):
-#  - pi-provider-guard / pi-tmux-bridge / pi-wakeup (formerly the private
-#    local-path guardrails/harness/wakeup) are now published npm packages in
-#    the pi-extensions monorepo and declared in install.pi below. guardrails'
-#    private policy prose lives in the overlay, read at runtime from
-#    ~/.pi/agent/extensions/pi-provider-guard/config.json.
-#  - models.json/auth.json baseUrl+key below are inlined from config/pi/local.json
-#    (127.0.0.1:42137, apiKey local-pi) — maintenance coupling: keep in sync.
+#  - pi-provider-guard / pi-tmux-bridge / pi-wakeup are published npm packages
+#    in the pi-extensions monorepo, declared in install.pi below. pi-provider-
+#    guard reads optional private policy prose from
+#    ~/.pi/agent/extensions/pi-provider-guard/config.json; when that file is
+#    absent the extension is a no-op, so this package converges cleanly without
+#    it (that config is Court's private overlay, not part of this manifest).
 [packages.pi]
-description = "Pi coding agent + native llama.cpp router integration"
+description = "Pi coding agent (claude-bridge provider) + public extensions"
 needs = ["core"]
 only = { os = "darwin" }
-notes = ["pi-provider-guard reads your private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json (sourced from the private pi-overlay)"]
+notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json; absent = no-op"]
 
   [[packages.pi.install]]
-  brew.formulas = ["llama.cpp", "ddgr", "pandoc"]
+  brew.formulas = ["ddgr", "pandoc"]
 
   [[packages.pi.install]]
   npm = ["@earendil-works/pi-coding-agent"]
@@ -348,24 +359,42 @@ notes = ["pi-provider-guard reads your private policy prose from ~/.pi/agent/ext
     "npm:pi-wakeup@0.1.0",
   ]
 
-  # llama.cpp provider subtree — SUBSET of live models.json (append array mode).
-  [[packages.pi.json-merge]]
-  file = "~/.pi/agent/models.json"
-  merge = { providers = { "llama.cpp" = { baseUrl = "http://127.0.0.1:42137/v1", models = [ { id = "unsloth/Qwen3.8-27B-GGUF:Q8_0", name = "Qwen3.8 27B Q8 (local)", api = "openai-completions", reasoning = true, input = ["text", "image"], contextWindow = 262144, maxTokens = 32768, thinkingLevelMap = { off = "none", minimal = "low", low = "low", medium = "medium", high = "xhigh", xhigh = "xhigh", max = "xhigh" }, samplingParams = { temperature = 1.0, top_p = 0.95, top_k = 20, min_p = 0.0, presence_penalty = 0.0, repeat_penalty = 1.0 }, compat = { supportsStore = false, supportsDeveloperRole = true, supportsReasoningEffort = true, supportsUsageInStreaming = true, maxTokensField = "max_tokens", thinkingFormat = "openai" } }, { id = "empero-ai/Qwen3.8-9B-Distill-GGUF:Q8_0", name = "Qwen3.8 9B Distill Q8 (local reviewer)", api = "openai-completions", reasoning = true, input = ["text"], contextWindow = 32768, maxTokens = 8192, thinkingLevelMap = { off = "none", minimal = "low", low = "low", medium = "medium", high = "xhigh", xhigh = "xhigh", max = "xhigh" }, samplingParams = { temperature = 1.0, top_p = 0.95, top_k = 20, min_p = 0.0, presence_penalty = 0.0, repeat_penalty = 1.0 }, compat = { supportsStore = false, supportsDeveloperRole = true, supportsReasoningEffort = true, supportsUsageInStreaming = true, maxTokensField = "max_tokens", thinkingFormat = "openai" } } ] } } }
-
-  # llama.cpp auth entry — SUBSET of live auth.json.
-  [[packages.pi.json-merge]]
-  file = "~/.pi/agent/auth.json"
-  merge = { "llama.cpp" = { type = "api_key", key = "local-pi", env = { LLAMA_BASE_URL = "http://127.0.0.1:42137" } } }
-
   # settings — SUBSET of live settings.json (append array mode; only npm:
   # packages already present are listed so the subset no-ops).
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@gotgenes/pi-permission-system@27.0.1", "npm:@tintinweb/pi-subagents@0.18.2", "npm:@bitcraft-apps/pi-web-tools@1.6.0", "npm:pi-quiet@0.1.2", "npm:@hank-warren/pi-plan-mode@1.4.0", "npm:pi-schedule@0.3.6", "npm:@nicknisi/pi-artifacts@1.1.0", "npm:pi-memory@0.4.2", "npm:channels.tools@0.1.4" ] }
 
+  [[packages.pi.verify]]
+  command-exists = "pi"
+
+# ---------------------------------------------------------------------------
+# pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
+# Not in the developer profile: it needs GGUF model weights this manifest does
+# not fetch, so a fresh machine converges clean WITHOUT it. Add it deliberately
+# on a box that has the models with `kempt adopt pi-llama`.
+# ---------------------------------------------------------------------------
+[packages.pi-llama]
+description = "Optional local llama.cpp inference provider + router for pi (requires local GGUF weights)"
+needs = ["pi"]
+only = { os = "darwin" }
+notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama does not fetch them"]
+
+  [[packages.pi-llama.install]]
+  brew.formulas = ["llama.cpp"]
+
+  # llama.cpp provider subtree — SUBSET of live models.json (append array mode).
+  [[packages.pi-llama.json-merge]]
+  file = "~/.pi/agent/models.json"
+  merge = { providers = { "llama.cpp" = { baseUrl = "http://127.0.0.1:42137/v1", models = [ { id = "unsloth/Qwen3.8-27B-GGUF:Q8_0", name = "Qwen3.8 27B Q8 (local)", api = "openai-completions", reasoning = true, input = ["text", "image"], contextWindow = 262144, maxTokens = 32768, thinkingLevelMap = { off = "none", minimal = "low", low = "low", medium = "medium", high = "xhigh", xhigh = "xhigh", max = "xhigh" }, samplingParams = { temperature = 1.0, top_p = 0.95, top_k = 20, min_p = 0.0, presence_penalty = 0.0, repeat_penalty = 1.0 }, compat = { supportsStore = false, supportsDeveloperRole = true, supportsReasoningEffort = true, supportsUsageInStreaming = true, maxTokensField = "max_tokens", thinkingFormat = "openai" } }, { id = "empero-ai/Qwen3.8-9B-Distill-GGUF:Q8_0", name = "Qwen3.8 9B Distill Q8 (local reviewer)", api = "openai-completions", reasoning = true, input = ["text"], contextWindow = 32768, maxTokens = 8192, thinkingLevelMap = { off = "none", minimal = "low", low = "low", medium = "medium", high = "xhigh", xhigh = "xhigh", max = "xhigh" }, samplingParams = { temperature = 1.0, top_p = 0.95, top_k = 20, min_p = 0.0, presence_penalty = 0.0, repeat_penalty = 1.0 }, compat = { supportsStore = false, supportsDeveloperRole = true, supportsReasoningEffort = true, supportsUsageInStreaming = true, maxTokensField = "max_tokens", thinkingFormat = "openai" } } ] } } }
+
+  # llama.cpp auth entry — SUBSET of live auth.json.
+  [[packages.pi-llama.json-merge]]
+  file = "~/.pi/agent/auth.json"
+  merge = { "llama.cpp" = { type = "api_key", key = "local-pi", env = { LLAMA_BASE_URL = "http://127.0.0.1:42137" } } }
+
   # router launcher — bare `ln -sf`, no backup.
-  [[packages.pi.symlink]]
+  [[packages.pi-llama.symlink]]
   from = "config/pi/llama-router.sh"
   to = "~/.local/bin/pi-llama-router"
   backup = false
@@ -373,7 +402,7 @@ notes = ["pi-provider-guard reads your private policy prose from ~/.pi/agent/ext
   # llama.cpp router LaunchAgent — content matches the live plist. kempt renders
   # a canonical plist, so expect "+ service (update agent)" from format
   # normalization even when content matches (one-time, like muster).
-  [[packages.pi.service]]
+  [[packages.pi-llama.service]]
   label = "dev.pi.llama-router"
   program = ["/bin/zsh", "-lc", "exec \"$HOME/.local/bin/pi-llama-router\""]
   keep-alive = true
@@ -382,13 +411,10 @@ notes = ["pi-provider-guard reads your private policy prose from ~/.pi/agent/ext
   throttle-interval = 10
   session-type = "Aqua"
 
-  [[packages.pi.verify]]
-  command-exists = "pi"
-
-  [[packages.pi.verify]]
+  [[packages.pi-llama.verify]]
   command-exists = "llama-server"
 
-  [[packages.pi.verify]]
+  [[packages.pi-llama.verify]]
   http-ok = "http://127.0.0.1:42137/health"
 
 # ---------------------------------------------------------------------------
