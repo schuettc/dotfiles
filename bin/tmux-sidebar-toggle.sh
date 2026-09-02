@@ -36,6 +36,11 @@ trap 'tmux set-option -g @agent_pin "${prev_pin:-1}" 2>/dev/null
 
 name=$(tmux display-message -p '#{session_name}')
 dir=$(tmux display-message -p '#{pane_current_path}')
+sock=$(basename "$(tmux display-message -p '#{socket_path}')")
+# The right-column builder is the Go `proj` binary (proj sidebar), which
+# replaced the retired bin/proj-right-column.sh in the proj cutover. Resolve it
+# by PATH with a fallback to the install dir, since run-shell's PATH may be lean.
+proj_bin=$(command -v proj 2>/dev/null || echo "$HOME/.local/bin/proj")
 
 # Main (left) pane = leftmost column, tallest among ties. Robust to pane
 # renumbering after kills, unlike `list-panes | head -1`.
@@ -68,7 +73,9 @@ if [ -n "$tagged" ]; then
   tmux select-pane -t "$main" 2>/dev/null
 else
   # ---------------------------- restore -----------------------------
-  "$HOME/dotfiles/bin/proj-right-column.sh" - "$name" "$dir" fg
+  # Synchronous build (the caller holds @sidebar_busy across it) — proj sidebar
+  # builds then exits, matching the old builder's `fg` mode.
+  "$proj_bin" sidebar "$name" --socket "$sock" --dir "$dir"
   w=$(hold_win)
   if [ -n "$w" ]; then
     # The freshly built column leaves yazi filling everything, so a returning
