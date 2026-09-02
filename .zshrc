@@ -25,3 +25,7 @@ export CLAUDE_CODE_NO_FLICKER=1
 
 # Machine-local secrets and overrides (not tracked in git)
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/courtschuett/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
