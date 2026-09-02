@@ -110,18 +110,26 @@ needs = ["core"]
   repo = "https://git::@github.com/tmux-plugins/tmux-sensible"
   to = "~/.tmux/plugins/tmux-sensible"
 
-  # scratch — installed from tackle.tools/dl (the family download contract),
-  # verified against its .sha256 sidecar.
+  # scratch + proj — installed from tackle.tools/dl (the family download
+  # contract), each verified against its .sha256 sidecar.
   [[packages.terminal.download]]
   site = "tackle.tools"
   tool = "scratch"
   bin = "scratch"
+
+  [[packages.terminal.download]]
+  site = "tackle.tools"
+  tool = "proj"
+  bin = "proj"
 
   [[packages.terminal.verify]]
   command-exists = "tmux"
 
   [[packages.terminal.verify]]
   command-exists = "scratch"
+
+  [[packages.terminal.verify]]
+  command-exists = "proj"
 
 # ---------------------------------------------------------------------------
 # nvim — Neovim ($EDITOR) with LazyVim config
