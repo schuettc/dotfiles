@@ -22,29 +22,37 @@ image_filter  = "triangle"
 image_quality = 75
 
 # ─── Openers ─────────────────────────────────────────────────────────
+# yazi >= 26 substitutes `%s` (all selected paths) / `%s1` (first path) into
+# `run`; the old shell-style `"$@"` / `"$1"` no longer receives arguments.
 # `edit` runs nvim inside the yazi pane and blocks until you quit —
 # :q / ZZ drops you straight back into yazi.
 [opener]
 edit = [
-  { run = 'nvim "$@"', desc = "nvim", block = true, for = "unix" },
+  { run = 'nvim %s', desc = "nvim", block = true, for = "unix" },
 ]
 reveal = [
-  { run = 'open -R "$1"', desc = "Reveal in Finder", for = "macos" },
+  { run = 'open -R %s1', desc = "Reveal in Finder", for = "macos" },
 ]
 open = [
-  { run = 'open "$@"', desc = "Open with default app", for = "macos" },
+  { run = 'open %s', desc = "Open with default app", for = "macos" },
 ]
 markedit = [
-  { run = 'open -a MarkEdit "$@"', desc = "MarkEdit", orphan = true, for = "macos" },
+  { run = 'open -a MarkEdit %s', desc = "MarkEdit", orphan = true, for = "macos" },
 ]
 
 [open]
 prepend_rules = [
+  # Folders: <Enter> descends via the smart-enter plugin (keymap.toml), so the
+  # openers here are what `o` / `O` offer — Finder first, nvim second.
+  { mime = "folder/*",               use = ["reveal", "edit"] },
   # Markdown → MarkEdit by default (Enter); nvim still available via `O`.
   # Match by `url` (path glob) — `.md` detects as text/plain so mime can't single
-  # it out, and `[open]` rules don't accept `name`. Must precede the text/* rule.
+  # it out. Must precede the text/* rule.
   { url = "*.md",                    use = ["markedit", "edit", "reveal"] },
   { url = "*.markdown",              use = ["markedit", "edit", "reveal"] },
+  # HTML → default browser on Enter; nvim via `O`.
+  { url = "*.html",                  use = ["open", "edit", "reveal"] },
+  { url = "*.htm",                   use = ["open", "edit", "reveal"] },
   { mime = "text/*",                 use = ["edit", "reveal"] },
   { mime = "application/json",       use = ["edit", "reveal"] },
   { mime = "application/javascript", use = ["edit", "reveal"] },
