@@ -19,6 +19,12 @@ kempt init https://github.com/schuettc/dotfiles.git  # clone → pick packages �
 `minimal` = just the shell) and package set, shows the full plan, and applies
 it on your confirmation.
 
+No git? kempt can also `init` straight from a tarball of this repo — the tree is
+fetched and extracted, and `kempt update` re-fetches it:
+```bash
+kempt init https://github.com/schuettc/dotfiles/archive/refs/heads/main.tar.gz
+```
+
 **2. Open Ghostty, then:**
 ```bash
 proj               # pick a project → spawns a workspace (shell + yazi)
@@ -40,12 +46,15 @@ design rationale behind the migration off cmux.
 
 Every kempt run is idempotent and shows its plan first. The packages are
 `core`, `terminal`, `nvim`, `markedit`, `claude`, `codex`, `muster`, and the
-macOS-only `pi` (Pi coding agent + llama.cpp router). `developer` selects all;
-`minimal` selects `core`.
+macOS-only `pi` (Pi coding agent on the `claude-bridge` provider + published
+extensions). `developer` selects all; `minimal` selects `core`. The local
+llama.cpp inference rig is a separate opt-in package, `pi-llama` (it needs GGUF
+weights this repo doesn't ship) — add it on a machine that has them with
+`kempt adopt pi-llama`.
 
 **Manual follow-ups** kempt can't automate (it prints these after `apply`):
-run `codex login` to authenticate Codex; optionally deploy the private Pi
-harness extensions with `schuettc/pi ./deploy.sh`.
+run `codex login` to authenticate Codex; restart any running pi session so it
+picks up the pinned extensions.
 
 ## What's Included
 
