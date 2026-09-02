@@ -85,7 +85,7 @@ __claude_session_name() {
 # the fleet launcher, whose prompt dispatches a NEW background agent instead
 # of talking to you. Typing "hello" there spawns a detached job. Any argv at
 # all takes the session path; `--` is the smallest that adds no behaviour of
-# its own. See __claude_launch_cmd below for the verification matrix.
+# its own.
 #
 # The passthrough branch is what keeps the fleet reachable, and it is why this
 # is a wrapper rather than the global `disableAgentView` switch: `claude
@@ -114,63 +114,6 @@ claude() {
   local n; n=$(__claude_session_name)
   [[ -n "$n" ]] && name_args=(--name "$n")
   command claude "${name_args[@]}" --
-}
-
-# The command every AUTO-launch path types into a fresh pane. One definition
-# so any auto-launch call site can't drift from what a bare `claude` needs.
-#
-# The trailing `--` is load-bearing, and it is the whole point of this
-# function. A BARE `claude` — nothing in argv past the program name — does not
-# start a session: it opens agent view, the fleet launcher that lists
-# background agents and whose prompt dispatches a NEW background agent rather
-# than talking to you. Typing "hello" there spawns a detached job, which is
-# exactly the surprise this avoids. Any argv at all takes the session path;
-# `--` is the smallest one that adds no behaviour of its own.
-#
-# Verified on 2.1.220, three sessions in a scratch tmux server: bare `claude`
-# rendered the fleet list ("7 awaiting input · 2 working"), while `claude --`,
-# `claude --add-dir .` and `claude --session-id <uuid>` all rendered a normal
-# prompt. Agent view has exactly one global switch (`disableAgentView` /
-# CLAUDE_CODE_DISABLE_AGENT_VIEW) and it also kills `--bg`, `/background` and
-# the on-demand daemon — too broad, since we want the fleet, just not as the
-# front door.
-#
-# `--session-id <uuid>` works too and is what the old muster handshake passed,
-# which is why this bug stayed hidden until that wrapper was removed. Do not
-# reach for it here: minting an id from the shell is the identity-seeding this
-# file just deleted, and tests/claude-wrapper-scope.test.zsh fails the string.
-#
-# Not redundant with the claude() wrapper above, which would also add the
-# `--`. The wrapper only exists in shells that have sourced THIS file, and
-# auto-launch types into a pane shell we did not start: a tmux session left
-# running from before a config change keeps its old environment until it is
-# restarted. That is not hypothetical — it is how this bug survived its first
-# diagnosis on 2026-07-31, when panes whose zsh predated the handshake kept
-# launching bare while freshly-started ones were fine.
-#
-# So the command is spelled out at the call site rather than relying on the
-# receiving shell to have been reloaded.
-#
-# $1 is the session name to carry into Claude (`--name`), omitted or empty
-# for the plain form. The receiving pane's shell may predate the claude()
-# wrapper above — that is this function's whole reason to exist — so the name
-# is baked into the typed text rather than left for the wrapper to resolve.
-__claude_launch_cmd() {
-  local n="${1:-}"
-  [[ -n "$n" ]] && { print -r -- "claude --name ${(qq)n} --"; return }
-  print -r -- 'claude --'
-}
-
-# The pi analog of __claude_launch_cmd. pi takes --name/-n for the session
-# display name and starts an interactive session with no message argument; it
-# needs no trailing `--` (there is no bare-pi agent-view trap the way `claude`
-# has). The name passed is the tmux session name, so pi's session identity —
-# which the harness extension stamps onto the pane and reports to muster —
-# matches the pane it launched in, exactly as the claude path does.
-__pi_launch_cmd() {
-  local n="${1:-}"
-  [[ -n "$n" ]] && { print -r -- "pi --name ${(qq)n}"; return }
-  print -r -- 'pi'
 }
 
 # Quick navigation
