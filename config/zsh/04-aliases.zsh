@@ -117,8 +117,7 @@ claude() {
 }
 
 # The command every AUTO-launch path types into a fresh pane. One definition
-# so the call site (__proj_launch — pt and the tmux auto-join hook both route
-# through it now) can't drift from what a bare `claude` needs.
+# so any auto-launch call site can't drift from what a bare `claude` needs.
 #
 # The trailing `--` is load-bearing, and it is the whole point of this
 # function. A BARE `claude` — nothing in argv past the program name — does not
