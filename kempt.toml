@@ -331,7 +331,9 @@ only = { os = "darwin" }
 # loop; press Revise, Claude rewrites, changes land marked). The binary installs
 # from galley.tools/dl. The Claude Code half — the plugin and the `galley
 # channel` server — is per-project / per-session (a `--channels` launch flag),
-# not machine-level dotfiles, so it is intentionally not wired here.
+# not machine-level dotfiles, so it is intentionally not wired here. The pi
+# half (the `galley channel` server in pi's channels.json) is wired by the
+# [packages.pi-channels] package below, alongside muster.
 # ---------------------------------------------------------------------------
 [packages.galley]
 description = "Markdown/HTML review page shared with Claude Code (galley.tools)"
@@ -408,6 +410,31 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   command-exists = "pi"
 
 # ---------------------------------------------------------------------------
+# pi-channels — wire the galley + muster channels into pi sessions.
+#
+# channels.tools (installed by [packages.pi]) is the bridge, but it spawns
+# nothing until ~/.pi/agent/channels.json names the channel servers. This
+# package writes that file, so every pi session gets: galley document-review
+# rounds and muster mail push (wake-on-event), with each server's tools
+# registered under their own names. muster REGISTRATION already happens in the
+# harness (pi-claude-bridge session_start); this adds the live channel bridge
+# on top. The Claude Code equivalents live in [packages.muster] (MCP) and each
+# project's .mcp.json (galley) — this is the pi-side counterpart.
+#
+# Absolute ${HOME} paths (kempt expands the token at write time): channels.tools
+# spawns these as subprocesses that cannot rely on ~/.local/bin being on PATH —
+# the same lesson the muster launchd job records above.
+# ---------------------------------------------------------------------------
+[packages.pi-channels]
+description = "Wire galley + muster channels into pi sessions (channels.tools → channels.json)"
+needs = ["pi", "muster", "galley"]
+only = { os = "darwin" }
+
+  [[packages.pi-channels.json-merge]]
+  file = "~/.pi/agent/channels.json"
+  merge = { channelServers = { muster = { command = "${HOME}/.local/bin/muster", args = ["channel"] }, galley = { command = "${HOME}/.local/bin/galley", args = ["channel"] } } }
+
+# ---------------------------------------------------------------------------
 # pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
 # Not in the developer profile: it needs GGUF model weights this manifest does
 # not fetch, so a fresh machine converges clean WITHOUT it. Add it deliberately
@@ -461,7 +488,7 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "pi"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "pi", "pi-channels"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
