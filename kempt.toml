@@ -277,10 +277,16 @@ only = { os = "darwin" }
   tool = "muster"
   bin = "muster"
 
+  # Run through a login shell so $HOME expands to an absolute muster path.
+  # launchd resolves ProgramArguments[0] against its OWN default PATH (NOT the
+  # job's EnvironmentVariables), and muster lives in ~/.local/bin — not on that
+  # default path — so a bare `muster` fails to exec (EX_CONFIG, forever). /bin/zsh
+  # is absolute and always resolvable; `-lc` gives the login PATH (homebrew for
+  # tmux, ~/.local/bin for muster) and `exec` replaces the shell so KeepAlive
+  # tracks the muster process directly. Same pattern as pi-llama's router below.
   [[packages.muster.service]]
   label = "tools.muster.serve"
-  program = ["muster", "serve"]
-  env = { PATH = "/opt/homebrew/bin:~/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin" }
+  program = ["/bin/zsh", "-lc", "exec \"$HOME/.local/bin/muster\" serve"]
   stdout = "~/.local/share/muster/serve.log"
   stderr = "~/.local/share/muster/serve.log"
 
