@@ -1,6 +1,6 @@
 # kempt.toml — declarative description of this machine's dotfiles + tools.
 # Authored from packages/*/pkg.sh, the Brewfiles, and the live machine config.
-# Scope: core, terminal, nvim, markedit, claude, codex, cursor, muster.
+# Scope: core, terminal, nvim, markedit, claude, codex, cursor, muster, galley.
 # (pi handled separately; swiftbar dropped.)
 
 [kempt]
@@ -269,12 +269,12 @@ description = "Cross-terminal agent coordination bus (daemon, MCP in Claude/Code
 needs = ["terminal"]
 only = { os = "darwin" }
 
-  # muster publishes GitHub releases today; the binary exists so Inspect no-ops.
-  # TODO: swap to the `download` primitive (site muster.tools) once that domain
-  # serves /dl.
-  [[packages.muster.github-release]]
-  repo = "schuettc/muster"
-  asset = "muster_{os}_{arch}.tar.gz"
+  # muster installs from muster.tools/dl (the family download contract): the
+  # `latest` pointer resolves the version, and the asset is verified fail-closed
+  # against its .sha256 sidecar. (Was github-release; muster.tools/dl now serves.)
+  [[packages.muster.download]]
+  site = "muster.tools"
+  tool = "muster"
   bin = "muster"
 
   [[packages.muster.service]]
@@ -319,6 +319,26 @@ only = { os = "darwin" }
 
   [[packages.muster.verify]]
   command-exists = "muster"
+
+# ---------------------------------------------------------------------------
+# galley — Markdown/HTML review page shared with Claude Code (a browser review
+# loop; press Revise, Claude rewrites, changes land marked). The binary installs
+# from galley.tools/dl. The Claude Code half — the plugin and the `galley
+# channel` server — is per-project / per-session (a `--channels` launch flag),
+# not machine-level dotfiles, so it is intentionally not wired here.
+# ---------------------------------------------------------------------------
+[packages.galley]
+description = "Markdown/HTML review page shared with Claude Code (galley.tools)"
+needs = ["core"]
+only = { os = "darwin" }
+
+  [[packages.galley.download]]
+  site = "galley.tools"
+  tool = "galley"
+  bin = "galley"
+
+  [[packages.galley.verify]]
+  command-exists = "galley"
 
 # ---------------------------------------------------------------------------
 # pi — Pi coding agent (portable). Runs on the claude-bridge provider out of the
@@ -435,7 +455,7 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "pi"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "pi"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
