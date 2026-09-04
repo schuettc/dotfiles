@@ -12,3 +12,6 @@ config/claude/todos/
 .claude/worktrees/
 .claude/settings.local.json
 .superpowers/
+
+# SDD design docs (plans/specs) — kept local, not committed
+docs/superpowers/
