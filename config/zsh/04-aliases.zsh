@@ -78,7 +78,8 @@ __claude_session_name() {
   tmux display-message -p '#S' 2>/dev/null
 }
 
-# Argv-shaping only: add `--` when called with NO arguments, otherwise pass
+# Argv-shaping only: add `--` when called with NO arguments, add the channel
+# flags on an interactive launch (bare / --resume / --continue), otherwise pass
 # through untouched.
 #
 # A bare `claude` does not start a session on 2.1.220 — it opens agent view,
@@ -108,12 +109,33 @@ __claude_session_name() {
 # a gesture for CHANGING a name, being used to set one that was already
 # decided. config/claude/statusline.sh compares Claude's name against #S on
 # every tick; starting them equal is what keeps it on its cheap path.
+# The channel flags an interactive session carries: galley review rounds and
+# muster mail arrive as channel events that WAKE the pane, instead of being
+# silently missed — which is exactly what happened to a claude session launched
+# without them (`claude --resume …` bypassed proj/pt, got no channels, and a
+# Revise never woke it). galley and muster are MCP-SERVER channels, so this is
+# the development flag (server:<name>), not the stable --channels, which takes
+# plugin channels — revisit if they ever ship as plugins. Adding channels is
+# NOT the identity-seeding this file bans above: it names no bus alias and mints
+# no session id, so it is safe on --resume/--continue, which the identity ban
+# had to skip.
+__claude_channels=(--dangerously-load-development-channels server:galley server:muster-channel)
+
 claude() {
-  (( $# )) && { command claude "$@"; return }
+  if (( $# )); then
+    # Channels ride an interactive session launch; a subcommand (mcp, agents,
+    # config…), a --print run, or a one-shot prompt passes through untouched.
+    case "$1" in
+      --resume|-r|--continue|-c)
+        command claude "${__claude_channels[@]}" "$@"; return ;;
+      *)
+        command claude "$@"; return ;;
+    esac
+  fi
   local -a name_args
   local n; n=$(__claude_session_name)
   [[ -n "$n" ]] && name_args=(--name "$n")
-  command claude "${name_args[@]}" --
+  command claude "${__claude_channels[@]}" "${name_args[@]}" --
 }
 
 # Quick navigation
