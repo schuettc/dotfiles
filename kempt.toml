@@ -395,7 +395,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # session_start) and is the provider defaultProvider=claude-bridge points at.
     # It MUST load before channels.tools, so keep it first. Court's fork of the
     # third-party project, published to npm (based on upstream + 3 local patches).
-    "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.3",
+    "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.4",
     "npm:@gotgenes/pi-permission-system",
     "npm:@tintinweb/pi-subagents",
     "npm:@bitcraft-apps/pi-web-tools",
@@ -405,17 +405,27 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     "npm:@nicknisi/pi-artifacts",
     "npm:pi-memory",
     "npm:channels.tools",
+    # pi-mcp-adapter is the MCP bridge: reads .mcp.json / ~/.config/mcp/mcp.json
+    # and exposes one lazy mcp() proxy tool (search/describe/execute) instead of
+    # dumping every server's tools into context. Remote URL servers + OAuth
+    # (keychain-stored) work. Individual MCP servers are configured out of band.
+    "npm:pi-mcp-adapter",
     "npm:pi-provider-guard@0.1.0",
     "npm:pi-tmux-bridge@0.1.1",
     "npm:pi-wakeup@0.1.0",
     "npm:pi-creel@0.1.0",
   ]
 
-  # settings — SUBSET of live settings.json (append array mode; only npm:
-  # packages already present are listed so the subset no-ops).
+  # settings — the packages list is written into live settings.json under
+  # `arrays = append`, so it MUST match the install list above STRING FOR STRING.
+  # Append only ADDS: a pin here that differs from the install list (or from what
+  # a version bump last wrote) accumulates a SECOND entry rather than replacing
+  # the first — that is exactly how live settings once loaded channels.tools at
+  # two versions at once. Unversioned strings are stable across bumps, so append
+  # no-ops; keep this identical to `pi = [...]` above, forks and all.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.3", "npm:@gotgenes/pi-permission-system@27.0.1", "npm:@tintinweb/pi-subagents@0.18.2", "npm:@bitcraft-apps/pi-web-tools@1.6.0", "npm:pi-quiet@0.1.2", "npm:@hank-warren/pi-plan-mode@1.4.0", "npm:pi-schedule@0.3.6", "npm:@nicknisi/pi-artifacts@1.1.0", "npm:pi-memory@0.4.2", "npm:channels.tools@0.1.5", "npm:pi-creel@0.1.0" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.4", "npm:@gotgenes/pi-permission-system", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-wakeup@0.1.0", "npm:pi-creel@0.1.0" ] }
 
   [[packages.pi.verify]]
   command-exists = "pi"
