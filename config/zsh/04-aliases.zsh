@@ -79,8 +79,17 @@ __claude_session_name() {
 }
 
 # Argv-shaping only: add `--` when called with NO arguments, add the channel
-# flags on an interactive launch (bare / --resume / --continue), otherwise pass
-# through untouched.
+# flags on ANY interactive launch, and pass through untouched only the two
+# things that are not channel-bearing sessions — a recognised subcommand and a
+# --print/-p run.
+#
+# The rule used to be a whitelist: channels rode a launch only when $1 was
+# literally --resume/-r/--continue/-c. That silently dropped channels from
+# every OTHER interactive form — `--name foo`, `--model …`, `-w`, and crucially
+# `--name foo --resume <id>`, which is how a proj/pt-born NAMED session resumes.
+# So plain `claude --resume` woke on a Revise but a resumed named session never
+# did. The shape of an interactive launch is open-ended (any session flag can
+# lead), so we now detect the CLOSED set that must NOT get channels instead.
 #
 # A bare `claude` does not start a session on 2.1.220 — it opens agent view,
 # the fleet launcher, whose prompt dispatches a NEW background agent instead
@@ -121,21 +130,50 @@ __claude_session_name() {
 # had to skip.
 __claude_channels=(--dangerously-load-development-channels server:galley server:muster-channel)
 
+# The verbs that reach the real binary untouched: the fleet, mcp config, auth,
+# installers and the other one-shot management commands. A prompt string is not
+# in this list, so `claude "fix it"` still takes the interactive path and gets
+# channels. Keep in step with `claude --help`'s Commands: block.
+__claude_subcommands=(
+  agents attach auth auto-mode config doctor gateway import install logs
+  mcp plugin plugins project respawn rm setup-token stop kill ultrareview
+  update upgrade migrate-installer completion bug
+)
+
 claude() {
-  if (( $# )); then
-    # Channels ride an interactive session launch; a subcommand (mcp, agents,
-    # config…), a --print run, or a one-shot prompt passes through untouched.
-    case "$1" in
-      --resume|-r|--continue|-c)
-        command claude "${__claude_channels[@]}" "$@"; return ;;
-      *)
-        command claude "$@"; return ;;
-    esac
+  # Bare word: no argv opens agent view, not a session, so name it after this
+  # pane and add `--` to force the session path. `command` is load-bearing —
+  # without it this recurses into itself.
+  if (( $# == 0 )); then
+    local -a name_args
+    local n; n=$(__claude_session_name)
+    [[ -n "$n" ]] && name_args=(--name "$n")
+    command claude "${__claude_channels[@]}" "${name_args[@]}" --
+    return
   fi
-  local -a name_args
-  local n; n=$(__claude_session_name)
-  [[ -n "$n" ]] && name_args=(--name "$n")
-  command claude "${__claude_channels[@]}" "${name_args[@]}" --
+
+  # A recognised subcommand is never an interactive session — pass it through.
+  if (( ${__claude_subcommands[(Ie)$1]} )); then
+    command claude "$@"; return
+  fi
+
+  # Not a foreground pane session: a --print/-p run is one-shot output, and a
+  # --bg/--background launch detaches immediately — neither has a pane for a
+  # channel event to wake, so both reach the binary untouched. Stop scanning at
+  # `--`: everything past it is the prompt, not a flag.
+  local a
+  for a in "$@"; do
+    case "$a" in
+      -p|--print|--bg|--background) command claude "$@"; return ;;
+      --) break ;;
+    esac
+  done
+
+  # Everything else is an interactive session — bare prompt, --resume,
+  # --continue, --name, --model, -w… — so it carries the channels. The session
+  # name is not re-injected here: --resume restores the saved name, and an
+  # explicit --name is the caller's own.
+  command claude "${__claude_channels[@]}" "$@"
 }
 
 # Quick navigation

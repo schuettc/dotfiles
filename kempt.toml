@@ -339,11 +339,17 @@ only = { os = "darwin" }
 # ---------------------------------------------------------------------------
 # galley — Markdown/HTML review page shared with Claude Code (a browser review
 # loop; press Revise, Claude rewrites, changes land marked). The binary installs
-# from galley.tools/dl. The Claude Code half — the plugin and the `galley
-# channel` server — is per-project / per-session (a `--channels` launch flag),
-# not machine-level dotfiles, so it is intentionally not wired here. The pi
-# half (the `galley channel` server in pi's channels.json) is wired by the
-# [packages.pi-channels] package below, alongside muster.
+# from galley.tools/dl.
+#
+# The Claude Code channel IS wired machine-level, because the claude() wrapper
+# in config/zsh/04-aliases.zsh unconditionally launches every interactive
+# session with `--dangerously-load-development-channels server:galley
+# server:muster-channel`. That `server:galley` names an MCP server, so a server
+# named `galley` (= `galley channel`) must be registered in ~/.claude.json or
+# the flag resolves to nothing and Revise never wakes the pane. This mirrors
+# muster-channel's registration and the pi half in [packages.pi-channels]; an
+# earlier note here called this per-project and left it unwired, which is why
+# the galley channel silently never attached under Claude.
 # ---------------------------------------------------------------------------
 [packages.galley]
 description = "Markdown/HTML review page shared with Claude Code (galley.tools)"
@@ -354,6 +360,13 @@ only = { os = "darwin" }
   site = "galley.tools"
   tool = "galley"
   bin = "galley"
+
+  # Register the `galley` channel server so the wrapper's `server:galley`
+  # resolves. Named `galley` to match the flag; command mirrors pi's
+  # channels.json entry (`galley channel`).
+  [[packages.galley.json-merge]]
+  file = "~/.claude.json"
+  merge = { mcpServers = { galley = { type = "stdio", command = "galley", args = ["channel"], env = {} } } }
 
   [[packages.galley.verify]]
   command-exists = "galley"
