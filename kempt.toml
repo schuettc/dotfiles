@@ -408,7 +408,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # session_start) and is the provider defaultProvider=claude-bridge points at.
     # It MUST load before channels.tools, so keep it first. Court's fork of the
     # third-party project, published to npm (based on upstream + 3 local patches).
-    "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.4",
+    "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.6",
     "npm:@gotgenes/pi-permission-system",
     "npm:@tintinweb/pi-subagents",
     "npm:@bitcraft-apps/pi-web-tools",
@@ -438,7 +438,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # no-ops; keep this identical to `pi = [...]` above, forks and all.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.4", "npm:@gotgenes/pi-permission-system", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-wakeup@0.1.0", "npm:pi-creel@0.1.0" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.6", "npm:@gotgenes/pi-permission-system", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-wakeup@0.1.0", "npm:pi-creel@0.1.0" ] }
 
   [[packages.pi.verify]]
   command-exists = "pi"
