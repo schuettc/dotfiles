@@ -275,7 +275,7 @@ notes = [
 # muster — cross-terminal agent coordination bus
 # ---------------------------------------------------------------------------
 [packages.muster]
-description = "Cross-terminal agent coordination bus (daemon, MCP in Claude/Codex/Cursor, session hooks)"
+description = "Cross-terminal agent coordination bus (daemon, MCP + session hooks in Claude and Codex)"
 needs = ["terminal"]
 only = { os = "darwin" }
 
