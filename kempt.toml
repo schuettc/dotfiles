@@ -378,8 +378,8 @@ only = { os = "darwin" }
 # ---------------------------------------------------------------------------
 #
 # AUTHORING NOTES (not user-facing; kept as comments, not `notes`):
-#  - pi-provider-guard / pi-tmux-bridge / pi-wakeup are published npm packages
-#    in the pi-extensions monorepo, declared in install.pi below. pi-provider-
+#  - pi-provider-guard / pi-tmux-bridge / pi-wakeup / pi-bang are published npm
+#    packages in the pi-extensions monorepo, declared in install.pi below. pi-provider-
 #    guard reads optional private policy prose from
 #    ~/.pi/agent/extensions/pi-provider-guard/config.json; when that file is
 #    absent the extension is a no-op, so this package converges cleanly without
@@ -401,8 +401,8 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.install]]
   # kempt's pi inventory strips @version, so desired entries are unversioned to
   # match the reduced `pi list` output (no-op). pi-provider-guard / pi-tmux-bridge /
-  # pi-wakeup are Court's own extensions, published to the pi-extensions monorepo
-  # (formerly the private local packages in the now-retired schuettc/pi repo).
+  # pi-wakeup / pi-bang are Court's own extensions, published to the pi-extensions
+  # monorepo (formerly the private local packages in the now-retired schuettc/pi repo).
   pi = [
     # pi-claude-bridge is THE harness (registers the pane with muster on
     # session_start) and is the provider defaultProvider=claude-bridge points at.
@@ -427,6 +427,8 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     "npm:pi-tmux-bridge@0.1.1",
     "npm:pi-wakeup@0.1.0",
     "npm:pi-creel@0.1.0",
+    # pi-bang — `!` completions trigger a model turn; auto-space after `!`.
+    "npm:pi-bang",
   ]
 
   # settings — the packages list is written into live settings.json under
@@ -438,7 +440,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # no-ops; keep this identical to `pi = [...]` above, forks and all.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.7", "npm:@gotgenes/pi-permission-system", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-wakeup@0.1.0", "npm:pi-creel@0.1.0" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.7", "npm:@gotgenes/pi-permission-system", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-wakeup@0.1.0", "npm:pi-creel@0.1.0", "npm:pi-bang" ] }
 
   # pi-auto-review reviewer config. The extension itself is NOT in the manifest
   # (Court loads it from a local pi-packages checkout, not npm), so on a fresh
