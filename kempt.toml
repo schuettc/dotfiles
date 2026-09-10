@@ -440,6 +440,18 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   file = "~/.pi/agent/settings.json"
   merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.6", "npm:@gotgenes/pi-permission-system", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-wakeup@0.1.0", "npm:pi-creel@0.1.0" ] }
 
+  # pi-auto-review reviewer config. The extension itself is NOT in the manifest
+  # (Court loads it from a local pi-packages checkout, not npm), so on a fresh
+  # box this file is a harmless no-op until the extension is added. It pins the
+  # LLM reviewer to claude-sonnet-4-6: sonnet-4-6 emits the required bare-JSON
+  # decision on the first attempt, where sonnet-5 (any reasoning level) returns
+  # non-JSON and falls through to defer, and haiku over-defers obviously-fine
+  # requests. reasoning=off keeps latency ~2.6s/review; failureMode=defer sends
+  # a failed review to the human rather than auto-denying.
+  [[packages.pi.json-merge]]
+  file = "~/.pi/agent/extensions/pi-auto-review/config.json"
+  merge = { model = "claude-bridge/claude-sonnet-4-6", reasoning = "off", timeoutMs = 45000, failureMode = "defer" }
+
   [[packages.pi.verify]]
   command-exists = "pi"
 
