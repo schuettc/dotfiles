@@ -415,7 +415,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # pi-auto-review — LLM permission reviewer (Court's fork, published to npm).
     # Requires pi-permission-system >=29.3.0 <31.0.0, hence the pin above; must
     # load after permission-system. Reviewer model is set in the config json-merge below.
-    "npm:@schuettc/pi-auto-review@0.15.2-schuettc.2",
+    "npm:@schuettc/pi-auto-review@0.18.1-schuettc.1",
     "npm:@tintinweb/pi-subagents",
     "npm:@bitcraft-apps/pi-web-tools",
     "npm:pi-quiet",
@@ -446,20 +446,19 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # no-ops; keep this identical to `pi = [...]` above, forks and all.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.7", "npm:@gotgenes/pi-permission-system@30.2.0", "npm:@schuettc/pi-auto-review@0.15.2-schuettc.2", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.7", "npm:@gotgenes/pi-permission-system@30.2.0", "npm:@schuettc/pi-auto-review@0.18.1-schuettc.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang" ] }
 
   # pi-auto-review reviewer config. The extension is installed from npm in the
-  # manifest above (@schuettc/pi-auto-review@0.15.2-schuettc.2, pinned with a
+  # manifest above (@schuettc/pi-auto-review@0.18.1-schuettc.1, pinned with a
   # compatible pi-permission-system@30.2.0), so on any machine kempt sets up the
-  # extension loads and reads this file. It pins the
-  # LLM reviewer to claude-sonnet-4-6: sonnet-4-6 emits the required bare-JSON
-  # decision on the first attempt, where sonnet-5 (any reasoning level) returns
-  # non-JSON and falls through to defer, and haiku over-defers obviously-fine
-  # requests. reasoning=off keeps latency ~2.6s/review; failureMode=defer sends
+  # extension and its trusted reviewer profiles. Terra is the startup default:
+  # it emitted valid bare JSON for allow/deny/defer and was faster than Luna in
+  # the 2026-09-12 probe. Sonnet remains selectable for the current session via
+  # /auto-review-model. reasoning=off minimizes latency; failureMode=defer sends
   # a failed review to the human rather than auto-denying.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/extensions/pi-auto-review/config.json"
-  merge = { model = "claude-bridge/claude-sonnet-4-6", reasoning = "off", timeoutMs = 45000, failureMode = "defer" }
+  merge = { reviewer = "terra", reviewers = { sonnet = { model = "claude-bridge/claude-sonnet-4-6", reasoning = "off" }, terra = { model = "openai-codex/gpt-5.6-terra", reasoning = "off" } }, model = "openai-codex/gpt-5.6-terra", reasoning = "off", timeoutMs = 45000, failureMode = "defer" }
 
   [[packages.pi.verify]]
   command-exists = "pi"
