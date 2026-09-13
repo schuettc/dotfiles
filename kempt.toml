@@ -454,14 +454,13 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # pi-auto-review reviewer config. The extension is installed from npm in the
   # manifest above (@schuettc/pi-auto-review@0.18.1-schuettc.1, pinned with a
   # compatible pi-permission-system@30.2.0), so on any machine kempt sets up the
-  # extension and its trusted reviewer profiles. Terra is the startup default:
-  # it emitted valid bare JSON for allow/deny/defer and was faster than Luna in
-  # the 2026-09-12 probe. Sonnet remains selectable for the current session via
-  # /auto-review-model. reasoning=off minimizes latency; failureMode=defer sends
+  # extension and its trusted reviewer profiles. Sonnet is the startup default;
+  # Terra remains selectable for the current session via /auto-review-model.
+  # reasoning=off minimizes latency; failureMode=defer sends
   # a failed review to the human rather than auto-denying.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/extensions/pi-auto-review/config.json"
-  merge = { reviewer = "terra", reviewers = { sonnet = { model = "claude-bridge/claude-sonnet-4-6", reasoning = "off" }, terra = { model = "openai-codex/gpt-5.6-terra", reasoning = "off" } }, model = "openai-codex/gpt-5.6-terra", reasoning = "off", timeoutMs = 45000, failureMode = "defer" }
+  merge = { reviewer = "sonnet", reviewers = { sonnet = { model = "claude-bridge/claude-sonnet-4-6", reasoning = "off" }, terra = { model = "openai-codex/gpt-5.6-terra", reasoning = "off" } }, model = "claude-bridge/claude-sonnet-4-6", reasoning = "off", timeoutMs = 45000, failureMode = "defer" }
 
   [[packages.pi.verify]]
   command-exists = "pi"
