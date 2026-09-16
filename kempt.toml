@@ -399,8 +399,11 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.install]]
   npm = ["@earendil-works/pi-coding-agent"]
 
-  # pi extensions — npm: identifiers as displayed by `pi list` (subset; the 3
-  # private local-path packages are intentionally omitted, additive no-op).
+  # pi extensions — npm: identifiers as displayed by `pi list`. Complete set:
+  # every live extension is published to npm (no local-path packages remain —
+  # the retired schuettc/pi repo's private local packages are now the
+  # pi-provider-guard / pi-tmux-bridge / pi-wakeup / pi-bang npm packages below).
+  # Matches ~/.pi/agent/settings.json `packages` string-for-string (19/19).
   [[packages.pi.install]]
   # Version policy (kempt >= 0.3.0): an unversioned entry ROLLS to the newest
   # published version (kempt update/upgrade roll it, outdated reports it); a
@@ -508,7 +511,7 @@ only = { os = "darwin" }
 
   [[packages.pi-channels.json-merge]]
   file = "~/.pi/agent/channels.json"
-  merge = { channelServers = { muster = { command = "${HOME}/.local/bin/muster", args = ["channel"] }, galley = { command = "${HOME}/.local/bin/galley", args = ["channel"] } } }
+  merge = { channelServers = { "muster-channel" = { command = "${HOME}/.local/bin/muster", args = ["channel"] }, galley = { command = "${HOME}/.local/bin/galley", args = ["channel", "--scope", "."] } } }
 
 # ---------------------------------------------------------------------------
 # pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
