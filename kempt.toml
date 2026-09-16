@@ -1,7 +1,10 @@
 # kempt.toml — declarative description of this machine's dotfiles + tools.
 # Authored from packages/*/pkg.sh, the Brewfiles, and the live machine config.
-# Scope: core, terminal, nvim, markedit, claude, codex, cursor, muster, galley.
-# (pi handled separately; swiftbar dropped.)
+# Scope: core, terminal, nvim, markedit, claude, codex, swiftbar, muster,
+# galley, pi, pi-channels, pi-llama.
+# (cursor dropped — the cursor-agent CLI was never set up; see the cursor note
+# below. pi-llama is optional and NOT in the developer profile — adopt it only
+# on a box with local GGUF weights.)
 
 [kempt]
 spec = 1
