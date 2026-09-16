@@ -413,7 +413,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.9",
     # Account-wide provider usage meter. Keep immediately after the bridge so
     # its optional Claude adapter is available when the meter starts.
-    "npm:@schuettc/pi-usage@0.10.0-schuettc.2",
+    "npm:@schuettc/pi-usage@0.10.0-schuettc.3",
     "npm:@gotgenes/pi-permission-system@30.2.0",
     # pi-auto-review — LLM permission reviewer (Court's fork, published to npm).
     # Requires pi-permission-system >=29.3.0 <31.0.0, hence the pin above; must
@@ -450,7 +450,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # no-ops; keep this identical to `pi = [...]` above, forks and all.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.9", "npm:@schuettc/pi-usage@0.10.0-schuettc.2", "npm:@gotgenes/pi-permission-system@30.2.0", "npm:@schuettc/pi-auto-review@0.18.1-schuettc.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.9", "npm:@schuettc/pi-usage@0.10.0-schuettc.3", "npm:@gotgenes/pi-permission-system@30.2.0", "npm:@schuettc/pi-auto-review@0.18.1-schuettc.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang" ] }
 
   # pi-auto-review reviewer config. The extension is installed from npm in the
   # manifest above (@schuettc/pi-auto-review@0.18.1-schuettc.1, pinned with a
