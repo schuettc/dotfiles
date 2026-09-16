@@ -500,9 +500,10 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
 # on top. The Claude Code equivalents live in [packages.muster] (MCP) and each
 # project's .mcp.json (galley) — this is the pi-side counterpart.
 #
-# Absolute ${HOME} paths (kempt expands the token at write time): channels.tools
-# spawns these as subprocesses that cannot rely on ~/.local/bin being on PATH —
-# the same lesson the muster launchd job records above.
+# Bare command names (resolved via $PATH): pi spawns channel servers with the
+# session's login PATH, which includes ~/.local/bin — so these follow the same
+# convention as the Claude/Codex MCP `command` entries, NOT the launchd/codex-
+# hooks class that needs absolute ${HOME} paths. Matches live channels.json.
 # ---------------------------------------------------------------------------
 [packages.pi-channels]
 description = "Wire galley + muster channels into pi sessions (channels.tools → channels.json)"
@@ -511,7 +512,7 @@ only = { os = "darwin" }
 
   [[packages.pi-channels.json-merge]]
   file = "~/.pi/agent/channels.json"
-  merge = { channelServers = { "muster-channel" = { command = "${HOME}/.local/bin/muster", args = ["channel"] }, galley = { command = "${HOME}/.local/bin/galley", args = ["channel", "--scope", "."] } } }
+  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] } } }
 
 # ---------------------------------------------------------------------------
 # pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
