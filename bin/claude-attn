@@ -55,6 +55,27 @@ clear_session() {
   refresh_cues
 }
 
+# The permission-waiting flag (@claude_attn_perm) is a SECOND, more urgent state
+# than @claude_attn: it lights the 🔐 title prefix (over the 🔔 of a settled
+# turn) while a permission prompt — including a pi-auto-review deferral — waits
+# on the operator, and is cleared the moment the prompt is answered. Raised by
+# pi-tmux-bridge on the `permissions:ui_prompt` pi event and cleared on
+# `permissions:decision`; it is deliberately NOT touched by the focus hooks,
+# so the lock stays lit until the prompt is actually answered.
+raise_perm_session() {
+  local s="$1"; [[ -z "$s" ]] && return 0
+  [[ "$(tmux show-options -t "$s" -qv @claude_attn_perm 2>/dev/null)" == "1" ]] && return 0
+  tmux set-option -t "$s" @claude_attn_perm 1 2>/dev/null || return 0
+  refresh_cues
+}
+
+clear_perm_session() {
+  local s="$1"; [[ -z "$s" ]] && return 0
+  [[ "$(tmux show-options -t "$s" -qv @claude_attn_perm 2>/dev/null)" == "1" ]] || return 0
+  tmux set-option -t "$s" -u @claude_attn_perm 2>/dev/null
+  refresh_cues
+}
+
 # Resolve the tmux session owning <pid> by walking process ancestry (hook →
 # claude → pane shell) until a PID matches a pane's #{pane_pid}. For hooks,
 # which run with $TMUX unset, so the session can't come from the environment.
@@ -90,6 +111,14 @@ case "$cmd" in
     # events (which some terminals/windows drop — e.g. a wedged Ghostty surface).
     clear_session "$(session_of_pid "$arg")"
     ;;
+  raise-wait)
+    # Permission prompt waiting on the operator (pi-tmux-bridge). Lights 🔐.
+    raise_perm_session "${arg:-$(cur_session)}"
+    ;;
+  clear-wait)
+    # Permission prompt answered. Clears 🔐.
+    clear_perm_session "${arg:-$(cur_session)}"
+    ;;
   focus)
     # Bring the Ghostty window showing this session to the front, then clear its
     # flag. Ghostty titles each window with the session name (set-titles), maybe
@@ -113,7 +142,7 @@ OSA
     "$0" clear "$s"
     ;;
   *)
-    echo "usage: claude-attn {raise|clear|list|focus|raise-pid <pid>|clear-pid <pid>} [session]" >&2
+    echo "usage: claude-attn {raise|clear|raise-wait|clear-wait|list|focus|raise-pid <pid>|clear-pid <pid>} [session]" >&2
     exit 2
     ;;
 esac
