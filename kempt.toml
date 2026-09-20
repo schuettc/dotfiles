@@ -469,6 +469,24 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   file = "~/.pi/agent/extensions/pi-auto-review/config.json"
   merge = { reviewer = "sonnet", reviewers = { sonnet = { model = "claude-bridge/claude-sonnet-4-6", reasoning = "off" }, terra = { model = "openai-codex/gpt-5.6-terra", reasoning = "off" } }, model = "claude-bridge/claude-sonnet-4-6", reasoning = "off", timeoutMs = 45000, failureMode = "defer" }
 
+  # pi-permission-system allowlist. This is the STATIC permission policy the
+  # authorizer chain consults BEFORE pi-auto-review's model review runs: any
+  # `allow` here resolves without a review round (lower latency, no model call),
+  # while `ask`/absent surfaces fall through to pi-auto-review. Previously this
+  # file was unmanaged local drift on one machine; kempt now owns it so a fresh
+  # box reproduces the same policy. Deep-merge is additive, so hand-added rules
+  # on a machine survive, but this block is the authoritative baseline. New
+  # allow rules below the historical set were promoted from the policy-audit
+  # (`/auto-review-report`): repeatedly human-approved, zero-denial surfaces that
+  # were needlessly deferred to review — notably `gh -R *` (the -R flag misses
+  # the un-flagged `gh * ` allows) and `tmux capture-pane *` (the trailing
+  # scrollback number defeats the glob). NOTE: the agent itself cannot edit the
+  # live config.json (pi-auto-review hard-denies tampering with permission
+  # controls); only `kempt update` applies this.
+  [[packages.pi.json-merge]]
+  file = "~/.pi/agent/extensions/pi-permission-system/config.json"
+  merge = { "$schema" = "https://raw.githubusercontent.com/gotgenes/pi-packages/main/packages/pi-permission-system/schemas/permissions.schema.json", "permission" = { "*" = "ask", "path" = { "*" = "allow", "*.env" = { "action" = "deny", "reason" = "environment files hold secrets; read the .env.example instead" }, "*.env.*" = { "action" = "deny", "reason" = "environment files hold secrets; read the .env.example instead" }, "*.env.example" = "allow", "~/.ssh/*" = { "action" = "deny", "reason" = "SSH keys and config are off limits to the agent" } }, "read" = "allow", "write" = "allow", "edit" = "allow", "WebSearch" = "allow", "WebFetch" = { "*" = "ask", "https://github.com/*" = "allow" }, "bash" = { "*" = "ask", "git stash" = { "action" = "deny", "reason" = "git stash hides work; commit or use a worktree" }, "git stash *" = { "action" = "deny", "reason" = "git stash hides work; commit or use a worktree" }, "git add *" = "allow", "git commit *" = "allow", "git pull *" = "allow", "git fetch *" = "allow", "git ls-tree *" = "allow", "git push --dry-run*" = "allow", "gh pr list *" = "allow", "gh pr view *" = "allow", "gh pr diff *" = "allow", "gh pr checks *" = "allow", "gh repo view *" = "allow", "gh run list *" = "allow", "gh run view *" = "allow", "cd *" = "allow", "grep *" = "allow", "ls *" = "allow", "sleep *" = "allow", "npx --version" = "allow", "npx --help" = "allow", "npm --version" = "allow", "pip --version" = "allow", "pip3 --version" = "allow", "git push *" = "allow", "gh api *" = "allow", "gh auth *" = "allow", "gh pr *" = "allow", "gh repo *" = "allow", "muster" = "allow", "muster *" = "allow", "galley" = "allow", "galley *" = "allow", "aws sso login *" = "allow", "head *" = "allow", "cat *" = "allow", "tail *" = "allow", "sed -n *" = "allow", "sort *" = "allow", "wc *" = "allow", "which *" = "allow", "pwd" = "allow", "git log *" = "allow", "git status" = "allow", "git status *" = "allow", "git diff *" = "allow", "git show *" = "allow", "gh -R *" = "allow", "tmux capture-pane *" = "allow", "git -C * status" = "allow", "git -C * status *" = "allow", "git rev-parse *" = "allow", "go build *" = "allow", "aws s3 ls *" = "allow" }, "mcp" = { "*" = "ask" }, "Agent" = "allow", "get_subagent_result" = "allow", "steer_subagent" = "allow", "grep" = "allow", "find" = "allow", "ls" = "allow", "memory_search" = "allow", "memory_read" = "allow", "memory_write" = "allow", "scratchpad" = "allow", "file_channel_status" = "allow", "skill" = { "*" = "ask", "update-config" = "allow" }, "external_directory" = { "*" = "ask", "~/.nvm/versions/*" = "allow", "/tmp/*" = "allow", "/private/var/folders/*" = "allow", "~/dotfiles/*" = "allow", "~/GitHub/schuettc/*" = "allow" }, "muster_channel_status" = "allow", "galley_channel_status" = "allow", "galley_ack" = "allow", "galley_review" = "allow", "cancel_wakeup" = "allow", "schedule_wakeup" = "allow", "artifact" = "allow" }, "authorizerChain" = [ "pi-auto-review" ] }
+
   # subagent definitions — global custom agents (worker/reviewer) discovered by
   # pi at ~/.pi/agent/agents from any cwd. These are the LEAN-prompt agents that
   # dispatch cleanly on the direct anthropic/* provider; the built-in
