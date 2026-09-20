@@ -510,6 +510,31 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.verify]]
   symlink-target = { link = "~/.pi/agent/agents", target = "config/pi/agents" }
 
+  # subagent defaults — global subagents.json. fallbackSubagent="none" makes an
+  # unknown/misspelled subagent_type fail loudly instead of silently spawning
+  # general-purpose (which carries pi's harness block and trips the server-side
+  # extra-usage classifier, worst in background/scheduled runs). strictAgentFiles
+  # surfaces a broken agent file at startup instead of silently falling through.
+  [[packages.pi.symlink]]
+  from = "config/pi/subagents.json"
+  to = "~/.pi/agent/subagents.json"
+  backup = true
+
+  [[packages.pi.verify]]
+  symlink-target = { link = "~/.pi/agent/subagents.json", target = "config/pi/subagents.json" }
+
+  # pi-subagent-dispatch skill — the one working dispatch recipe (custom agent +
+  # isolated + direct anthropic/* model) and the failure-signature table. Placed
+  # in pi's NATIVE auto-discovered skills dir (~/.pi/agent/skills) so every
+  # machine reads it without relying on the unmanaged ~/.claude/skills path.
+  [[packages.pi.symlink]]
+  from = "config/pi/skills"
+  to = "~/.pi/agent/skills"
+  backup = true
+
+  [[packages.pi.verify]]
+  symlink-target = { link = "~/.pi/agent/skills", target = "config/pi/skills" }
+
 # ---------------------------------------------------------------------------
 # pi-channels — wire the galley + muster channels into pi sessions.
 #
