@@ -451,15 +451,21 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     "git:github.com/obra/superpowers",
   ]
 
-  # settings — the packages list is written into live settings.json under
-  # `arrays = append`, so it MUST match the install list above STRING FOR STRING.
-  # Append only ADDS: a pin here that differs from the install list (or from what
-  # a version bump last wrote) accumulates a SECOND entry rather than replacing
-  # the first — that is exactly how live settings once loaded channels.tools at
-  # two versions at once. Unversioned strings are stable across bumps, so append
-  # no-ops; keep this identical to `pi = [...]` above, forks and all.
+  # settings — kempt is AUTHORITATIVE over the live packages/extensions arrays
+  # (`arrays = replace`). Every converge resets settings.json `packages` to
+  # EXACTLY this list, so it MUST match the install `pi = [...]` above STRING FOR
+  # STRING. Why replace, not append: `pi install` is a SECOND writer — it stamps
+  # the resolved version of each spec into settings.json packages — so an append
+  # merge accumulated both the bare manifest string and pi's version-stamped
+  # form, drifting to duplicate entries (pi-quiet + pi-quiet@0.2.0, ...) that
+  # append never removed. Replace makes this manifest the single source of truth
+  # and is self-healing: any out-of-band or stale entry is dropped on the next
+  # `kempt update`. Consequence: every package you want MUST live in this list.
+  # extensions = [] is intentional (pi loads extensions from packages, not here);
+  # replace keeps it authoritatively empty.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
+  arrays = "replace"
   merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-4-8", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.7.0-schuettc.12", "npm:@schuettc/pi-usage@0.10.0-schuettc.4", "npm:@gotgenes/pi-permission-system@30.2.0", "npm:@schuettc/pi-auto-review@0.18.1-schuettc.2", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:pi-schedule", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "git:github.com/obra/superpowers" ] }
 
   # pi-auto-review reviewer config. The extension is installed from npm in the
