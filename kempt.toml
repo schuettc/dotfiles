@@ -535,6 +535,19 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.verify]]
   symlink-target = { link = "~/.pi/agent/skills", target = "config/pi/skills" }
 
+  # pi skills path — single source. Keep ~/.claude/skills (synced Claude skills:
+  # docs, xlsx, article-archiver, weekly-retro, ...); DROP the version-pinned
+  # superpowers plugin-cache path — superpowers now comes from the kempt-tracked
+  # git:obra/superpowers package (its package.json pi.skills + its extension).
+  # arrays=replace so the stale plugin-cache entry is REMOVED: with it present pi
+  # loads superpowers twice and prints a skill collision for every superpowers
+  # skill; with the git package as sole source, pi's canonical-path dedup keeps a
+  # single copy silently. Not previously kempt-managed; now converged.
+  [[packages.pi.json-merge]]
+  file = "~/.pi/agent/settings.json"
+  arrays = "replace"
+  merge = { skills = ["${HOME}/.claude/skills"] }
+
 # ---------------------------------------------------------------------------
 # pi-channels — wire the galley + muster channels into pi sessions.
 #
