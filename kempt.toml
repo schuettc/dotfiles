@@ -278,7 +278,7 @@ notes = [
 # muster — cross-terminal agent coordination bus
 # ---------------------------------------------------------------------------
 [packages.muster]
-description = "Cross-terminal agent coordination bus (daemon, MCP + session hooks in Claude and Codex)"
+description = "Cross-terminal agent coordination bus (daemon, MCP + session hooks in Claude, Codex, and pi)"
 needs = ["terminal"]
 only = { os = "darwin" }
 
@@ -312,6 +312,20 @@ only = { os = "darwin" }
   [[packages.muster.toml-merge]]
   file = "~/.codex/config.toml"
   merge = { mcp_servers = { muster = { command = "muster", args = ["mcp"] } } }
+
+  # MCP registration into pi. pi-mcp-adapter reads ~/.config/mcp/mcp.json (the
+  # all-projects target) and exposes muster's get_inbox/get_thread/reply/... as
+  # tools through its lazy mcp() proxy. Until now pi had only the muster CHANNEL
+  # (mail push, via [packages.pi-channels] → channels.json) and the `muster` CLI
+  # — no MCP tools — so every pi session drained mail by shelling out. This
+  # gives pi the same tool surface Claude and Codex already have; the CLI stays
+  # the equivalent fallback the guidance names for a session without the tools.
+  # Bare `muster` on $PATH matches pi's other mcp.json/channels.json entries
+  # (the login PATH includes ~/.local/bin), not the launchd absolute-path class.
+  # Deep-merge is additive: hand-added servers (polar, zoho) survive.
+  [[packages.muster.json-merge]]
+  file = "~/.config/mcp/mcp.json"
+  merge = { mcpServers = { muster = { command = "muster", args = ["mcp"] } } }
 
   # muster hooks into claude settings + permission allowlist
   [[packages.muster.json-merge]]
