@@ -459,6 +459,10 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     "npm:pi-creel",
     # pi-bang — `!` completions trigger a model turn; auto-space after `!`.
     "npm:pi-bang",
+    # pi-auto-reload — TEMPORARY local-path install for testing before its first
+    # npm publish. Loads the pi-extensions main checkout directly (agent-writable
+    # workspace), so swap to "npm:pi-auto-reload@0.1.0" once it's published.
+    "/Users/courtschuett/GitHub/schuettc/tools-workspace/pi-extensions/packages/pi-auto-reload",
     # pi-typesafe-ai — TypeSafe Jev credential UX (bare `/typesafe` panel, or setup|status|
     # logout`, key stored at ~/.pi/agent/typesafe/config.json 0600). Also the
     # client library pi-auto-review's jev reviewer engine uses. No network or
@@ -485,7 +489,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.8.0-schuettc.5", "npm:@schuettc/pi-usage@0.10.2-schuettc.1", "npm:@gotgenes/pi-permission-system@30.2.0", "npm:@schuettc/pi-auto-review@0.20.1-schuettc.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:@schuettc/pi-schedule@0.4.0-schuettc.2", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "git:github.com/obra/superpowers" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.8.0-schuettc.5", "npm:@schuettc/pi-usage@0.10.2-schuettc.1", "npm:@gotgenes/pi-permission-system@30.2.0", "npm:@schuettc/pi-auto-review@0.20.1-schuettc.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:@schuettc/pi-schedule@0.4.0-schuettc.2", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "/Users/courtschuett/GitHub/schuettc/tools-workspace/pi-extensions/packages/pi-auto-reload", "npm:pi-typesafe-ai@0.2.0", "git:github.com/obra/superpowers" ] }
 
   # pi-auto-review reviewer config. The extension is installed from npm in the
   # manifest above (@schuettc/pi-auto-review@0.20.1-schuettc.1, pinned with a
