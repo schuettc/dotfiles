@@ -444,9 +444,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     "npm:pi-quiet",
     "npm:@hank-warren/pi-plan-mode",
     "npm:@schuettc/pi-schedule@0.4.0-schuettc.2",
-    # pinned: 1.5.0/1.5.1 omit events.ts from the tarball, so pi fails to load them
-    # (nicknisi/pi-extensions#153, fix in #154). Unpin once a fixed release ships.
-    "npm:@nicknisi/pi-artifacts@1.4.1",
+    "npm:@nicknisi/pi-artifacts",
     "npm:pi-memory",
     "npm:channels.tools",
     # pi-mcp-adapter is the MCP bridge: reads .mcp.json / ~/.config/mcp/mcp.json
@@ -487,7 +485,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.8.0-schuettc.5", "npm:@schuettc/pi-usage@0.10.2-schuettc.1", "npm:@gotgenes/pi-permission-system@30.2.0", "npm:@schuettc/pi-auto-review@0.20.1-schuettc.3", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:@schuettc/pi-schedule@0.4.0-schuettc.2", "npm:@nicknisi/pi-artifacts@1.4.1", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "git:github.com/obra/superpowers" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.8.0-schuettc.5", "npm:@schuettc/pi-usage@0.10.2-schuettc.1", "npm:@gotgenes/pi-permission-system@30.2.0", "npm:@schuettc/pi-auto-review@0.20.1-schuettc.3", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet", "npm:@hank-warren/pi-plan-mode", "npm:@schuettc/pi-schedule@0.4.0-schuettc.2", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "git:github.com/obra/superpowers" ] }
 
   # pi-auto-review reviewer config. The extension is installed from npm in the
   # manifest above (@schuettc/pi-auto-review@0.20.1-schuettc.3, pinned with a
