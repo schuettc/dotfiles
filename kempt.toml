@@ -417,11 +417,13 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # every live extension is published to npm (no local-path packages remain —
   # the retired schuettc/pi repo's private local packages are now the
   # pi-provider-guard / pi-tmux-bridge / pi-wakeup / pi-bang npm packages below).
-  # Matches ~/.pi/agent/settings.json `packages` string-for-string (19/19).
+  # Matches ~/.pi/agent/settings.json `packages` string-for-string (21/21).
   [[packages.pi.install]]
   # Version policy (kempt >= 0.3.0): an unversioned entry ROLLS to the newest
   # published version (kempt update/upgrade roll it, outdated reports it); a
-  # pinned name@version converges to exactly that version. pi-provider-guard /
+  # pinned name@version converges to exactly that version. An unversioned git:
+  # entry rolls to its repo's default-branch head (kempt >= 0.5.4; older kempt
+  # installs it once and never updates it). pi-provider-guard /
   # pi-tmux-bridge / pi-hail / pi-wakeup / pi-bang are Court's own extensions,
   # published to the pi-extensions monorepo (formerly the private local
   # packages in the now-retired schuettc/pi repo).
@@ -466,7 +468,9 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     "npm:pi-typesafe-ai@0.2.0",
     # superpowers — obra's skill pack (brainstorming, systematic-debugging,
     # TDD, writing-plans, ...), tracked as a rolling git: package so `kempt
-    # update` reconciles it to the default branch. Load last; it only adds skills.
+    # update` reconciles it to the default branch (needs kempt >= 0.5.4). obra
+    # does not publish it to npm (npm `superpowers` is an unrelated package), so
+    # git: is the only source. Load last; it only adds skills.
     "git:github.com/obra/superpowers",
   ]
 
