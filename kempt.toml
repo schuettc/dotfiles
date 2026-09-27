@@ -417,7 +417,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # every live extension is published to npm (no local-path packages remain —
   # the retired schuettc/pi repo's private local packages are now the
   # pi-provider-guard / pi-tmux-bridge / pi-wakeup / pi-bang npm packages below).
-  # Matches ~/.pi/agent/settings.json `packages` string-for-string (22/22).
+  # Matches ~/.pi/agent/settings.json `packages` string-for-string (23/23).
   [[packages.pi.install]]
   # Version policy (kempt >= 0.3.0): an unversioned entry ROLLS to the newest
   # published version (kempt update/upgrade roll it, outdated reports it); a
@@ -476,6 +476,11 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # change on disk (e.g. after `kempt update`), so sessions never run a mix
     # of old and new extension code. Court's own, from the pi-extensions monorepo.
     "npm:pi-auto-reload@0.1.0",
+    # casebook (tackle.tools): journals git/gh bash calls with the pi session,
+    # briefs the first turn, syncs in the background. Installed HERE because this
+    # manifest owns the packages list; casebook's own manifest
+    # (tackle cmd/casebook/kempt.toml) installs everything else.
+    "npm:pi-casebook@0.1.0",
     # superpowers — obra's skill pack (brainstorming, systematic-debugging,
     # TDD, writing-plans, ...), tracked as a rolling git: package so `kempt
     # update` reconciles it to the default branch (needs kempt >= 0.5.4). obra
@@ -499,7 +504,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.8.0-schuettc.7", "npm:@schuettc/pi-usage@0.10.2-schuettc.1", "npm:@gotgenes/pi-permission-system@npm:@schuettc/pi-permission-system@34.0.1-schuettc.2", "npm:@schuettc/pi-auto-review@0.21.0-schuettc.4", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@schuettc/pi-schedule@0.4.0-schuettc.2", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.1.0", "git:github.com/obra/superpowers" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.8.0-schuettc.7", "npm:@schuettc/pi-usage@0.10.2-schuettc.1", "npm:@gotgenes/pi-permission-system@npm:@schuettc/pi-permission-system@34.0.1-schuettc.2", "npm:@schuettc/pi-auto-review@0.21.0-schuettc.4", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@schuettc/pi-schedule@0.4.0-schuettc.2", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.1", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.1.0", "npm:pi-casebook@0.1.0", "git:github.com/obra/superpowers" ] }
 
   # pi-auto-review reviewer config. The extension is installed from npm in the
   # manifest above (@schuettc/pi-auto-review@0.21.0-schuettc.4, pinned with a
