@@ -70,9 +70,11 @@ description = "Terminal workspace: Ghostty, tmux (+plugins), yazi file explorer,
 needs = ["core"]
 
   # just + lefthook: every .tools family repo's `just verify` and pre-push hook
-  # (the same gate CI runs) need both; go builds them.
+  # (the same gate CI runs) need both; go builds them. bash: a current bash 5
+  # for scripts and test suites that CI runs under bash 5 (tools-actions'
+  # fork-sync suite refuses macOS's /bin/bash 3.2). /bin/bash is untouched.
   [[packages.terminal.install]]
-  brew.formulas = ["tmux", "yazi", "go", "just", "lefthook"]
+  brew.formulas = ["tmux", "yazi", "go", "just", "lefthook", "bash"]
   brew.casks = [
     "ghostty", "font-fira-code-nerd-font", "font-meslo-lg-nerd-font",
     "font-jetbrains-mono-nerd-font", "font-monaspice-nerd-font",
