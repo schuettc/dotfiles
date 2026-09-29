@@ -87,31 +87,9 @@ needs = ["core"]
   backup = true
 
   [[packages.terminal.symlink]]
-  from = "bin/tmux-reopen"
-  to = "~/.local/bin/tmux-reopen"
-  backup = false
-
-  [[packages.terminal.symlink]]
   from = "config/yazi"
   to = "~/.config/yazi"
   backup = true
-
-  # tmux plugins — origin strings taken verbatim from `git remote get-url origin`.
-  [[packages.terminal.git-clone]]
-  repo = "https://github.com/tmux-plugins/tpm"
-  to = "~/.tmux/plugins/tpm"
-
-  [[packages.terminal.git-clone]]
-  repo = "https://git::@github.com/tmux-plugins/tmux-resurrect"
-  to = "~/.tmux/plugins/tmux-resurrect"
-
-  [[packages.terminal.git-clone]]
-  repo = "https://git::@github.com/tmux-plugins/tmux-continuum"
-  to = "~/.tmux/plugins/tmux-continuum"
-
-  [[packages.terminal.git-clone]]
-  repo = "https://git::@github.com/tmux-plugins/tmux-sensible"
-  to = "~/.tmux/plugins/tmux-sensible"
 
   # scratch + proj — installed from tackle.tools/dl (the family download
   # contract), each verified against its .sha256 sidecar.

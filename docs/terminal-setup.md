@@ -60,9 +60,7 @@ set and will:
    - `~/.zshrc`, `~/.tmux.conf`
    - `~/.config/zsh/`, `~/.config/ghostty/`, `~/.config/yazi/`,
      `~/.config/starship.toml`, `~/.config/atuin/`, `~/.config/claude/`
-3. Clone TPM (tmux plugin manager) to `~/.tmux/plugins/tpm` and headlessly
-   install the tmux plugins (tmux-sensible, tmux-resurrect, tmux-continuum)
-4. Merge Claude Code settings into `~/.claude/settings.json` — wires the
+3. Merge Claude Code settings into `~/.claude/settings.json`: wires the
    `Notification` and `Stop` hooks to `claude-notify.sh` and sets the
    status line
 
@@ -75,7 +73,7 @@ source ~/.zshrc      # or just open a fresh Ghostty window
 ## If the install fails partway
 
 `install.sh` is **resilient and re-runnable** — it no longer aborts on the first
-error. A failed step (a flaky brew cask, no network for TPM, …) prints a `⚠`
+error. A failed step (a flaky brew cask, no network, …) prints a `⚠`
 warning and the install keeps going; a summary of all warnings prints at the end.
 Fix what's listed and just run `./install.sh` again (it's idempotent). Only a
 truly fatal problem — no Homebrew — stops it.
@@ -229,8 +227,9 @@ Run through this checklist:
    session. (Turn-end still rings the in-terminal bell + `⚠ 1: <project>`.)
 6. Status-right shows the git branch + dirty count, and `⌬ NN%` when the
    focused pane is running Claude.
-7. **Persistence:** `tmux kill-server`, then `tmux attach` → tmux-continuum
-   restores your sessions and layouts.
+7. **Persistence:** `tmux kill-server`, then `proj` → `tab` to the saved tab →
+   `^r` restores your sessions, their agent conversations and your Ghostty
+   windows/tabs.
 
 ## Day-to-day commands
 
@@ -266,10 +265,8 @@ newline in Claude without submitting. Full reference in
   OSC 7. Reload tmux (`Ctrl-A r`) or `tmux kill-server` + `tmux attach`; then
   use `pt` for the current tab.
 - **tmux config changes not taking effect** — `Ctrl-A r` to reload, or
-  `tmux kill-server` (detach first) for a clean restart. continuum restores
-  your sessions.
-- **tmux plugins didn't install** — the bootstrap needs a fresh server:
-  `tmux kill-server; tmux new-session -d; ~/.tmux/plugins/tpm/bin/install_plugins; tmux kill-server`.
+  `tmux kill-server` (detach first) for a clean restart, then restore your
+  sessions from `proj`'s saved tab.
 - **Ghostty config changes not applying** — `⌘⇧,` to reload, or quit and
   relaunch Ghostty (some settings need a full restart).
 - **`⌘V` won't paste images into Claude** — use `Ctrl+V`. Known Ghostty
