@@ -56,10 +56,8 @@ So `prefix → f` means: press `Ctrl-A`, release both keys, then press `f`.
 ## Starting the day
 
 1. Open **Ghostty** (`⌘ Space` → "Ghostty", or pin it to the Dock).
-2. If `tmux-continuum` saved sessions from your previous boot, attach:
-   ```
-   tmux attach
-   ```
+2. After a reboot, bring your sessions back from `proj`'s saved tab (see
+   [After a reboot](#after-a-reboot)).
 3. To open a workspace for a project:
    ```
    proj
@@ -139,7 +137,7 @@ The manual fallback:
   `pt <project> <work>` names both. Either creates or attaches
   `<project>/<work>` directly.
 
-Each tab persists across reboots via `tmux-continuum`.
+Each session can be restored after a reboot from `proj`'s saved tab.
 
 ### Opt-ins / opt-outs
 
@@ -255,7 +253,7 @@ straight back into yazi.
 
 **Closing a Ghostty tab does NOT kill the tmux session** — it only
 detaches. The session keeps running in the background (that's what lets
-you reattach and what `tmux-continuum` restores after a reboot). The
+you reattach, and `proj` remembers it for restoring after a reboot). The
 side effect: detached sessions accumulate, especially short-lived named
 work.
 
@@ -311,22 +309,23 @@ live sessions. Named-work sessions show up as `<project>/<work>`.
 
 ## After a reboot
 
-Open Ghostty:
+Open Ghostty, run `proj`, and press `tab` until the title reads
+`proj · saved`. Every session you had is listed, grouped by the Ghostty
+window it was in, all checked. `space` unchecks any you want to leave
+behind (they stay saved for next time); `^r` restores the rest.
 
-```
-tmux attach
-```
+**What is restored:** each session under its name, in its working directory,
+with the sidebar; its agent reopens the **same conversation**
+(`pi --session <id>` / `claude --resume <id>`); and the Ghostty windows and
+tabs are rebuilt in the order you last saved with `^s` on the saved tab.
 
-`tmux-continuum` should restore every session with `claude` re-launched in
-the left pane and `yazi` in the right.
+**What is NOT restored:** scrollback, and programs other than the agent
+(the sidebar panes start fresh). A session whose conversation file is gone
+shows `(no transcript)` and starts a new conversation under the same name.
 
-**What is restored:** session names, window/pane layouts, working
-directories, the *commands* that were running in each pane.
-
-**What is NOT restored:** the live state inside long-running TUI apps.
-Example: a Claude conversation. The `claude` command relaunches, but in a
-fresh conversation — you resume the previous one from within Claude as
-usual.
+Save the Ghostty layout (`^s`) whenever you rearrange windows; nothing saves
+it automatically. The sessions and conversations are recorded on their own.
+A session leaves the saved list only when you reap it with `^x`.
 
 ---
 

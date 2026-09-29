@@ -63,9 +63,8 @@ picks up the pinned extensions.
 - **[Ghostty](https://ghostty.org)** — native, GPU-accelerated terminal
   emulator. Config in `config/ghostty/config` (MonoLisaCode font, Catppuccin
   Mocha, keybinds, image-paste workaround, Ctrl+Enter newline).
-- **tmux** — multiplexer providing session persistence (via
-  tmux-resurrect + tmux-continuum), splits, and detach/reattach. Config in
-  `.tmux.conf`.
+- **tmux**: multiplexer providing splits and detach/reattach (reboot
+  recovery is `proj`'s saved tab). Config in `.tmux.conf`.
 - **[yazi](https://yazi-rs.github.io)** — TUI file explorer that lives in a
   right-side pane. Config in `config/yazi/`.
 - **neovim** ([LazyVim](https://lazyvim.org)) — terminal editor and system-wide

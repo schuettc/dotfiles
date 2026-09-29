@@ -49,7 +49,19 @@ case "$session_id" in
   *[!A-Za-z0-9._-]* | "" ) exit 0 ;;
 esac
 
-here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve our REAL location before looking for the helper beside us: kempt
+# installs this script as ~/.local/bin/harness-session-stamp (a symlink),
+# and the helper lives next to the real file in the repo, not next to the
+# link. Without this the hooks kempt wires up exited silently every time.
+self="${BASH_SOURCE[0]}"
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case "$link" in
+    /*) self=$link ;;
+    *) self="$(dirname "$self")/$link" ;;
+  esac
+done
+here="$(cd "$(dirname "$self")" && pwd)"
 pane_line=$("$here/tmux-hook-pane.sh" "$$" 2>/dev/null) || exit 0
 [ -n "$pane_line" ] || exit 0
 

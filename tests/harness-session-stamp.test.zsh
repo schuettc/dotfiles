@@ -127,6 +127,14 @@ ok "survives malformed payload"     "def-456" "$(opt)"
 rc=$(run_in_pane "$SOCK" workproj "printf %s 'garbage' | TMUX_TMPDIR='$TMPROOT' '$STAMP'; echo \$?")
 ok "exits 0 on garbage" "0" "$rc"
 
+# kempt installs the script as a SYMLINK (~/.local/bin/harness-session-stamp)
+# and that is the path the Claude and Codex hooks run. The script must find
+# its helper beside its real file, not beside the link.
+LINKDIR=$(mktemp -d "$TMPROOT/bin.XXXXXX")
+ln -s "$STAMP" "$LINKDIR/harness-session-stamp"
+run_in_pane "$SOCK" workproj "printf %s '{\"session_id\":\"via-link\"}' | TMUX_TMPDIR='$TMPROOT' '$LINKDIR/harness-session-stamp'; echo done" >/dev/null
+ok "stamps when run through a symlink" "via-link" "$(opt)"
+
 echo
 printf '%d passed, %d failed\n' "$PASS" "$FAIL"
 (( FAIL == 0 ))

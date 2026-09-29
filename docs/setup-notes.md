@@ -22,10 +22,10 @@ work is verified.
 | Layer | Choice | Why |
 |---|---|---|
 | Terminal | **Ghostty** | Native, no Electron, GPU-accelerated. Doesn't leak CALayers the way cmux did. |
-| Multiplexer | **tmux** + plugins | Session persistence, splits, detach/reattach, cross-machine portability |
+| Multiplexer | **tmux** | Splits, detach/reattach, cross-machine portability |
 | File explorer | **yazi** | Three-column TUI in a right-side pane; closest match to cmux's file panel |
 | Session model | One tmux session per project | Spawned on demand by a `proj` fzf picker |
-| Persistence | `tmux-resurrect` + `tmux-continuum` | Auto-save every 15 min, auto-restore on tmux start |
+| Persistence | `proj`'s saved tab | Records sessions + agent conversations via tmux hooks; restores them and the Ghostty layout. (Replaced tmux-resurrect + tmux-continuum, 2026-09-29; the task log below is historical.) |
 
 ## The cmux postmortem (background)
 
