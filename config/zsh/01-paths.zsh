@@ -15,6 +15,12 @@ fi
 # MySQL client
 export PATH="/opt/homebrew/opt/mysql-client/bin:$PATH"
 
+# Node: the LTS line, not Homebrew's newest `node`. pi runs on whichever node is
+# first on PATH (#!/usr/bin/env node), and each new Node major breaks native
+# addons and experimental flags before they catch up. node@24 is keg-only, so
+# it is put first here; move this (and kempt.toml's node@24) to the next LTS.
+[[ -d /opt/homebrew/opt/node@24/bin ]] && export PATH="/opt/homebrew/opt/node@24/bin:$PATH"
+
 # Local binaries
 export PATH="$HOME/.local/bin:$PATH"
 
