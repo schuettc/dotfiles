@@ -69,8 +69,10 @@ description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt
 description = "Terminal workspace: Ghostty, tmux (+plugins), yazi file explorer, nerd fonts"
 needs = ["core"]
 
+  # just + lefthook: every .tools family repo's `just verify` and pre-push hook
+  # (the same gate CI runs) need both; go builds them.
   [[packages.terminal.install]]
-  brew.formulas = ["tmux", "yazi", "go"]
+  brew.formulas = ["tmux", "yazi", "go", "just", "lefthook"]
   brew.casks = [
     "ghostty", "font-fira-code-nerd-font", "font-meslo-lg-nerd-font",
     "font-jetbrains-mono-nerd-font", "font-monaspice-nerd-font",
