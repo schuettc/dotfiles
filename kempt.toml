@@ -389,8 +389,11 @@ needs = ["core"]
 only = { os = "darwin" }
 notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json; absent = no-op", "the auto-review reviewer is Jev: run /typesafe setup once per machine to store the TypeSafe key (masked); without it every reviewed request defers to you (fails closed)"]
 
+  # node@24: pi runs on the Node LTS line (config/zsh/01-paths.zsh puts it first
+  # on PATH; it is keg-only). Not Homebrew's `node`, which tracks the newest
+  # major and ships breakage to pi first.
   [[packages.pi.install]]
-  brew.formulas = ["ddgr", "pandoc"]
+  brew.formulas = ["ddgr", "pandoc", "node@24"]
 
   [[packages.pi.install]]
   npm = ["@earendil-works/pi-coding-agent"]
