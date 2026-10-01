@@ -424,10 +424,10 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # session_start) and is the provider defaultProvider=claude-bridge points at.
     # It MUST load before channels.tools, so keep it first. Court's fork of the
     # third-party project, published to npm from a maintained patch stack.
-    "npm:@schuettc/pi-claude-bridge@0.9.1-schuettc.1",
+    "npm:@schuettc/pi-claude-bridge@0.9.1-schuettc.2",
     # Account-wide provider usage meter. Keep immediately after the bridge so
     # its optional Claude adapter is available when the meter starts.
-    "npm:@schuettc/pi-usage@0.10.13-schuettc.1",
+    "npm:@schuettc/pi-usage@0.10.13-schuettc.2",
     # pi-permission-system: Court's fork (schuettc/pi-permission-system, fork-sync),
     # installed UNDER THE UPSTREAM NAME with an npm alias so pi-auto-review and
     # pi-hail, which import "@gotgenes/pi-permission-system", resolve to it and
@@ -492,7 +492,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.9.1-schuettc.1", "npm:@schuettc/pi-usage@0.10.13-schuettc.1", "npm:@gotgenes/pi-permission-system@npm:@schuettc/pi-permission-system@35.0.1-schuettc.1", "npm:@schuettc/pi-auto-review@0.21.0-schuettc.4", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@schuettc/pi-schedule@0.4.0-schuettc.2", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.2", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.1.0", "npm:pi-casebook" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.9.1-schuettc.2", "npm:@schuettc/pi-usage@0.10.13-schuettc.2", "npm:@gotgenes/pi-permission-system@npm:@schuettc/pi-permission-system@35.0.1-schuettc.1", "npm:@schuettc/pi-auto-review@0.21.0-schuettc.4", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@schuettc/pi-schedule@0.4.0-schuettc.2", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.2", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.1.0", "npm:pi-casebook" ] }
 
   # pi-auto-review reviewer config. The extension is installed from npm in the
   # manifest above (@schuettc/pi-auto-review@0.21.0-schuettc.4, pinned with a
