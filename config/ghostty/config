@@ -67,8 +67,10 @@ split-inherit-working-directory = true
 # where a non-inheriting window lands
 working-directory = home
 window-inherit-font-size = true
-# Restore window layout on launch (closest analog to cmux session restore)
-window-save-state = always
+# proj owns restore after a reboot (sessions + saved window/tab layout).
+# Ghostty's own restore only brings back empty shells in old dirs, which then
+# auto-join to the proj picker — a second, wrong set of windows.
+window-save-state = never
 # Confirm quit only if there's an unsaved/running process
 quit-after-last-window-closed = false
 
