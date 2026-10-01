@@ -5,6 +5,18 @@ description: Use when dispatching subagents from a pi session on this machine (A
 
 # Dispatching pi subagents (this machine)
 
+## Update 2026-09-30: bridge children work, and follow the session's account
+
+Verified on pi 0.99.2 + `@schuettc/pi-claude-bridge` 0.9.1-schuettc.1: a custom agent with **`isolated: false`** on a **`claude-bridge/*`** model runs, including read/bash/write tool calls, with no prompt-capture error. It bills the parent session's **active bridge account** (its Claude Code transcript lands in that account's config dir), so a child follows `/claude-account use|all`.
+
+- Prefer this when the work should bill the account the session is on: `subagent_type: worker|reviewer`, `isolated: false`, `model: claude-bridge/claude-sonnet-5-5` (or opus-5-5 / haiku-4-5).
+- `anthropic/*` children bill **pi's own `/login`** (`~/.pi/agent/auth.json`), a separate account from the bridge switcher (subaud as of 2026-09-30).
+- Not re-tested: `claude-bridge/*` with `isolated: true` failed prompt-capture on 2026-09-30 in a session started before the pi 0.99.2 upgrade; treat isolated bridge children as unverified.
+- A session started before a pi upgrade cannot load `anthropic/*` children (`Cannot find module .../chunks/anthropic-messages-*.js`): restart pi.
+- Open question: Claude Code records a sonnet-5-5 child's responses as model `claude-sonnet-5` (server-reported name); not investigated.
+
+The recipe below is the 2026-08-28 baseline.
+
 Verified 2026-08-28 against pi + pi-claude-bridge. Re-verify the failure rows before trusting them after a bridge or pi upgrade.
 
 ## The one working recipe
