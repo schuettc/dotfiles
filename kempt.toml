@@ -378,6 +378,58 @@ only = { os = "darwin" }
   command-exists = "galley"
 
 # ---------------------------------------------------------------------------
+# casebook — the fate of every repo, PR, issue, branch and worktree
+# (casebook.tools; binary from tackle.tools/dl). Mirrors tackle's
+# cmd/casebook/kempt.toml, folded in here so `kempt update` keeps it current.
+# pi-casebook is in the pi package's list below (dotfiles owns that list); the
+# pi channel entry is in pi-channels. First run on a new machine:
+# `casebook init` and `casebook hooks install` (see casebook.tools/guide).
+# ---------------------------------------------------------------------------
+[packages.casebook]
+description = "casebook: triage page, agent channel, rules and apply (casebook.tools)"
+needs = ["core"]
+only = { os = "darwin" }
+
+  [[packages.casebook.download]]
+  site = "tackle.tools"
+  tool = "casebook"
+  bin = "casebook"
+
+  # Claude Code: journal Bash tool calls; brief the session on its repo.
+  [[packages.casebook.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { PostToolUse = [ { matcher = "Bash", hooks = [ { type = "command", command = "~/.local/bin/casebook record --harness claude" } ] } ] } }
+
+  [[packages.casebook.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { SessionStart = [ { matcher = "startup|resume", hooks = [ { type = "command", command = "~/.local/bin/casebook brief" } ] } ] } }
+
+  # Claude Code: the casebook channel and the Stop hook that tells casebook
+  # serve the turn ended, so queued page messages go out.
+  [[packages.casebook.json-merge]]
+  file = "~/.claude.json"
+  merge = { mcpServers = { casebook = { type = "stdio", command = "casebook", args = ["channel"], env = {} } } }
+
+  [[packages.casebook.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { Stop = [ { hooks = [ { type = "command", command = "~/.local/bin/casebook settled --harness claude" } ] } ] } }
+
+  # Full sync (including the GitHub refresh) every 30 minutes.
+  [[packages.casebook.service]]
+  label = "tools.tackle.casebook.sync"
+  program = ["/bin/zsh", "-lc", "exec \"$HOME/.local/bin/casebook\" sync"]
+  keep-alive = false
+  run-at-load = true
+  start-interval = 1800
+  process-type = "Background"
+  session-type = "Aqua"
+  stdout = "~/.local/state/casebook/sync.log"
+  stderr = "~/.local/state/casebook/sync.log"
+
+  [[packages.casebook.verify]]
+  command-exists = "casebook"
+
+# ---------------------------------------------------------------------------
 # pi — Pi coding agent (portable). Runs on the claude-bridge provider out of the
 # box; no machine-specific inference required. The optional local llama.cpp rig
 # lives in the separate `pi-llama` package below.
@@ -603,13 +655,13 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
 # hooks class that needs absolute ${HOME} paths. Matches live channels.json.
 # ---------------------------------------------------------------------------
 [packages.pi-channels]
-description = "Wire galley + muster channels into pi sessions (channels.tools → channels.json)"
-needs = ["pi", "muster", "galley"]
+description = "Wire galley, muster and casebook channels into pi sessions (channels.tools → channels.json)"
+needs = ["pi", "muster", "galley", "casebook"]
 only = { os = "darwin" }
 
   [[packages.pi-channels.json-merge]]
   file = "~/.pi/agent/channels.json"
-  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] } } }
+  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] }, casebook = { command = "casebook", args = ["channel"] } } }
 
 # ---------------------------------------------------------------------------
 # pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
@@ -665,7 +717,7 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "pi", "pi-channels"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "casebook", "pi", "pi-channels"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
