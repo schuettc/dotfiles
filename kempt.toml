@@ -455,7 +455,9 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   brew.formulas = ["ddgr", "pandoc", "node@24"]
 
   [[packages.pi.install]]
-  npm = ["@earendil-works/pi-coding-agent"]
+  # qmd: local search backend for the pi-memory extension (memory_search errors
+  # without it). pi-memory creates its own collection on session start.
+  npm = ["@earendil-works/pi-coding-agent", "@tobilu/qmd"]
 
   # pi extensions — npm: identifiers as displayed by `pi list`. Complete set:
   # every live extension is published to npm (no local-path packages remain —
