@@ -1,48 +1,46 @@
 ---
 name: pi-subagent-dispatch
-description: Use when dispatching subagents from a pi session on this machine (Agent tool) — implementers, reviewers, or any child model call — or when a dispatch fails with an extra-usage 400, a prompt-capture error, or a tool-schema `minimum` rejection. Contains the one working recipe and the failure-signature table.
+description: Use when dispatching subagents from a pi session on this machine (Agent tool) — implementers, reviewers, or any child model call — to pick the model and provider, or when a dispatch fails (expired OpenAI login, extra-usage 400, prompt-capture error, tool-schema `minimum` rejection).
 ---
 
 # Dispatching pi subagents (this machine)
 
-## Update 2026-09-30: bridge children work, and follow the session's account
+Verified 2026-10-04 on pi 1.0.1, `@tintinweb/pi-subagents` 0.19.0, `@schuettc/pi-claude-bridge` 0.9.1-schuettc.2.
 
-Verified on pi 0.99.2 + `@schuettc/pi-claude-bridge` 0.9.1-schuettc.1: a custom agent with **`isolated: false`** on a **`claude-bridge/*`** model runs, including read/bash/write tool calls, with no prompt-capture error. It bills the parent session's **active bridge account** (its Claude Code transcript lands in that account's config dir), so a child follows `/claude-account use|all`.
+## Choosing the model
 
-- Prefer this when the work should bill the account the session is on: `subagent_type: worker|reviewer`, `isolated: false`, `model: claude-bridge/claude-sonnet-5-5` (or opus-5-5 / haiku-4-5).
-- `anthropic/*` children bill **pi's own `/login`** (`~/.pi/agent/auth.json`), a separate account from the bridge switcher (subaud as of 2026-09-30).
-- Not re-tested: `claude-bridge/*` with `isolated: true` failed prompt-capture on 2026-09-30 in a session started before the pi 0.99.2 upgrade; treat isolated bridge children as unverified.
-- A session started before a pi upgrade cannot load `anthropic/*` children (`Cannot find module .../chunks/anthropic-messages-*.js`): restart pi.
-- Open question: Claude Code records a sonnet-5-5 child's responses as model `claude-sonnet-5` (server-reported name); not investigated.
+The session's model is the subscription in use. When one runs out, Court switches the session
+(`/claude-account`, `/model`) and subagents follow. The `worker` and `reviewer` agent files carry
+**no `model:` or `isolated:` lines**, so the dispatch decides. (Frontmatter is authoritative in
+pi-subagents: a pinned field can't be overridden at dispatch.)
 
-The recipe below is the 2026-08-28 baseline.
+| Role | Model |
+|---|---|
+| `worker` (implementer) | omit `model`: it inherits the session model (Opus). Routine work: pass Sonnet on the same provider, e.g. `claude-bridge/claude-sonnet-5-5` |
+| `reviewer` | the **other provider family** from the implementer. Anthropic work → `openai/gpt-6.1-sol` or `openai/gpt-6-astra`. OpenAI work → `claude-bridge/claude-opus-5-5` |
+| Security review or question | always OpenAI (`openai/gpt-6.1-sol` / `openai/gpt-6-astra`). Never fall back to Anthropic for security |
+| Mechanical, scoped re-review | `claude-bridge/claude-haiku-4-5`, still from the other family when the work is OpenAI's |
 
-Verified 2026-08-28 against pi + pi-claude-bridge. Re-verify the failure rows before trusting them after a bridge or pi upgrade.
+Providers: `claude-bridge/*` bills the bridge's active account (switch with `/claude-account`);
+`anthropic/*` bills pi's own login (`~/.pi/agent/auth.json`); `openai/*` is Court's OpenAI
+subscription (OAuth). Prefer Anthropic; use OpenAI when Anthropic usage is exhausted, and for
+reviews.
 
-## The one working recipe
+Dispatch with `isolated: false` (the default). Name the brief and report files in the prompt.
 
-Dispatch children as a **custom agent** + **`isolated: true`** + a **direct-API model**:
-
-```
-subagent_type: worker        (or reviewer, or any .pi/agents/*.md agent)
-isolated: true
-model: anthropic/claude-opus-4-8 | anthropic/claude-sonnet-4-6 | anthropic/claude-haiku-4-5
-```
-
-- Custom agents live in `<project>/.pi/agents/<name>.md` (frontmatter: name, description, tools; body = system prompt). tools-workspace ships `worker` (implementer contract: brief file in → report file out) and `reviewer` (read-only, dual verdict). Copy them into other projects as needed.
-- Keep the agent's system prompt LEAN and self-authored. That is not a style preference — it is the load-bearing fix (see below).
-- Model tiering: implementers on `anthropic/claude-opus-4-8`, task reviewers `anthropic/claude-sonnet-4-6`, mechanical/scoped re-reviews `anthropic/claude-haiku-4-5`. The `anthropic/` (direct API) provider carries the full lineup INCLUDING opus-4-8, opus-5 and fable-5 — do not assume a model is bridge-only because the bridge lists it. Passing a bogus model id errors with the complete provider/model catalog: cheapest way to enumerate what's available.
-
-## Why: the three failure modes
+## Failure signatures
 
 | Signature | Cause | Fix |
 |---|---|---|
-| `400 Third-party apps now draw from your extra usage...` (also: `You're out of extra usage`) | Server-side classifier keys on **pi's harness block inside the child's system prompt** — content-dependent, not subagent-dependent (full bisection: `pi-claude-bridge/diag/EXTRA-USAGE-400.md`). Built-in `general-purpose` children carry that block and always trip it; parent-session turns and lean-prompt children pass on plan billing. | Custom agent with its own lean prompt (or Explore). Never `general-purpose` while this classifier stands. |
-| `prompt-capture: no capture for this N-char system prompt` | pi-claude-bridge cannot match child system prompts to a capture and fails the turn **even after the model answers**. Affects every `claude-bridge/*` model as a child (opus-4-8, fable-5, ...). | No bridge models for children. Bridge = parent session only. Bug worth its own session; do not chase mid-plan. |
-| `400 tools.N.custom: For 'number' type, property 'minimum' is not supported` | An extension/MCP tool schema (e.g. Agent's `max_turns`) uses JSON-Schema `minimum`, which the direct Anthropic API rejects. | `isolated: true` — drops extension/MCP tools from the child. Children doing file/test work only need builtins anyway. |
+| `OAuth refresh failed for openai … refresh_token_invalidated` | Court's OpenAI login has expired | Stop and ask Court to `/login` → OpenAI, then re-dispatch. Never substitute an Anthropic reviewer for an OpenAI one |
+| `400 Third-party apps now draw from your extra usage...` | Server-side classifier keys on pi's harness block in a child's system prompt; built-in `general-purpose` children carry it | Use a custom agent (`worker`, `reviewer`, or a `.pi/agents/*.md`) with its own lean prompt, never `general-purpose` |
+| `prompt-capture: no capture for this N-char system prompt` | Seen 2026-08/09 with `claude-bridge/*` children dispatched `isolated: true` | Dispatch bridge children with `isolated: false` |
+| `400 tools.N.custom: For 'number' type, property 'minimum' is not supported` | A tool schema uses JSON-Schema `minimum`, which the direct `anthropic/*` API rejects | Prefer `claude-bridge/*`; if `anthropic/*` is required, dispatch `isolated: true` |
+| `Cannot find module .../chunks/anthropic-messages-*.js` | Session started before a pi upgrade | Restart pi |
 
-## Notes
+## Smoke test
 
-- Bridge models (`claude-bridge/*`) remain unusable for children regardless of model; the same model ids on `anthropic/*` work. Verified direct: opus-4-8, opus-4-7, sonnet-4-6, haiku-4-5.
-- `isolated` children have no muster/memory/channel tools — hand them everything as file paths in the dispatch prompt (briefs, report paths, diff packages).
-- Smoke-test after any harness change: dispatch `worker`, `isolated: true`, prompt "Reply with exactly the word: ready", `max_turns: 1`, on each tier you plan to use.
+After a harness change, dispatch each model you plan to use with the prompt
+"Reply with exactly the word: ready" and `max_turns: 1`. (A `worker` may answer
+`NEEDS_CONTEXT` instead: it wants a brief. That still proves the model runs.)
+Outside a session: `pi -p --no-session --model <provider/model> "Reply with exactly the word: ready"`.
