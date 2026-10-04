@@ -18,7 +18,7 @@ pi-subagents: a pinned field can't be overridden at dispatch.)
 |---|---|
 | `worker` (implementer) | omit `model`: it inherits the session model (Opus). Routine work: pass Sonnet on the same provider, e.g. `claude-bridge/claude-sonnet-5-5` |
 | `reviewer` | the **other provider family** from the implementer. Anthropic work → `openai/gpt-6.1-sol` or `openai/gpt-6-astra`. OpenAI work → `claude-bridge/claude-opus-5-5` |
-| Security review or question | always OpenAI (`openai/gpt-6.1-sol` / `openai/gpt-6-astra`). Never fall back to Anthropic for security |
+| Security review or question | prefer OpenAI (`openai/gpt-6.1-sol` / `openai/gpt-6-astra`); otherwise the normal other-family rule |
 | Mechanical, scoped re-review | `claude-bridge/claude-haiku-4-5`, still from the other family when the work is OpenAI's |
 
 Providers: `claude-bridge/*` bills the bridge's active account (switch with `/claude-account`);
@@ -36,7 +36,7 @@ Dispatch with `isolated: false` (the default). Name the brief and report files i
 | `400 Third-party apps now draw from your extra usage...` | Server-side classifier keys on pi's harness block in a child's system prompt; built-in `general-purpose` children carry it | Use a custom agent (`worker`, `reviewer`, or a `.pi/agents/*.md`) with its own lean prompt, never `general-purpose` |
 | `prompt-capture: no capture for this N-char system prompt` | Seen 2026-08/09 with `claude-bridge/*` children dispatched `isolated: true` | Dispatch bridge children with `isolated: false` |
 | `400 tools.N.custom: For 'number' type, property 'minimum' is not supported` | A tool schema uses JSON-Schema `minimum`, which the direct `anthropic/*` API rejects | Prefer `claude-bridge/*`; if `anthropic/*` is required, dispatch `isolated: true` |
-| `Cannot find module .../chunks/anthropic-messages-*.js` | Session started before a pi upgrade | Restart pi |
+| `Cannot find module .../dist/bundle/chunks/<provider>-*.js` (e.g. `openai-responses-*`, `anthropic-messages-*`) | The session started before a pi upgrade and never loaded that provider's code; the upgrade replaced the files. Providers already used in the session keep working | Restart pi (resume the session). Check with a fresh `pi -p --no-session --model <m> ...` |
 
 ## Smoke test
 
