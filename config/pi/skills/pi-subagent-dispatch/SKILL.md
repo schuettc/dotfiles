@@ -16,10 +16,9 @@ pi-subagents: a pinned field can't be overridden at dispatch.)
 
 | Role | Model |
 |---|---|
-| `worker` (implementer) | omit `model`: it inherits the session model (Opus). Routine work: pass Sonnet on the same provider, e.g. `claude-bridge/claude-sonnet-5-5` |
+| `worker` (implementer) | omit `model`: it inherits the session model (Opus). Routine work: pass Sonnet on the same provider, e.g. `claude-bridge/claude-sonnet-5-5`. Never Haiku |
 | `reviewer` | the **other provider family** from the implementer. Anthropic work → `openai/gpt-6.1-sol` or `openai/gpt-6-astra`. OpenAI work → `claude-bridge/claude-opus-5-5` |
 | Security review or question | prefer OpenAI (`openai/gpt-6.1-sol` / `openai/gpt-6-astra`); otherwise the normal other-family rule |
-| Mechanical, scoped re-review | `claude-bridge/claude-haiku-4-5`, still from the other family when the work is OpenAI's |
 
 Providers: `claude-bridge/*` bills the bridge's active account (switch with `/claude-account`);
 `anthropic/*` bills pi's own login (`~/.pi/agent/auth.json`); `openai/*` is Court's OpenAI
