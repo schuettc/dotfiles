@@ -273,3 +273,4 @@ newline in Claude without submitting. Full reference in
   limitation (discussion #10099).
 - **Claude alerts silent** — only sessions started *after* the hooks were
   configured fire them; restart a long-running session to pick them up.
+- **tmux hooks stop firing while commands still work** — a blocking `run-shell` child has wedged the server's notification queue. `kill -USR2 <server-pid>` toggles a server log in the server's cwd; `notify_add` with no matching `notify_callback` is the signature. Kill the hung child's whole descendant chain. A tmux server keeps the binary it started with (`tmux -L <sock> display -p '#{version}'`), so restart it after a tmux upgrade.
