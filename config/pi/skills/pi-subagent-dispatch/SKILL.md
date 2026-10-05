@@ -31,7 +31,7 @@ Dispatch with `isolated: false` (the default). Name the brief and report files i
 
 | Signature | Cause | Fix |
 |---|---|---|
-| `OAuth refresh failed for openai … refresh_token_invalidated` | Court's OpenAI login has expired | Stop and ask Court to `/login` → OpenAI, then re-dispatch. Never substitute an Anthropic reviewer for an OpenAI one |
+| `OAuth refresh failed for openai … refresh_token_invalidated` | OpenAI invalidates the Sign in with ChatGPT refresh token about 1 h after sign-in (upstream: pi#10377, openai/sign-in-with-chatgpt-devkit#5; reproduced 2026-10-04 with every session on current pi) | Stop and ask Court to `/login` → OpenAI, then re-dispatch within the hour. Reported fix: log out of all devices on chatgpt.com, then sign in once. Never substitute an Anthropic reviewer for an OpenAI one |
 | `400 Third-party apps now draw from your extra usage...` | Server-side classifier keys on pi's harness block in a child's system prompt; built-in `general-purpose` children carry it | Use a custom agent (`worker`, `reviewer`, or a `.pi/agents/*.md`) with its own lean prompt, never `general-purpose` |
 | `prompt-capture: no capture for this N-char system prompt` | Seen 2026-08/09 with `claude-bridge/*` children dispatched `isolated: true` | Dispatch bridge children with `isolated: false` |
 | `400 tools.N.custom: For 'number' type, property 'minimum' is not supported` | A tool schema uses JSON-Schema `minimum`, which the direct `anthropic/*` API rejects | Prefer `claude-bridge/*`; if `anthropic/*` is required, dispatch `isolated: true` |
