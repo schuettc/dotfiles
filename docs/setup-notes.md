@@ -519,3 +519,17 @@ We also added `[open] prepend_rules` mapping common text/code MIME types
 pressing Enter on, say, a `.toml` file actually triggers `edit`. Without
 those rules, yazi may default to "reveal in Finder" for files it doesn't
 recognize as text.
+
+## Displays
+
+Settled; don't re-litigate. The MacBook Pro M3 Max drives a 49" Odyssey Neo G9 (DisplayPort via the CalDigit dock, main display at origin) and a 57" Odyssey Neo G9 G95NC (direct HDMI 2.1, to the right), both at 5120x1440@120.
+
+A Retina "looks like 5120x1440" on the 57" is impossible: it would need a 10240-wide framebuffer, over macOS's ~8K cap. So the 57" runs 5120x1440 LoDPI (a hidden non-Retina mode), and the text is fine.
+
+Restore the layout if modes get wedged:
+
+```bash
+displayplacer "id:966EE8CA-FE0C-4A70-8845-70AD03EF074B res:5120x1440 hz:120 color_depth:8 enabled:true scaling:off origin:(0,0) degree:0" "id:3A725716-7524-428C-A670-81645AD3888F res:5120x1440 hz:120 color_depth:8 enabled:true scaling:off origin:(5120,0) degree:0"
+```
+
+BetterDisplay virtual screens auto-mirror onto the main display when connected, so use them with care.
