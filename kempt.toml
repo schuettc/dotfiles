@@ -446,7 +446,7 @@ only = { os = "darwin" }
 description = "Pi coding agent (claude-bridge provider) + public extensions"
 needs = ["core"]
 only = { os = "darwin" }
-notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json; absent = no-op", "the auto-review reviewer is Jev: run /typesafe setup once per machine to store the TypeSafe key (masked); without it every reviewed request defers to you (fails closed)"]
+notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json (Court's private kempt layer links it); absent = no-op"]
 
   # node@24: pi runs on the Node LTS line (config/zsh/01-paths.zsh puts it first
   # on PATH; it is keg-only). Not Homebrew's `node`, which tracks the newest
@@ -455,15 +455,13 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   brew.formulas = ["ddgr", "pandoc", "node@24"]
 
   [[packages.pi.install]]
-  # qmd: local search backend for the pi-memory extension (memory_search errors
-  # without it). pi-memory creates its own collection on session start.
-  npm = ["@earendil-works/pi-coding-agent", "@tobilu/qmd"]
+  npm = ["@earendil-works/pi-coding-agent"]
 
   # pi extensions — npm: identifiers as displayed by `pi list`. Complete set:
   # every live extension is published to npm (no local-path packages remain —
   # the retired schuettc/pi repo's private local packages are now the
   # pi-provider-guard / pi-tmux-bridge / pi-wakeup / pi-bang npm packages below).
-  # Matches ~/.pi/agent/settings.json `packages` string-for-string (23/23).
+  # Matches ~/.pi/agent/settings.json `packages` string-for-string (20/20).
   [[packages.pi.install]]
   # Version policy (kempt >= 0.3.0): an unversioned entry ROLLS to the newest
   # published version (kempt update/upgrade roll it, outdated reports it); a
@@ -483,23 +481,18 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # its optional Claude adapter is available when the meter starts.
     "npm:@schuettc/pi-usage@0.10.13-schuettc.2",
     # pi-permission-system: Court's fork (schuettc/pi-permission-system, fork-sync),
-    # installed UNDER THE UPSTREAM NAME with an npm alias so pi-auto-review and
-    # pi-hail, which import "@gotgenes/pi-permission-system", resolve to it and
-    # the upstream package can never also load (same path). Carries the
+    # installed UNDER THE UPSTREAM NAME with an npm alias so pi-hail, which
+    # imports "@gotgenes/pi-permission-system", resolves to it and the upstream
+    # package can never also load (same path). Carries the
     # prompt-answerer seam (pi-hail phone approvals). Bump the version at the END
     # of the string. Retire by pinning plain npm:@gotgenes/pi-permission-system@<v>.
     "npm:@gotgenes/pi-permission-system@npm:@schuettc/pi-permission-system@35.0.1-schuettc.1",
-    # pi-auto-review — LLM permission reviewer (Court's fork, published to npm).
-    # Requires pi-permission-system >=34.0.0 (0.21.0), hence the pin above; must
-    # load after permission-system. Reviewer model is set in the config json-merge below.
-    "npm:@schuettc/pi-auto-review@0.21.0-schuettc.4",
     "npm:@tintinweb/pi-subagents",
     "npm:@bitcraft-apps/pi-web-tools",
     "npm:pi-quiet@0.2.1",
     "npm:@hank-warren/pi-plan-mode",
     "npm:@schuettc/pi-schedule@0.4.0-schuettc.2",
     "npm:@nicknisi/pi-artifacts",
-    "npm:pi-memory",
     "npm:channels.tools",
     # pi-mcp-adapter is the MCP bridge: reads .mcp.json / ~/.config/mcp/mcp.json
     # and exposes one lazy mcp() proxy tool (search/describe/execute) instead of
@@ -515,8 +508,8 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     "npm:pi-bang",
     # pi-typesafe-ai — TypeSafe Jev credential UX (bare `/typesafe` panel, or setup|status|
     # logout`, key stored at ~/.pi/agent/typesafe/config.json 0600). Also the
-    # client library pi-auto-review's jev reviewer engine uses. No network or
-    # credential access at load.
+    # client library Jev-backed extensions use (subagent model routing, MCP
+    # semantic tool search). No network or credential access at load.
     "npm:pi-typesafe-ai@0.2.0",
     # pi-auto-reload — reloads an idle session after installed pi packages
     # change on disk (e.g. after `kempt update`), so sessions never run a mix
@@ -541,53 +534,39 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # append never removed. Replace makes this manifest the single source of truth
   # and is self-healing: any out-of-band or stale entry is dropped on the next
   # `kempt update`. Consequence: every package you want MUST live in this list.
-  # extensions = [] is intentional (pi loads extensions from packages, not here);
-  # replace keeps it authoritatively empty.
+  # extensions holds only "-builtin:mcp": pi-mcp-adapter replaces pi's built-in
+  # MCP support, so the built-in stays off; pi loads every other extension from
+  # packages. theme / defaultThinkingLevel / hideThinkingBlock are Court's
+  # session defaults.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = [], packages = [ "npm:@schuettc/pi-claude-bridge@0.9.1-schuettc.2", "npm:@schuettc/pi-usage@0.10.13-schuettc.2", "npm:@gotgenes/pi-permission-system@npm:@schuettc/pi-permission-system@35.0.1-schuettc.1", "npm:@schuettc/pi-auto-review@0.21.0-schuettc.4", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@schuettc/pi-schedule@0.4.0-schuettc.2", "npm:@nicknisi/pi-artifacts", "npm:pi-memory", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.2", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.1.0", "npm:pi-casebook" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", defaultThinkingLevel = "medium", hideThinkingBlock = true, theme = "dark", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = ["-builtin:mcp"], packages = [ "npm:@schuettc/pi-claude-bridge@0.9.1-schuettc.2", "npm:@schuettc/pi-usage@0.10.13-schuettc.2", "npm:@gotgenes/pi-permission-system@npm:@schuettc/pi-permission-system@35.0.1-schuettc.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@schuettc/pi-schedule@0.4.0-schuettc.2", "npm:@nicknisi/pi-artifacts", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.2", "npm:pi-hail", "npm:pi-wakeup@0.1.0", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.1.0", "npm:pi-casebook" ] }
 
-  # pi-auto-review reviewer config. The extension is installed from npm in the
-  # manifest above (@schuettc/pi-auto-review@0.21.0-schuettc.4, pinned with a
-  # compatible pi-permission-system 34.0.1, via the fork alias above), so on any machine kempt sets up the
-  # extension and its trusted reviewer profiles. Jev (TypeSafe System One, via
-  # the jev engine + pi-typesafe-ai) is the startup default: ~200-600ms vs ~3s,
-  # fails closed (no key / error / uncertain verdict -> defer to you), and the
-  # deterministic hard-rule floor still runs first. Sonnet and Terra remain
-  # selectable for the current session via /auto-review-model. The Jev key is
-  # per-machine (/typesafe setup -> ~/.pi/agent/typesafe/config.json), never in
-  # dotfiles. reasoning=off minimizes latency; failureMode=defer sends a failed
-  # review to the human rather than auto-denying.
-  [[packages.pi.json-merge]]
-  file = "~/.pi/agent/extensions/pi-auto-review/config.json"
-  merge = { reviewer = "jev", reviewers = { jev = { engine = "jev", model = "jev-latest", timeoutMs = 8000, maxReviewerInputTokens = 32768 }, sonnet = { model = "claude-bridge/claude-sonnet-4-6", reasoning = "off" }, terra = { model = "openai-codex/gpt-5.6-terra", reasoning = "off" } }, model = "claude-bridge/claude-sonnet-4-6", reasoning = "off", timeoutMs = 45000, failureMode = "defer" }
-
-  # pi-permission-system allowlist. This is the STATIC permission policy the
-  # authorizer chain consults BEFORE pi-auto-review's model review runs: any
-  # `allow` here resolves without a review round (lower latency, no model call),
-  # while `ask`/absent surfaces fall through to pi-auto-review. Previously this
-  # file was unmanaged local drift on one machine; kempt now owns it so a fresh
-  # box reproduces the same policy. Deep-merge is additive, so hand-added rules
-  # on a machine survive, but this block is the authoritative baseline. New
-  # allow rules below the historical set were promoted from the policy-audit
-  # (`/auto-review-report`): repeatedly human-approved, zero-denial surfaces that
-  # were needlessly deferred to review — notably `gh -R *` (the -R flag misses
-  # the un-flagged `gh * ` allows) and `tmux capture-pane *` (the trailing
-  # scrollback number defeats the glob). The pi tool allows (memory_*, schedule,
-  # websearch, webfetch github.com, request_secret, pi_codex_usage) moved here
-  # from the private tools-ops overlay: nothing in them is private, and the
-  # overlay's whole-file symlink was being overwritten by this merge. NOTE: the
-  # agent itself cannot edit the
-  # live config.json (pi-auto-review hard-denies tampering with permission
-  # controls); only `kempt update` applies this.
+  # pi-permission-system policy. yoloMode is on: tool calls run without asking,
+  # and the static policy below still applies its denies (secrets, SSH keys,
+  # git stash). No authorizer chain runs (pi-auto-review is removed for now);
+  # pi-hail stays the prompt answerer for phone approvals. arrays = "replace"
+  # keeps authorizerChain / promptAnswerers exactly as declared here. Deep-merge
+  # is additive for the permission rules, so hand-added rules on a machine
+  # survive; this block is the authoritative baseline. The allow rules record
+  # surfaces that never need a prompt if yolo is ever turned off.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/extensions/pi-permission-system/config.json"
-  merge = { "$schema" = "https://raw.githubusercontent.com/gotgenes/pi-packages/main/packages/pi-permission-system/schemas/permissions.schema.json", "permission" = { "*" = "ask", "path" = { "*" = "allow", "*.env" = { "action" = "deny", "reason" = "environment files hold secrets; read the .env.example instead" }, "*.env.*" = { "action" = "deny", "reason" = "environment files hold secrets; read the .env.example instead" }, "*.env.example" = "allow", "~/.ssh/*" = { "action" = "deny", "reason" = "SSH keys and config are off limits to the agent" } }, "read" = "allow", "write" = "allow", "edit" = "allow", "WebSearch" = "allow", "WebFetch" = { "*" = "ask", "https://github.com/*" = "allow" }, "bash" = { "*" = "ask", "git stash" = { "action" = "deny", "reason" = "git stash hides work; commit or use a worktree" }, "git stash *" = { "action" = "deny", "reason" = "git stash hides work; commit or use a worktree" }, "git add *" = "allow", "git commit *" = "allow", "git pull *" = "allow", "git fetch *" = "allow", "git ls-tree *" = "allow", "git push --dry-run*" = "allow", "gh pr list *" = "allow", "gh pr view *" = "allow", "gh pr diff *" = "allow", "gh pr checks *" = "allow", "gh repo view *" = "allow", "gh run list *" = "allow", "gh run view *" = "allow", "cd *" = "allow", "grep *" = "allow", "ls *" = "allow", "sleep *" = "allow", "npx --version" = "allow", "npx --help" = "allow", "npm --version" = "allow", "pip --version" = "allow", "pip3 --version" = "allow", "git push *" = "allow", "gh api *" = "allow", "gh auth *" = "allow", "gh pr *" = "allow", "gh repo *" = "allow", "muster" = "allow", "muster *" = "allow", "galley" = "allow", "galley *" = "allow", "aws sso login *" = "allow", "head *" = "allow", "cat *" = "allow", "tail *" = "allow", "sed -n *" = "allow", "sort *" = "allow", "wc *" = "allow", "which *" = "allow", "pwd" = "allow", "git log *" = "allow", "git status" = "allow", "git status *" = "allow", "git diff *" = "allow", "git show *" = "allow", "gh -R *" = "allow", "tmux capture-pane *" = "allow", "git -C * status" = "allow", "git -C * status *" = "allow", "git rev-parse *" = "allow", "go build *" = "allow", "aws s3 ls *" = "allow" }, "mcp" = { "*" = "ask" }, "Agent" = "allow", "get_subagent_result" = "allow", "steer_subagent" = "allow", "grep" = "allow", "find" = "allow", "ls" = "allow", "memory_search" = "allow", "memory_read" = "allow", "memory_write" = "allow", "scratchpad" = "allow", "memory_forget" = "allow", "memory_restore" = "allow", "memory_status" = "allow", "schedule" = "allow", "pi_codex_usage" = "allow", "request_secret" = "allow", "websearch" = "allow", "webfetch" = { "*" = "ask", "https://github.com/*" = "allow" }, "file_channel_status" = "allow", "skill" = { "*" = "ask", "update-config" = "allow" }, "external_directory" = { "*" = "ask", "~/.nvm/versions/*" = "allow", "/tmp/*" = "allow", "/private/var/folders/*" = "allow", "~/dotfiles/*" = "allow", "~/GitHub/schuettc/*" = "allow" }, "muster_channel_status" = "allow", "galley_channel_status" = "allow", "galley_ack" = "allow", "galley_review" = "allow", "cancel_wakeup" = "allow", "schedule_wakeup" = "allow", "artifact" = "allow" }, "authorizerChain" = [ "pi-auto-review" ], "promptAnswerers" = [ "pi-hail" ] }
+  arrays = "replace"
+  merge = { "$schema" = "https://raw.githubusercontent.com/gotgenes/pi-packages/main/packages/pi-permission-system/schemas/permissions.schema.json", "permission" = { "*" = "ask", "path" = { "*" = "allow", "*.env" = { "action" = "deny", "reason" = "environment files hold secrets; read the .env.example instead" }, "*.env.*" = { "action" = "deny", "reason" = "environment files hold secrets; read the .env.example instead" }, "*.env.example" = "allow", "~/.ssh/*" = { "action" = "deny", "reason" = "SSH keys and config are off limits to the agent" } }, "read" = "allow", "write" = "allow", "edit" = "allow", "WebSearch" = "allow", "WebFetch" = { "*" = "ask", "https://github.com/*" = "allow" }, "bash" = { "*" = "ask", "git stash" = { "action" = "deny", "reason" = "git stash hides work; commit or use a worktree" }, "git stash *" = { "action" = "deny", "reason" = "git stash hides work; commit or use a worktree" }, "git add *" = "allow", "git commit *" = "allow", "git pull *" = "allow", "git fetch *" = "allow", "git ls-tree *" = "allow", "git push --dry-run*" = "allow", "gh pr list *" = "allow", "gh pr view *" = "allow", "gh pr diff *" = "allow", "gh pr checks *" = "allow", "gh repo view *" = "allow", "gh run list *" = "allow", "gh run view *" = "allow", "cd *" = "allow", "grep *" = "allow", "ls *" = "allow", "sleep *" = "allow", "npx --version" = "allow", "npx --help" = "allow", "npm --version" = "allow", "pip --version" = "allow", "pip3 --version" = "allow", "git push *" = "allow", "gh api *" = "allow", "gh auth *" = "allow", "gh pr *" = "allow", "gh repo *" = "allow", "muster" = "allow", "muster *" = "allow", "galley" = "allow", "galley *" = "allow", "aws sso login *" = "allow", "head *" = "allow", "cat *" = "allow", "tail *" = "allow", "sed -n *" = "allow", "sort *" = "allow", "wc *" = "allow", "which *" = "allow", "pwd" = "allow", "git log *" = "allow", "git status" = "allow", "git status *" = "allow", "git diff *" = "allow", "git show *" = "allow", "gh -R *" = "allow", "tmux capture-pane *" = "allow", "git -C * status" = "allow", "git -C * status *" = "allow", "git rev-parse *" = "allow", "go build *" = "allow", "aws s3 ls *" = "allow" }, "mcp" = { "*" = "ask" }, "Agent" = "allow", "get_subagent_result" = "allow", "steer_subagent" = "allow", "grep" = "allow", "find" = "allow", "ls" = "allow", "schedule" = "allow", "pi_codex_usage" = "allow", "request_secret" = "allow", "websearch" = "allow", "webfetch" = { "*" = "ask", "https://github.com/*" = "allow" }, "file_channel_status" = "allow", "skill" = { "*" = "ask", "update-config" = "allow" }, "external_directory" = { "*" = "ask", "~/.nvm/versions/*" = "allow", "/tmp/*" = "allow", "/private/var/folders/*" = "allow", "~/dotfiles/*" = "allow", "~/GitHub/schuettc/*" = "allow" }, "muster_channel_status" = "allow", "galley_channel_status" = "allow", "galley_ack" = "allow", "galley_review" = "allow", "cancel_wakeup" = "allow", "schedule_wakeup" = "allow", "artifact" = "allow" }, "yoloMode" = true, "authorizerChain" = [], "promptAnswerers" = [ "pi-hail" ] }
+
+  # pi-claude-bridge settings: askClaude stays read-only and isolated by
+  # default; the provider uses only the MCP servers pi passes it, keeps Claude
+  # Code's own auto-memory off (rules live in AGENTS.md / CLAUDE.md files), and
+  # never opts into long-context extra usage.
+  [[packages.pi.json-merge]]
+  file = "~/.pi/agent/claude-bridge.json"
+  merge = { askClaude = { enabled = true, defaultMode = "read", defaultIsolated = true, allowFullMode = false }, provider = { strictMcpConfig = true, autoMemoryEnabled = false, longContextExtraUsage = false } }
 
   # subagent definitions — global custom agents (worker/reviewer) discovered by
-  # pi at ~/.pi/agent/agents from any cwd. These are the LEAN-prompt agents that
-  # dispatch cleanly on the direct anthropic/* provider; the built-in
+  # pi at ~/.pi/agent/agents from any cwd. These are the LEAN-prompt agents (no
+  # model pin; the dispatch picks the model, see pi-subagent-dispatch); the built-in
   # general-purpose agent inherits the parent's full system prompt and trips the
   # server-side extra-usage classifier, so a child dispatch has nothing safe to
   # target unless these files are present. Whole-dir symlink: editing the .md in
