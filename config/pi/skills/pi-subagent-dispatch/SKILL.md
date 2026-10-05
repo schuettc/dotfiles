@@ -17,12 +17,14 @@ pi-subagents: a pinned field can't be overridden at dispatch.)
 | Role | Model |
 |---|---|
 | `worker` (implementer) | omit `model`: it inherits the session model (Opus). Routine work: pass Sonnet on the same provider, e.g. `claude-bridge/claude-sonnet-5-5`. Never Haiku |
-| `reviewer` | the **other provider family** from the implementer. Anthropic work → `openai/gpt-6.1-sol` or `openai/gpt-6-astra`. OpenAI work → `claude-bridge/claude-opus-5-5` |
-| Security review or question | prefer OpenAI (`openai/gpt-6.1-sol` / `openai/gpt-6-astra`); otherwise the normal other-family rule |
+| `reviewer` | the **other provider family** from the implementer. Anthropic work → `openai-codex/gpt-6.1-sol` or `openai-codex/gpt-6-astra`. OpenAI work → `claude-bridge/claude-opus-5-5` |
+| Security review or question | prefer OpenAI (`openai-codex/gpt-6.1-sol` / `openai-codex/gpt-6-astra`); otherwise the normal other-family rule |
 
 Providers: `claude-bridge/*` bills the bridge's active account (switch with `/claude-account`);
-`anthropic/*` bills pi's own login (`~/.pi/agent/auth.json`); `openai/*` is Court's OpenAI
-subscription (OAuth). Prefer Anthropic; use OpenAI when Anthropic usage is exhausted, and for
+`anthropic/*` bills pi's own login (`~/.pi/agent/auth.json`); `openai-codex/*` is Court's OpenAI
+subscription (`/login` → `openai-codex`, "OpenAI Codex (legacy)"). Don't use the `openai/*` provider:
+its Sign in with ChatGPT login can't refresh, so it dies an hour after sign-in
+(openai/sign-in-with-chatgpt-devkit#5). Prefer Anthropic; use OpenAI when Anthropic usage is exhausted, and for
 reviews.
 
 Dispatch with `isolated: false` (the default). Name the brief and report files in the prompt.
@@ -31,7 +33,8 @@ Dispatch with `isolated: false` (the default). Name the brief and report files i
 
 | Signature | Cause | Fix |
 |---|---|---|
-| `OAuth refresh failed for openai … refresh_token_invalidated` | OpenAI invalidates the Sign in with ChatGPT refresh token about 1 h after sign-in (upstream: pi#10377, openai/sign-in-with-chatgpt-devkit#5; reproduced 2026-10-04 with every session on current pi) | Stop and ask Court to `/login` → OpenAI, then re-dispatch within the hour. Reported fix: log out of all devices on chatgpt.com, then sign in once. Never substitute an Anthropic reviewer for an OpenAI one |
+| `OAuth refresh failed for openai: … refresh_token_invalidated` | The dispatch used the `openai/*` provider. Its Sign in with ChatGPT refresh is refused about 1 h after sign-in (upstream: pi#10377, openai/sign-in-with-chatgpt-devkit#5) | Re-dispatch on `openai-codex/*` |
+| `OAuth refresh failed for openai-codex: … refresh_token_invalidated` | The `openai-codex` refresh token was invalidated on OpenAI's side. Seen 2026-10-04: a refresh 3 min after sign-in failed. After logging out of all devices on chatgpt.com and signing in once, a refresh 15 min after sign-in worked | Stop and ask Court to log out of all devices on chatgpt.com, then `/login` → `openai-codex` once. Never substitute an Anthropic reviewer for an OpenAI one |
 | `400 Third-party apps now draw from your extra usage...` | Server-side classifier keys on pi's harness block in a child's system prompt; built-in `general-purpose` children carry it | Use a custom agent (`worker`, `reviewer`, or a `.pi/agents/*.md`) with its own lean prompt, never `general-purpose` |
 | `prompt-capture: no capture for this N-char system prompt` | Seen 2026-08/09 with `claude-bridge/*` children dispatched `isolated: true` | Dispatch bridge children with `isolated: false` |
 | `400 tools.N.custom: For 'number' type, property 'minimum' is not supported` | A tool schema uses JSON-Schema `minimum`, which the direct `anthropic/*` API rejects | Prefer `claude-bridge/*`; if `anthropic/*` is required, dispatch `isolated: true` |
