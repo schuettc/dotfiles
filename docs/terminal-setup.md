@@ -271,6 +271,7 @@ newline in Claude without submitting. Full reference in
   relaunch Ghostty (some settings need a full restart).
 - **`⌘V` won't paste images into Claude** — use `Ctrl+V`. Known Ghostty
   limitation (discussion #10099).
+- **Torn or garbled Claude Code frames under tmux and Ghostty** — the inline renderer shares the terminal with tmux. The fix is the fullscreen renderer (`CLAUDE_CODE_NO_FLICKER=1`, already set in `.zshrc`). Only a `/tui default` session can still tear: `Ctrl-A R` repaints it, and `focus-events off` stops focus-in tearing (it is on in `.tmux.conf` because the attention flag needs it). Don't chase tmux's Sync option.
 - **Claude alerts silent** — only sessions started *after* the hooks were
   configured fire them; restart a long-running session to pick them up.
 - **tmux hooks stop firing while commands still work** — a blocking `run-shell` child has wedged the server's notification queue. `kill -USR2 <server-pid>` toggles a server log in the server's cwd; `notify_add` with no matching `notify_callback` is the signature. Kill the hung child's whole descendant chain. A tmux server keeps the binary it started with (`tmux -L <sock> display -p '#{version}'`), so restart it after a tmux upgrade.
