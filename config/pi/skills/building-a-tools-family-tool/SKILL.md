@@ -62,3 +62,4 @@ Change it in the shared place, never in one repo: tools-actions (test, bump `VER
 - **golangci-lint given import paths** loads nothing and says "0 issues"; the gate passes relative dirs and fails on any `level=error`. A green lint you did not see find anything is not proof.
 - **galley's layout** (`.git` is a bare repo, branches are worktrees under `.worktrees/`) breaks Go VCS stamping; the gate sets `-buildvcs=false`.
 - **Renaming CI jobs** orphans branch-protection required checks (muster `main` requires `gate (ubuntu-26.04)`, `gate (macos-26)`, `extra`, `dynamo`, `version-guard`): update them in the same change.
+- **Never `cp` a dev build over an installed binary in place** (e.g. `~/.local/bin/<tool>`): macOS kills it on every launch (SIGKILL, exit 137, no output). `rm` the target, copy the new file to a fresh inode, then `codesign --sign - --force <path>`.
