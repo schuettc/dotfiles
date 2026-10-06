@@ -51,7 +51,7 @@ Dispatch one fresh `worker` per task, in order, never in parallel (they share th
 
 1. **Brief.** Copy the task's full text into `<run-dir>/task-<N>-brief.md`, with the plan's Global Constraints and the Interfaces it consumes from earlier tasks. The worker reads that file, not the whole plan. Don't paste earlier tasks' history into the dispatch.
 2. **Dispatch** with the brief path, the spec path, the worktree, the report path `<run-dir>/task-<N>-report.md`, and the worker instructions above (the size stop applies to the task's share of the plan).
-3. **Check it yourself.** When the worker returns, run the task's own check commands from the plan in the worktree and read their exit codes (AGENTS.md "Verifying"); a worker's "tests pass" is not the check. Then append the task line to `<run-dir>/report.md`: `Task <N>: complete (commits <base7>..<head7>, checks: <command> → exit <code>)`.
+3. **Check it yourself.** When the worker returns, run the task's own check commands from the plan in the worktree and read their exit codes (AGENTS.md "Verifying"); a worker's "tests pass" is not the check. Only when every check passes, append the task line to `<run-dir>/report.md`: `Task <N>: complete (commits <base7>..<head7>, checks: <command> → exit <code>)`. A task with a failing check gets no line, so a resume picks it up again.
 4. **A check fails:** re-dispatch a worker on that task with the failing command and its output. When fixes keep surfacing new failures, stop and bring it to Court (AGENTS.md "Stop when it grows").
 
 After compaction, trust `report.md` and `git log`: resume at the first task without a line.

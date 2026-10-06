@@ -85,10 +85,10 @@ Look for test file names, the line that triggers the call, and the pattern (same
 If something appears during tests but you don't know which test creates it, run the bisection script in this directory from the repo root of a throwaway clone:
 
 ```bash
-bash /path/to/find-polluter.sh '.git' 'src/**/*.test.ts'
+bash /path/to/find-polluter.sh 'packages/core/.git' 'src/**/*.test.ts'
 ```
 
-It runs the test files one by one and stops at the first one that creates the path.
+It runs the test files one by one and stops at the first one that creates the path. The path must not exist beforehand (here: a stray `.git` under `packages/core/`, not the clone's own).
 
 ## Example: Empty projectDir
 
