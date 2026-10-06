@@ -11,7 +11,7 @@ Adapted from obra/superpowers (MIT) at 8ca22db; see config/pi/superpowers/.
 
 Write implementation plans for an engineer who has not seen this codebase or this spec. Assume they write idiomatic code in the project's language once they know the exact interface and the exact test, and that they will make a reasonable choice wherever the plan leaves one open. What they cannot know is what you decided: which files, which names and signatures, which values from the spec, which tests prove each task. Document those. DRY. YAGNI. TDD.
 
-The plan is usually executed by one `worker` subagent reading the whole plan as its brief, so write it as that brief: self-contained, exact values verbatim, the commands that verify it, and the commit message.
+The plan is usually executed by one `worker` subagent reading the whole plan as its brief (or, for a large plan, a fresh worker per task reading only its task), so write it as that brief: self-contained, exact values verbatim, the commands that verify it, and the commit message.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
@@ -39,6 +39,8 @@ Before defining tasks, map out which files will be created or modified and what 
 ## Task Right-Sizing
 
 Keep tasks only as fine as a single implementer needs to work through the plan in order. There is no reviewer per task, so don't split for review gates: fold setup, configuration, scaffolding, and documentation steps into the task whose deliverable needs them. Split where a task produces something a later task consumes, or where a test cycle naturally ends. A small plan may be one task.
+
+Each task carries its own check commands: the test command (and any build or lint command) that proves the task, with the result that means it passed. In executing-plans' large-plan mode, the main session runs exactly those commands between tasks and reads their exit codes, so a task's checks must run on their own from the worktree.
 
 ## Step Granularity
 
