@@ -621,6 +621,25 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   merge = { skills = [] }
 
 # ---------------------------------------------------------------------------
+# sift — audits agent instruction files and puts one recommendation per file in
+# front of you on a review page (tackle.tools). Registered like galley: the
+# session opens the review with its sift_review tool and Send wakes that same
+# session through the channel. Until sift's first release the binary is a dev
+# build in ~/.local/bin (no download step yet); this package wires the channel.
+# ---------------------------------------------------------------------------
+[packages.sift]
+description = "sift: instruction-file audits reviewed per file, with an agent channel (tackle.tools)"
+needs = ["core"]
+only = { os = "darwin" }
+
+  [[packages.sift.json-merge]]
+  file = "~/.claude.json"
+  merge = { mcpServers = { sift = { type = "stdio", command = "sift", args = ["channel"], env = {} } } }
+
+  [[packages.sift.verify]]
+  command-exists = "sift"
+
+# ---------------------------------------------------------------------------
 # pi-channels — wire the galley + muster channels into pi sessions.
 #
 # channels.tools (installed by [packages.pi]) is the bridge, but it spawns
@@ -638,13 +657,13 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
 # hooks class that needs absolute ${HOME} paths. Matches live channels.json.
 # ---------------------------------------------------------------------------
 [packages.pi-channels]
-description = "Wire galley, muster and casebook channels into pi sessions (channels.tools → channels.json)"
-needs = ["pi", "muster", "galley", "casebook"]
+description = "Wire galley, muster, casebook and sift channels into pi sessions (channels.tools → channels.json)"
+needs = ["pi", "muster", "galley", "casebook", "sift"]
 only = { os = "darwin" }
 
   [[packages.pi-channels.json-merge]]
   file = "~/.pi/agent/channels.json"
-  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] }, casebook = { command = "casebook", args = ["channel"] } } }
+  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] }, casebook = { command = "casebook", args = ["channel"] }, sift = { command = "sift", args = ["channel"] } } }
 
 # ---------------------------------------------------------------------------
 # pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
@@ -700,7 +719,7 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "casebook", "pi", "pi-channels"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "casebook", "sift", "pi", "pi-channels"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
