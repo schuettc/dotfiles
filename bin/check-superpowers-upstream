@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Report upstream changes to the superpowers files adapted in config/pi/skills
-# (brainstorming, writing-plans, executing-plans) and LICENSE since the pinned
+# (brainstorming, writing-plans, executing-plans, test-driven-development,
+# systematic-debugging, receiving-code-review, and subagent-driven-development,
+# the source of executing-plans' large-plan mode) and LICENSE since the pinned
 # commit in config/pi/superpowers/UPSTREAM.
 #
 # Exit: 0 no changes, 1 changes (paths and compare URL printed), 2 gh error.
@@ -15,7 +17,7 @@ if ! files="$(gh api "repos/obra/superpowers/compare/${pinned}...main" --jq '.fi
   exit 2
 fi
 
-changed="$(printf '%s\n' "$files" | grep -E '^(skills/(brainstorming|writing-plans|executing-plans)/|LICENSE$)' || true)"
+changed="$(printf '%s\n' "$files" | grep -E '^(skills/(brainstorming|writing-plans|executing-plans|test-driven-development|systematic-debugging|receiving-code-review|subagent-driven-development)/|LICENSE$)' || true)"
 
 if [ -z "$changed" ]; then
   echo "no upstream changes to the adapted skills since ${short}"
