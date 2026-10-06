@@ -72,7 +72,7 @@ Without `--project-dir`, files go to `/tmp/brainstorm-<id>` and are deleted on s
    - Merge with Court's terminal text to get the full picture
    - The terminal message is the primary feedback; `state_dir/events` provides structured interaction data
 
-4. **Iterate or advance** — if feedback changes current screen, write a new file (e.g., `layout-v2.html`). Only move to the next question when the current step is validated.
+4. **Iterate or advance** — if feedback changes current screen, write a new file named for what changed (e.g., `layout-sidebar-left.html`). Only move to the next question when the current step is validated.
 
 5. **Unload when returning to terminal** — when the next step doesn't need the browser (e.g., a clarifying question, a tradeoff discussion), push a waiting screen to clear the stale content:
 
@@ -232,7 +232,7 @@ If `$STATE_DIR/events` doesn't exist, Court didn't interact with the browser —
 
 - Use semantic names: `platform.html`, `visual-style.html`, `layout.html`
 - Never reuse filenames — each screen must be a new file
-- For iterations: append version suffix like `layout-v2.html`, `layout-v3.html`
+- For iterations: name each file for what distinguishes it (`layout-sidebar-left.html`, `layout-tabs.html`), never `-v2`
 - Server serves newest file by modification time
 
 ## Cleaning Up

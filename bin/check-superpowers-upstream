@@ -10,7 +10,7 @@ repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 pinned="$(tr -d '[:space:]' < "$repo_root/config/pi/superpowers/UPSTREAM")"
 short="${pinned:0:7}"
 
-if ! files="$(gh api "repos/obra/superpowers/compare/${pinned}...main" --jq '.files[].filename')"; then
+if ! files="$(gh api "repos/obra/superpowers/compare/${pinned}...main" --jq '.files[] | .filename, (.previous_filename // empty)')"; then
   echo "gh api compare failed for ${short}...main" >&2
   exit 2
 fi

@@ -13,9 +13,9 @@ Execute the whole plan in one pass: no reviewer per task. One fresh-context revi
 
 **Continuous execution:** Do not pause to check in with Court between tasks. Execute all tasks from the plan without stopping.
 
-**Rulings, not stalls.** Conflicts, ambiguities, plan defects: decide them. The spec is the binding authority, the plan is its argument, and judgment settles what neither answers. Record every decision in the report as `Ruling: <what was decided> — <why> — <what it costs if wrong>`, and keep going. Deviating from the plan without a recorded ruling is a decision made in secret.
+**Rulings, not stalls.** Ordinary conflicts, ambiguities and small plan defects: decide them. The spec is the binding authority, the plan is its argument, and judgment settles what neither answers. Record every decision in the report as `Ruling: <what was decided> — <why> — <what it costs if wrong>`, and keep going. Deviating from the plan without a recorded ruling is a decision made in secret.
 
-Five things stop you, and only these: an irreversible or destructive operation; a security-sensitive action; a side effect outside the worktree that AGENTS.md says to ask about first (a merge, a publish); a plan so broken that every path forward is a guess; and the change growing past its size (see "Stop when it grows"). For those, stop and bring it to Court.
+Stop and bring it to Court for: an irreversible or destructive operation; a security-sensitive action; a side effect outside the worktree that AGENTS.md says to ask about first (a merge, a publish); a genuine design choice between correct approaches that is Court's to make; a finding that makes the accepted plan wrong; and the change growing past its size (see "Stop when it grows"). For those, stop and bring it to Court.
 
 ## Choose who implements
 
@@ -26,7 +26,7 @@ Five things stop you, and only these: an irreversible or destructive operation; 
 
 1. Work in a worktree on a branch cut from a freshly fetched base, per AGENTS.md's Git rules. Confirm it with `git -C <wt> branch --show-current` before anyone writes to it. Never implement on `main` without Court's explicit consent.
 2. Read the plan once, note its Size line, Global Constraints and Review Focus. If the plan names a Spec, read that too: conflicts inside the plan resolve against it. A plan with no reachable spec gets a report note saying so; rulings made without one are provisional.
-3. Record BASE: `git -C <wt> rev-parse HEAD`.
+3. Record the base commit: `BASE=$(git -C <wt> rev-parse HEAD)`; the commands below use `$BASE`.
 4. Pick a run directory outside the repo: `${XDG_STATE_HOME:-$HOME/.local/state}/plans/<plan-basename>/`. The report (`report.md`) and the review package live there, never in the repo.
 
 ## Run it: worker
@@ -38,7 +38,7 @@ Dispatch one `worker` with a short prompt naming: the plan file as its brief, th
 - Put every deviation from the plan in the report as a `Ruling:` line, and one line per finished task with its commits and test result.
 - Stop and return `BLOCKED` with the size so far if the change passes about twice the plan's Size line, or the work needs files or features the plan doesn't name.
 
-While it runs, don't commit in that worktree. When it returns, read the report, then check the size: `git -C <wt> diff --stat BASE...HEAD`.
+While it runs, don't commit in that worktree. When it returns, read the report, then check the size: `git -C <wt> diff --stat "$BASE"...HEAD`.
 
 A `NEEDS_CONTEXT` return is a ruling for you to make with the spec as the authority (record it in the report and re-dispatch with the answer), unless it is a scope question: that goes to Court.
 
@@ -63,7 +63,7 @@ At about twice the plan's Size line, a third round of fixes, or a worker that we
 Build the package in the run directory:
 
 ```bash
-{ git -C <wt> log --oneline BASE..HEAD; git -C <wt> diff BASE...HEAD; } > <run-dir>/review-package.diff
+{ git -C <wt> log --oneline "$BASE"..HEAD; git -C <wt> diff "$BASE"...HEAD; } > <run-dir>/review-package.diff
 ```
 
 Dispatch one `reviewer` from the other provider family from the implementer (the `pi-subagent-dispatch` skill names the models; never substitute a same-family reviewer). Its three files are the plan (as the brief), the report, and the package. In the prompt, add the spec path, the plan's Review Focus section verbatim (the reviewer checks each line deliberately), and a pointer to the report's `Ruling:` lines so it can weigh the calls made. This is the one fresh context the run buys; don't skip it or replace it with your own read of the diff.
