@@ -9,10 +9,10 @@ Verified 2026-10-04 on pi 1.0.1, `@tintinweb/pi-subagents` 0.19.0, `@schuettc/pi
 
 ## Choosing the model
 
-The session's model is the subscription in use. When one runs out, Court switches the session
-(`/claude-account`, `/model`) and subagents follow. The `worker` and `reviewer` agent files carry
-**no `model:` or `isolated:` lines**, so the dispatch decides. (Frontmatter is authoritative in
-pi-subagents: a pinned field can't be overridden at dispatch.)
+The model policy (the session's model, who reviews whom, which provider to prefer) is in the
+global `AGENTS.md` under "Models and subagents"; this is how to carry it out. The `worker` and
+`reviewer` agent files carry **no `model:` or `isolated:` lines**, so the dispatch decides.
+(Frontmatter is authoritative in pi-subagents: a pinned field can't be overridden at dispatch.)
 
 | Role | Model |
 |---|---|
@@ -24,8 +24,7 @@ Providers: `claude-bridge/*` bills the bridge's active account (switch with `/cl
 `anthropic/*` bills pi's own login (`~/.pi/agent/auth.json`); `openai-codex/*` is Court's OpenAI
 subscription (`/login` → `openai-codex`, "OpenAI Codex (legacy)"). Don't use the `openai/*` provider:
 its Sign in with ChatGPT login can't refresh, so it dies an hour after sign-in
-(openai/sign-in-with-chatgpt-devkit#5). Prefer Anthropic; use OpenAI when Anthropic usage is exhausted, and for
-reviews.
+(openai/sign-in-with-chatgpt-devkit#5).
 
 Dispatch with `isolated: false` (the default). Name the brief and report files in the prompt.
 
