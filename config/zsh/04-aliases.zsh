@@ -128,7 +128,7 @@ __claude_session_name() {
 # NOT the identity-seeding this file bans above: it names no bus alias and mints
 # no session id, so it is safe on --resume/--continue, which the identity ban
 # had to skip.
-__claude_channels=(--dangerously-load-development-channels server:galley server:muster-channel)
+__claude_channels=(--dangerously-load-development-channels server:galley server:muster-channel server:sift)
 
 # The verbs that reach the real binary untouched: the fleet, mcp config, auth,
 # installers and the other one-shot management commands. A prompt string is not
