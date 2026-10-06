@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Report upstream changes to the superpowers files adapted in config/pi/skills
+# (brainstorming, writing-plans, executing-plans) and LICENSE since the pinned
+# commit in config/pi/superpowers/UPSTREAM.
+#
+# Exit: 0 no changes, 1 changes (paths and compare URL printed), 2 gh error.
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+pinned="$(tr -d '[:space:]' < "$repo_root/config/pi/superpowers/UPSTREAM")"
+short="${pinned:0:7}"
+
+if ! files="$(gh api "repos/obra/superpowers/compare/${pinned}...main" --jq '.files[] | .filename, (.previous_filename // empty)')"; then
+  echo "gh api compare failed for ${short}...main" >&2
+  exit 2
+fi
+
+changed="$(printf '%s\n' "$files" | grep -E '^(skills/(brainstorming|writing-plans|executing-plans)/|LICENSE$)' || true)"
+
+if [ -z "$changed" ]; then
+  echo "no upstream changes to the adapted skills since ${short}"
+  exit 0
+fi
+
+printf '%s\n' "$changed"
+echo "https://github.com/obra/superpowers/compare/${pinned}...main"
+exit 1

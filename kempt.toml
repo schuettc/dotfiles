@@ -597,7 +597,9 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   symlink-target = { link = "~/.pi/agent/subagents.json", target = "config/pi/subagents.json" }
 
   # Court's pi skills (config/pi/skills: remembering, pi-subagent-dispatch, the
-  # family build/release/onboarding skills, cleaning-up-branches). Whole-dir link
+  # family build/release/onboarding skills, cleaning-up-branches, and
+  # brainstorming/writing-plans/executing-plans adapted from superpowers, whose
+  # LICENSE and pinned SHA are in config/pi/superpowers). Whole-dir link
   # into pi's auto-discovered skills dir, so an edit here is live at once. pi
   # only: Claude Code's ~/.claude/skills is not managed here.
   [[packages.pi.symlink]]
