@@ -1,6 +1,6 @@
 ---
 name: writing-plans
-description: Writes an implementation plan from an approved spec or requirements, stating the smallest change that does the ask and its rough size in lines, with tasks only as fine as one implementer needs, then hands off to executing-plans. Use when you have a spec or requirements for a multi-step task, before touching code.
+description: Writes an implementation plan from an approved spec or requirements, stating the smallest correct change that does the ask and what it leaves out, with tasks only as fine as one implementer needs, then hands off to executing-plans. Use when you have a spec or requirements for a multi-step task, before touching code.
 ---
 
 # Writing Plans
@@ -19,9 +19,9 @@ The plan is usually executed by one `worker` subagent reading the whole plan as 
 - Default: `docs/plans/YYYY-MM-DD-<feature>.md` in the repo, committed on the work branch.
 - If `gh repo view --json visibility --jq .visibility` prints `PUBLIC`, write it to private tools-ops instead, at `~/GitHub/schuettc/tools-workspace/tools-ops/docs/<repo>/plans/YYYY-MM-DD-<feature>.md`, and commit it there under AGENTS.md's Git rules. Never commit it in the public repo.
 
-## Size It First
+## Scope It First
 
-Before tasks, write down the smallest change that does the ask and its rough size in lines (code plus tests). Apply AGENTS.md's "Scope and size": every case, guard, option, fallback or test in the plan names when it happened in real use; anything else goes in a "Follow-ups" list of one line each, not in a task. If the plan comes out much bigger than the spec implied, show Court the list with what you'd drop before writing tasks.
+Before tasks, write down the smallest correct change that does the ask: what it includes and what it leaves out. Apply AGENTS.md's "Scope": every case, guard, option, fallback or test in the plan names when it happened in real use; anything else goes in a "Follow-ups" list of one line each, not in a task. If the plan comes out much bigger than the spec implied, show Court the list with what you'd drop before writing tasks.
 
 ## Scope Check
 
@@ -62,7 +62,7 @@ Each task carries its own check commands: the test command (and any build or lin
 
 **Goal:** [One sentence describing what this builds]
 
-**Size:** [The smallest change that does the ask, rough lines of code + tests]
+**Scope:** [What the change includes, and what it leaves out for later]
 
 **Architecture:** [2-3 sentences about approach]
 
@@ -154,14 +154,14 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 
 **4. Review Focus:** For each input class or failure mode the spec implies, is there a task whose tests exercise it? The uncovered ones most likely to bite a person go in Review Focus, each with its test added to the owning task. An empty section means you checked and found none, not that you skipped the check.
 
-**5. Proportion and size:** Compare the plan's length to the spec's, and the Size line to what the tasks actually build. A plan several times longer than the spec is a transcript of the program, not a plan: replace bodies with signatures, test names and assertions. Anything in a task that hasn't happened in real use moves to Follow-ups.
+**5. Proportion and scope:** Compare the plan's length to the spec's, and the Scope line to what the tasks actually build. A plan several times longer than the spec is a transcript of the program, not a plan: replace bodies with signatures, test names and assertions. Anything in a task that hasn't happened in real use moves to Follow-ups.
 
 If you find issues, fix them inline. No need to re-review: just fix and move on. If you find a spec requirement with no task, add the task.
 
 ## Execution Handoff
 
-After saving and self-reviewing the plan, open it for Court with `galley_open` and give the URL, with the Size line and the Follow-ups list in your message:
+After saving and self-reviewing the plan, open it for Court with `galley_open` and give the URL, with the Scope line and the Follow-ups list in your message:
 
-**"Plan saved to `<path>` (about <N> lines of change). Please review it in galley. Does it capture what you want?"**
+**"Plan saved to `<path>`. Please review it in galley. Does it capture what you want?"**
 
 Wait for Court's review. If Court requests changes, make them and re-run the self-review. Once Court approves, use the executing-plans skill. It is the only execution path.

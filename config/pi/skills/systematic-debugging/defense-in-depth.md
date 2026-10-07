@@ -4,7 +4,7 @@
 
 After you fix a bug caused by invalid data at its source, ask whether the bad value could reach the same damage by another path that has actually been seen. A check at one layer can be bypassed by a different caller, a refactor or a mock.
 
-This is not a reason to validate everything everywhere. AGENTS.md's "Scope and size" applies: add a check where the bad value actually travelled, or where a second real path to the same damage exists. Name when it happened for each one; anything else is a one-line follow-up. Guard against the world changing in ways you have seen (AGENTS.md "Engineering"), not against every imaginable caller.
+This is not a reason to validate everything everywhere. AGENTS.md's "Scope" applies: add a check where the bad value actually travelled, or where a second real path to the same damage exists. Name when it happened for each one; anything else is a one-line follow-up. Guard against the world changing in ways you have seen (AGENTS.md "Engineering"), not against every imaginable caller.
 
 ## The Layers to Consider
 

@@ -47,7 +47,7 @@ Court's rule: the implementer and the reviewer both answer to Court. If we don't
 - The approved behavior works and nothing regressed: the review is finished, even if a reviewer would find more on another pass.
 - A reviewer finding something new is not by itself a reason for another review pass. New findings get sorted like the rest; most become follow-up lines.
 - A re-review, when you ask for one, looks at the fixes (the diff since the reviewed commit), not the whole change again.
-- When fixes keep surfacing new problems, or the change keeps growing, stop and bring Court the size and what was added (AGENTS.md "Stop when it grows").
+- When fixes keep surfacing new problems, or the change goes past what was approved, stop and bring Court what was added (AGENTS.md "Stop when it grows").
 
 ## Unclear Findings
 
@@ -63,7 +63,7 @@ Right: "I understand 1, 2, 3 and 6. What do you mean by 4 and 5?"
 
 ## By Source
 
-**From Court:** trusted. Implement after understanding, and still ask when the scope is unclear. A finding from Court that goes beyond what Court approved is a new ask: say its size and confirm before building it.
+**From Court:** trusted. Implement after understanding, and still ask when the scope is unclear. A finding from Court that goes beyond what Court approved is a new ask: say what it adds and confirm before building it.
 
 **From a reviewer subagent or an external reviewer:** check before acting.
 - Is it correct for this codebase, stack and platform?
