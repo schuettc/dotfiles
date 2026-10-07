@@ -385,6 +385,23 @@ only = { os = "darwin" }
 # pi channel entry is in pi-channels. First run on a new machine:
 # `casebook init` and `casebook hooks install` (see casebook.tools/guide).
 # ---------------------------------------------------------------------------
+# muda — find and fix delivery waste in a repository's pipelines (muda.tools).
+# The binary only; its skills reach agents through `muda skills install`.
+# ---------------------------------------------------------------------------
+[packages.muda]
+description = "muda: find and fix delivery waste in your pipelines (muda.tools)"
+needs = ["core"]
+only = { os = "darwin" }
+
+  [[packages.muda.download]]
+  site = "muda.tools"
+  tool = "muda"
+  bin = "muda"
+
+  [[packages.muda.verify]]
+  command-exists = "muda"
+
+# ---------------------------------------------------------------------------
 [packages.casebook]
 description = "casebook: triage page, agent channel, rules and apply (casebook.tools)"
 needs = ["core"]
@@ -719,7 +736,7 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "casebook", "sift", "pi", "pi-channels"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "casebook", "sift", "muda", "pi", "pi-channels"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
