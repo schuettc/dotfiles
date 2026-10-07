@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: Turns an idea into an approved design through one-question-at-a-time dialogue with Court, sized to the smallest change that does the ask, with an optional browser visual companion for mockups. Use before any creative work (creating features, building components, adding functionality, or modifying behavior) and before writing a spec or plan.
+description: Turns an idea into an approved design through one-question-at-a-time dialogue with Court, scoped to the smallest correct change that does the ask, with an optional browser visual companion for mockups. Use before any creative work (creating features, building components, adding functionality, or modifying behavior) and before writing a spec or plan.
 ---
 
 # Brainstorming Ideas Into Designs
@@ -67,7 +67,7 @@ Classify first, announce the path, then create a task for each item on your path
 **Bounded:**
 1. **Explore project context**: check files, docs, recent commits
 2. **Ask clarifying questions**: one at a time, the ones that matter
-3. **Present short design in chat**: approach, files touched, testing, rough size in lines
+3. **Present short design in chat**: approach, files touched, testing, and what it leaves out
 4. **Get approval**: STOP and wait for an explicit yes; presenting the design and starting in the same breath is skipping the gate
 5. **Implement**: write the failing test first where the change has behavior to test; no plan document. When done, push and open a PR per AGENTS.md's Git rules.
 
@@ -75,7 +75,7 @@ Classify first, announce the path, then create a task for each item on your path
 1. **Explore project context**: check files, docs, recent commits
 2. **Show it when it helps**: the first time a question would be clearer shown than described, start the visual companion and show it, without asking first. If no visual question arises, don't start it. See the Visual Companion section below.
 3. **Ask clarifying questions**: one at a time, understand purpose/constraints/success criteria
-4. **Propose approaches, sized**: the smallest change that does the ask first, each option with its size in lines, what it pulls in, and "not yet" where it applies; recommend the smallest correct one
+4. **Propose approaches**: the smallest correct change that does the ask first, each option with what it pulls in, and "not yet" where it applies; recommend the smallest correct one
 5. **Present design**: in sections scaled to their complexity, get Court's approval after each section
 6. **Write design doc**: see "Where the spec goes" below
 7. **Spec self-review**: quick inline check for placeholders, contradictions, ambiguity, scope (see below)
@@ -101,7 +101,7 @@ The subsections below serve the bounded and architectural paths (a spike stops a
 **Exploring approaches (apply AGENTS.md's "Scope and size"):**
 
 - Build for what has happened. For every case, option, guard or fallback an approach adds, name when it happened in real use and who needs it this week; otherwise it becomes a one-line follow-up, not part of the design.
-- Lead with the smallest change that does the ask and its rough size in lines. Each bigger option shows its size and what it pulls in.
+- Lead with the smallest correct change that does the ask. Each bigger option shows what it pulls in.
 - Offer "not yet" (and "by hand") as real options when nothing breaks today without the change.
 - Recommend the smallest correct option and explain why, conversationally.
 
