@@ -624,13 +624,19 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
 # sift — audits agent instruction files and puts one recommendation per file in
 # front of you on a review page (tackle.tools). Registered like galley: the
 # session opens the review with its sift_review tool and Send wakes that same
-# session through the channel. Until sift's first release the binary is a dev
-# build in ~/.local/bin (no download step yet); this package wires the channel.
+# session through the channel. The binary installs from tackle.tools/dl; pi's
+# channel is in [packages.pi-channels] with the others. After an upgrade, run
+# `sift skills install` so the installed skill matches the binary.
 # ---------------------------------------------------------------------------
 [packages.sift]
 description = "sift: instruction-file audits reviewed per file, with an agent channel (tackle.tools)"
 needs = ["core"]
 only = { os = "darwin" }
+
+  [[packages.sift.download]]
+  site = "tackle.tools"
+  tool = "sift"
+  bin = "sift"
 
   [[packages.sift.json-merge]]
   file = "~/.claude.json"
