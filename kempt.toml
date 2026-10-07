@@ -663,6 +663,32 @@ only = { os = "darwin" }
   command-exists = "sift"
 
 # ---------------------------------------------------------------------------
+# cull — judges agent-written tests with TypeSafe's Jev, removes the ones Jev is
+# sure don't earn their place, and puts the rest on a review page (tackle.tools).
+# Registered like sift: the session opens the review with its cull_review tool
+# and Send wakes that same session through the channel. The binary installs from
+# tackle.tools/dl; pi's channel is in [packages.pi-channels] with the others.
+# First run in each project: `cull init` (asks for the TypeSafe key once, and
+# whether that project's test source may be sent to TypeSafe).
+# ---------------------------------------------------------------------------
+[packages.cull]
+description = "cull: judges agent-written tests and reviews the uncertain ones on a page, with an agent channel (tackle.tools)"
+needs = ["core"]
+only = { os = "darwin" }
+
+  [[packages.cull.download]]
+  site = "tackle.tools"
+  tool = "cull"
+  bin = "cull"
+
+  [[packages.cull.json-merge]]
+  file = "~/.claude.json"
+  merge = { mcpServers = { cull = { type = "stdio", command = "cull", args = ["channel"], env = {} } } }
+
+  [[packages.cull.verify]]
+  command-exists = "cull"
+
+# ---------------------------------------------------------------------------
 # pi-channels — wire the galley + muster channels into pi sessions.
 #
 # channels.tools (installed by [packages.pi]) is the bridge, but it spawns
@@ -680,13 +706,13 @@ only = { os = "darwin" }
 # hooks class that needs absolute ${HOME} paths. Matches live channels.json.
 # ---------------------------------------------------------------------------
 [packages.pi-channels]
-description = "Wire galley, muster, casebook and sift channels into pi sessions (channels.tools → channels.json)"
-needs = ["pi", "muster", "galley", "casebook", "sift"]
+description = "Wire galley, muster, casebook, sift and cull channels into pi sessions (channels.tools → channels.json)"
+needs = ["pi", "muster", "galley", "casebook", "sift", "cull"]
 only = { os = "darwin" }
 
   [[packages.pi-channels.json-merge]]
   file = "~/.pi/agent/channels.json"
-  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] }, casebook = { command = "casebook", args = ["channel"] }, sift = { command = "sift", args = ["channel"] } } }
+  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] }, casebook = { command = "casebook", args = ["channel"] }, sift = { command = "sift", args = ["channel"] }, cull = { command = "cull", args = ["channel"] } } }
 
 # ---------------------------------------------------------------------------
 # pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
@@ -742,7 +768,7 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "casebook", "sift", "muda", "pi", "pi-channels"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "casebook", "sift", "cull", "muda", "pi", "pi-channels"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
