@@ -15,7 +15,7 @@ Write the test first. Watch it fail. Write the minimal code to pass. Watch it pa
 
 ## What Gets a Test
 
-A test earns its place by pinning a behavior someone asked for or a failure that happened. AGENTS.md's "Scope and size" applies to tests like any other code.
+A test earns its place by pinning a behavior someone asked for or a failure that happened. AGENTS.md's "Scope" applies to tests like any other code.
 
 - **New project or new feature:** one failing test per behavior the spec or plan asks for, written from its acceptance criteria. The plan's test steps name them; when a spec has no plan, list the behaviors from its acceptance criteria first.
 - **Bug fix:** start with a test that reproduces the failure actually seen (the input, the wrong output or the error from the real report or log). It must fail for the same reason the bug did.

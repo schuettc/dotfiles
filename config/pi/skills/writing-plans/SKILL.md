@@ -21,7 +21,7 @@ The plan is usually executed by one `worker` subagent reading the whole plan as 
 
 ## Scope It First
 
-Before tasks, write down the smallest correct change that does the ask: what it includes and what it leaves out. Apply AGENTS.md's "Scope and size": every case, guard, option, fallback or test in the plan names when it happened in real use; anything else goes in a "Follow-ups" list of one line each, not in a task. If the plan comes out much bigger than the spec implied, show Court the list with what you'd drop before writing tasks.
+Before tasks, write down the smallest correct change that does the ask: what it includes and what it leaves out. Apply AGENTS.md's "Scope": every case, guard, option, fallback or test in the plan names when it happened in real use; anything else goes in a "Follow-ups" list of one line each, not in a task. If the plan comes out much bigger than the spec implied, show Court the list with what you'd drop before writing tasks.
 
 ## Scope Check
 

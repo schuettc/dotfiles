@@ -98,7 +98,7 @@ The subsections below serve the bounded and architectural paths (a spike stops a
 - Only one question per message; if a topic needs more exploration, break it into multiple questions
 - Focus on understanding: purpose, constraints, success criteria
 
-**Exploring approaches (apply AGENTS.md's "Scope and size"):**
+**Exploring approaches (apply AGENTS.md's "Scope"):**
 
 - Build for what has happened. For every case, option, guard or fallback an approach adds, name when it happened in real use and who needs it this week; otherwise it becomes a one-line follow-up, not part of the design.
 - Lead with the smallest correct change that does the ask. Each bigger option shows what it pulls in.
