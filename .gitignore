@@ -19,3 +19,10 @@ docs/superpowers/
 # Design docs never live in this public repo: specs and plans are in private tools-ops (docs/<repo>/).
 docs/specs/
 docs/plans/
+
+# pi skills that a family tool installs and updates itself (`<tool> skills install`
+# writes through the ~/.pi/agent/skills link into config/pi/skills). The tool owns
+# them; a copy here would go stale with each release.
+config/pi/skills/sift/
+config/pi/skills/muda/
+config/pi/skills/muda-*/
