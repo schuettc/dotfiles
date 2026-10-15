@@ -123,7 +123,7 @@ You: I'm using the executing-plans skill. The plan is 3 tasks, so I'm dispatchin
 [Keep talking with Court while it runs]
 [Worker returns DONE: commits d4e5f6a, b7c8d9e, c0d1e2f; 14/14 tests pass; one Ruling: install_hook → installHook (matches Task 1 Produces; cost if wrong: one rename)]
 [git diff: only the files and features the plan names: within scope]
-[Build review package; dispatch reviewer on openai-codex/gpt-6.1-sol]
+[Build review package; dispatch reviewer on openai-codex/gpt-6-astra]
 Reviewer: One Important finding (progress interval hardcoded). Two Minor.
 [Verify each: the hardcoded interval breaks the configured value Court approved → fix; the two minors → follow-ups]
 [Fix inline: test_progress_interval_configurable RED → GREEN; suite 15/15; commit. Approved behavior works: review finished]
