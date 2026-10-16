@@ -160,8 +160,6 @@ If you find issues, fix them inline. No need to re-review: just fix and move on.
 
 ## Execution Handoff
 
-After saving and self-reviewing the plan, open it for Court with `galley_open` and give the URL, with the Scope line and the Follow-ups list in your message:
+After saving and self-reviewing the plan, review it with Court in the conversation: the Scope line and the Follow-ups list first, then the tasks a few at a time, changing the file as you agree. When it is agreed, open the plain file in Court's Markdown editor (`open <path>`) for a last read. Don't use galley for plans: it is for prose meant for people.
 
-**"Plan saved to `<path>`. Please review it in galley. Does it capture what you want?"**
-
-Wait for Court's review. If Court requests changes, make them and re-run the self-review. Once Court approves, use the executing-plans skill. It is the only execution path.
+Wait for Court's approval. If Court requests changes, make them and re-run the self-review. Once Court approves, use the executing-plans skill. It is the only execution path.
