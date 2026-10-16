@@ -79,7 +79,7 @@ Classify first, announce the path, then create a task for each item on your path
 5. **Present design**: in sections scaled to their complexity, get Court's approval after each section
 6. **Write design doc**: see "Where the spec goes" below
 7. **Spec self-review**: quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-8. **Court reviews the written spec in galley**: open it with `galley_open` and wait
+8. **Court reviews the written spec**: section by section in the conversation, then the whole file in Court's Markdown editor
 9. **Transition to implementation**: invoke the writing-plans skill to create the implementation plan
 
 **Terminal states are path-bound.** Architectural: the ONLY skill you invoke after brainstorming is writing-plans. Bounded: after approval, implementation proceeds directly; no plan document. Spike: the terminal state is a reported recommendation.
@@ -143,8 +143,8 @@ After writing the spec document, look at it with fresh eyes:
 
 Fix any issues inline. No need to re-review: just fix and move on. No reviewer subagent for the spec; Court is its reviewer.
 
-**Court's review in galley:**
-Open the spec with `galley_open` and give Court the URL it returns, with one line on what to look at first. Wait for Court's response. If Court requests changes, make them and re-run the self-review. Only proceed once Court approves.
+**Court's review:**
+A spec is a design, so its review is a conversation, not a round of edits. Walk Court through it one section at a time in the conversation, asking after each whether it is right, and change the file as you agree. When every section is agreed, open the plain file in Court's Markdown editor (`open <path>`) for a last read and any small fixes. Only proceed once Court approves. Don't use galley for specs: it is for prose meant for people.
 
 **Implementation:**
 
