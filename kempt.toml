@@ -507,7 +507,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # package can never also load (same path). Carries the
     # prompt-answerer seam (pi-hail phone approvals). Bump the version at the END
     # of the string. Retire by pinning plain npm:@gotgenes/pi-permission-system@<v>.
-    "npm:@gotgenes/pi-permission-system@npm:@schuettc/pi-permission-system@40.2.2-schuettc.1",
+    "npm:@gotgenes/pi-permission-system@npm:@subaud-tools/pi-permission-system@40.3.0-subaud-tools.1",
     "npm:@tintinweb/pi-subagents",
     "npm:@bitcraft-apps/pi-web-tools",
     "npm:pi-quiet@0.2.1",
@@ -563,7 +563,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", defaultThinkingLevel = "medium", hideThinkingBlock = true, theme = "dark", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = ["-builtin:mcp"], packages = [ "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2", "npm:@subaud-tools/pi-usage@0.11.6-subaud-tools.1", "npm:@gotgenes/pi-permission-system@npm:@schuettc/pi-permission-system@40.2.2-schuettc.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@subaud-tools/pi-schedule@0.4.0-subaud-tools.2", "npm:@nicknisi/pi-artifacts", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.3", "npm:pi-hail", "npm:pi-wakeup@0.2.2", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.2.1", "npm:pi-casebook" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", defaultThinkingLevel = "medium", hideThinkingBlock = true, theme = "dark", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = ["-builtin:mcp"], packages = [ "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2", "npm:@subaud-tools/pi-usage@0.11.6-subaud-tools.1", "npm:@gotgenes/pi-permission-system@npm:@subaud-tools/pi-permission-system@40.3.0-subaud-tools.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@subaud-tools/pi-schedule@0.4.0-subaud-tools.2", "npm:@nicknisi/pi-artifacts", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.3", "npm:pi-hail", "npm:pi-wakeup@0.2.2", "npm:pi-creel", "npm:pi-bang", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.2.1", "npm:pi-casebook" ] }
 
   # pi-permission-system policy. yoloMode is on: tool calls run without asking,
   # and the static policy below still applies its denies (secrets, SSH keys,
