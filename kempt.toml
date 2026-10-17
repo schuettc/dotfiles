@@ -668,6 +668,31 @@ only = { os = "darwin" }
   command-exists = "sift"
 
 # ---------------------------------------------------------------------------
+# imprint — guides an agent through npm: login, publish, trusted publishers,
+# deprecation, and confirming a CI release landed signed by the right repo
+# (tackle.tools). It opens each npm approval in the browser and reports back
+# through its channel. The binary installs from tackle.tools/dl; pi's channel
+# is in [packages.pi-channels] with the others. After an upgrade, run
+# `imprint skills install` so the installed skill matches the binary.
+# ---------------------------------------------------------------------------
+[packages.imprint]
+description = "imprint: an npm guide for agents, with an agent channel (tackle.tools)"
+needs = ["core"]
+only = { os = "darwin" }
+
+  [[packages.imprint.download]]
+  site = "tackle.tools"
+  tool = "imprint"
+  bin = "imprint"
+
+  [[packages.imprint.json-merge]]
+  file = "~/.claude.json"
+  merge = { mcpServers = { imprint = { type = "stdio", command = "imprint", args = ["channel"], env = {} } } }
+
+  [[packages.imprint.verify]]
+  command-exists = "imprint"
+
+# ---------------------------------------------------------------------------
 # cull — judges agent-written tests with TypeSafe's Jev, removes the ones Jev is
 # sure don't earn their place, and puts the rest on a review page (tackle.tools).
 # Registered like sift: the session opens the review with its cull_review tool
@@ -711,13 +736,13 @@ only = { os = "darwin" }
 # hooks class that needs absolute ${HOME} paths. Matches live channels.json.
 # ---------------------------------------------------------------------------
 [packages.pi-channels]
-description = "Wire galley, muster, casebook, sift and cull channels into pi sessions (channels.tools → channels.json)"
-needs = ["pi", "muster", "galley", "casebook", "sift", "cull"]
+description = "Wire galley, muster, casebook, sift, cull and imprint channels into pi sessions (channels.tools → channels.json)"
+needs = ["pi", "muster", "galley", "casebook", "sift", "cull", "imprint"]
 only = { os = "darwin" }
 
   [[packages.pi-channels.json-merge]]
   file = "~/.pi/agent/channels.json"
-  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] }, casebook = { command = "casebook", args = ["channel"] }, sift = { command = "sift", args = ["channel"] }, cull = { command = "cull", args = ["channel"] } } }
+  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] }, casebook = { command = "casebook", args = ["channel"] }, sift = { command = "sift", args = ["channel"] }, cull = { command = "cull", args = ["channel"] }, imprint = { command = "imprint", args = ["channel"] } } }
 
 # ---------------------------------------------------------------------------
 # pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
