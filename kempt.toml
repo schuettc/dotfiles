@@ -383,7 +383,7 @@ only = { os = "darwin" }
 
 # ---------------------------------------------------------------------------
 # casebook — the fate of every repo, PR, issue, branch and worktree
-# (casebook.tools; binary from tackle.tools/dl). Mirrors tackle's
+# (casebook.tools; binary from casebook.tools/dl). Mirrors subaud-tools/casebook's
 # cmd/casebook/kempt.toml, folded in here so `kempt update` keeps it current.
 # pi-casebook is in the pi package's list below (dotfiles owns that list); the
 # pi channel entry is in pi-channels. First run on a new machine:
@@ -412,7 +412,7 @@ needs = ["core"]
 only = { os = "darwin" }
 
   [[packages.casebook.download]]
-  site = "tackle.tools"
+  site = "casebook.tools"
   tool = "casebook"
   bin = "casebook"
 
@@ -537,10 +537,10 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # sessions never run a mix of old and new code and channel servers restart
     # on the new binary. Court's own, from the pi-extensions monorepo.
     "npm:pi-auto-reload@0.2.1",
-    # casebook (tackle.tools): journals git/gh bash calls with the pi session,
+    # casebook (casebook.tools): journals git/gh bash calls with the pi session,
     # briefs the first turn, syncs in the background. Installed HERE because this
     # manifest owns the packages list; casebook's own manifest
-    # (tackle cmd/casebook/kempt.toml) installs everything else. Unpinned (Court,
+    # (subaud-tools/casebook cmd/casebook/kempt.toml) installs everything else. Unpinned (Court,
     # 2026-09-27): kempt rolls it to the latest; casebook publishes the binary
     # before the extension, so a new pi-casebook never arrives ahead of it.
     "npm:pi-casebook",
