@@ -473,7 +473,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # on PATH; it is keg-only). Not Homebrew's `node`, which tracks the newest
   # major and ships breakage to pi first.
   [[packages.pi.install]]
-  brew.formulas = ["ddgr", "pandoc", "node@24"]
+  brew.formulas = ["ddgr", "pandoc", "trafilatura", "node@24"]
 
   [[packages.pi.install]]
   npm = ["@earendil-works/pi-coding-agent"]
