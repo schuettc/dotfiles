@@ -82,7 +82,25 @@ if [[ -n "$model" ]]; then
     *[Gg]pt*|*[Cc]odex*)                                     mbg="#89dceb" ;;
     *)                                                        mbg="#89b4fa" ;;
   esac
-  model_badge="#[fg=#1e1e2e,bg=${mbg},bold] ${model}${thinking:+ · ${thinking}} #[default]"
+  model_badge="#[fg=#1e1e2e,bg=${mbg},bold] ${model} #[default]"
+fi
+
+# Thinking badge, tinted cool to warm as the effort rises, so the level reads
+# at a glance: off grey, minimal teal, low sky, medium blue, high peach,
+# xhigh maroon, max red. Omitted when the pane's model has no level.
+think_badge=""
+if [[ -n "$thinking" ]]; then
+  case "$thinking" in
+    off)     tbg="#6c7086" ;;
+    minimal) tbg="#94e2d5" ;;
+    low)     tbg="#89dceb" ;;
+    medium)  tbg="#89b4fa" ;;
+    high)    tbg="#fab387" ;;
+    xhigh)   tbg="#eba0ac" ;;
+    max)     tbg="#f38ba8" ;;
+    *)       tbg="#b4befe" ;;
+  esac
+  think_badge="#[fg=#1e1e2e,bg=${tbg},bold] ${thinking} #[default]"
 fi
 
 # Context badge, tinted by how full the window is: green < 50, yellow 50-79,
@@ -96,11 +114,11 @@ if [[ "$pct" =~ ^[0-9]+$ ]] && (( pct > 0 )); then
   ctx_badge="#[fg=#1e1e2e,bg=${cbg},bold] ⌬ ${pct}% #[default]"
 fi
 
-# Nothing useful to show → stay silent. A thin gap between the two badges
-# reads cleaner than butting them together.
-[[ -z "$model_badge$ctx_badge" ]] && exit 0
-if [[ -n "$model_badge" && -n "$ctx_badge" ]]; then
-  printf '%s %s' "$model_badge" "$ctx_badge"
-else
-  printf '%s%s' "$model_badge" "$ctx_badge"
-fi
+# Nothing useful to show → stay silent. A thin gap between badges reads
+# cleaner than butting them together.
+out=""
+for badge in "$model_badge" "$think_badge" "$ctx_badge"; do
+  [[ -n "$badge" ]] && out="${out:+$out }$badge"
+done
+[[ -n "$out" ]] && printf '%s' "$out"
+exit 0
