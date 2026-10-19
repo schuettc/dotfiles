@@ -1,6 +1,6 @@
 ---
 name: driving-chrome
-description: Use when a session needs to click, fill or read pages in Court's own Chrome through the Playwright MCP server (the `playwright` tools): signed-in sites such as Chatwoot, Meta, a sign-up flow or a live run. Covers starting the server with no approval prompt, and how to fill fields and click without Chrome dropping the tab.
+description: "Use when a session needs to click, fill or read pages in Court's own Chrome through the Playwright MCP server (the `playwright` tools): signed-in sites such as Chatwoot, Meta, a sign-up flow or a live run. Covers starting the server with no approval prompt, and how to fill fields and click without Chrome dropping the tab."
 ---
 
 # Driving Court's Chrome with Playwright
