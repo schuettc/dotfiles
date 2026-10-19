@@ -66,6 +66,9 @@ fi
 
 model=$(awk -F= '$1=="model"{print $2}' "$state_file" 2>/dev/null)
 pct=$(awk -F= '$1=="context_pct"{print $2}' "$state_file" 2>/dev/null)
+# Thinking level, written by pi-tmux-bridge for a reasoning model; absent for
+# Claude Code panes and non-reasoning models.
+thinking=$(awk -F= '$1=="thinking"{print $2}' "$state_file" 2>/dev/null)
 
 # Model badge, tinted by provider so a glance tells you what is driving the
 # pane: Claude (mauve), local llama/Qwen (green), Codex/GPT (sky), else blue.
@@ -79,7 +82,7 @@ if [[ -n "$model" ]]; then
     *[Gg]pt*|*[Cc]odex*)                                     mbg="#89dceb" ;;
     *)                                                        mbg="#89b4fa" ;;
   esac
-  model_badge="#[fg=#1e1e2e,bg=${mbg},bold] ${model} #[default]"
+  model_badge="#[fg=#1e1e2e,bg=${mbg},bold] ${model}${thinking:+ · ${thinking}} #[default]"
 fi
 
 # Context badge, tinted by how full the window is: green < 50, yellow 50-79,
