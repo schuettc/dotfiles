@@ -2,7 +2,7 @@
 # Start the brainstorm server and output connection info
 # Usage: start-server.sh [--project-dir <path>] [--host <bind-host>] [--url-host <display-host>] [--open]
 #
-# Runs the server in the foreground (start it in a visible tmux pane) on a
+# Runs the server in the foreground (start it in its own tmux window) on a
 # random high port and prints JSON with the URL.
 # Each session gets its own directory to avoid conflicts.
 #
@@ -115,8 +115,8 @@ fi
 cd "$SCRIPT_DIR" || exit 1
 
 # Resolve an owner PID for the server's watchdog (grandparent of this script).
-# In a tmux pane this is the pane's shell or the tmux server; closing the pane
-# also stops the server, and the idle timeout covers a pane left open.
+# In a tmux window this is the window's shell or the tmux server; closing the
+# window also stops the server, and the idle timeout covers one left open.
 OWNER_PID="$(ps -o ppid= -p "$PPID" 2>/dev/null | tr -d ' ')"
 if [[ -z "$OWNER_PID" || "$OWNER_PID" == "1" ]]; then
   OWNER_PID="$PPID"
