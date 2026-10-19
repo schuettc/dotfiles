@@ -32,13 +32,13 @@ The server watches a directory for HTML files and serves the newest one to the b
 
 ## Starting a Session
 
-Start it AFTER Court approves the companion, in a visible tmux pane (AGENTS.md: no nohup or detached processes). The script runs the server in the foreground; `--open` opens Court's browser on the first screen, and `--project-dir` gives the project a stable port, key and mockup directory under `${XDG_STATE_HOME:-~/.local/state}/brainstorm/`, outside the repo.
+Start it AFTER Court approves the companion, in its own tmux window, so it stays visible (AGENTS.md: no nohup or detached processes) without stacking its log under the pi pane. The script runs the server in the foreground; `--open` opens Court's browser on the first screen, and `--project-dir` gives the project a stable port, key and mockup directory under `${XDG_STATE_HOME:-~/.local/state}/brainstorm/`, outside the repo.
 
 ```bash
-tmux split-window -d -l 8 "bash ~/.pi/agent/skills/brainstorming/scripts/start-server.sh --project-dir /path/to/project --open"
+tmux new-window -d -n brainstorm "bash ~/.pi/agent/skills/brainstorming/scripts/start-server.sh --project-dir /path/to/project --open"
 ```
 
-The server prints its startup JSON in the pane and writes it to `$STATE_DIR/server-info`. Read that file for the URL and dirs: the newest session for the project is `ls -td "${XDG_STATE_HOME:-$HOME/.local/state}"/brainstorm/<project-slug>/*/ | head -1`, where `<project-slug>` is the project's absolute path with `/` replaced by `-`.
+The server prints its startup JSON in that window and writes it to `$STATE_DIR/server-info`. Read that file for the URL and dirs: the newest session for the project is `ls -td "${XDG_STATE_HOME:-$HOME/.local/state}"/brainstorm/<project-slug>/*/ | head -1`, where `<project-slug>` is the project's absolute path with `/` replaced by `-`.
 
 ```json
 {"type":"server-started","port":52341,
@@ -56,7 +56,7 @@ Without `--project-dir`, files go to `/tmp/brainstorm-<id>` and are deleted on s
 ## The Loop
 
 1. **Check server is alive**, then **write HTML** to a new file in `screen_dir`:
-   - **Required: confirm the server is alive before referring to the URL or pushing a screen.** Check that `$STATE_DIR/server-info` exists and `$STATE_DIR/server-stopped` does not. If it has shut down, restart it in a tmux pane with the **same `--project-dir`**: it reuses the same port, so Court's open tab reconnects on its own (it shows a "paused" overlay while the server is down) and you don't need to send a new URL. The server auto-exits after 4 hours idle (configurable with `--idle-timeout-minutes`).
+   - **Required: confirm the server is alive before referring to the URL or pushing a screen.** Check that `$STATE_DIR/server-info` exists and `$STATE_DIR/server-stopped` does not. If it has shut down, restart it the same way, in its own tmux window, with the **same `--project-dir`**: it reuses the same port, so Court's open tab reconnects on its own (it shows a "paused" overlay while the server is down) and you don't need to send a new URL. The server auto-exits after 4 hours idle (configurable with `--idle-timeout-minutes`).
    - Use semantic filenames: `platform.html`, `visual-style.html`, `layout.html`
    - **Never reuse filenames** — each screen gets a fresh file
    - Use your file-creation tool — **never use cat/heredoc** (dumps noise into terminal)
@@ -241,7 +241,7 @@ If `$STATE_DIR/events` doesn't exist, Court didn't interact with the browser —
 bash ~/.pi/agent/skills/brainstorming/scripts/stop-server.sh $SESSION_DIR
 ```
 
-With `--project-dir`, mockup files persist under `${XDG_STATE_HOME:-~/.local/state}/brainstorm/` for later reference. Only `/tmp` sessions get deleted on stop. Close the tmux pane once the server has stopped.
+With `--project-dir`, mockup files persist under `${XDG_STATE_HOME:-~/.local/state}/brainstorm/` for later reference. Only `/tmp` sessions get deleted on stop. The `brainstorm` window closes on its own once the server has stopped.
 
 ## Reference
 
