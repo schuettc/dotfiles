@@ -21,10 +21,10 @@ global `AGENTS.md` under "Models and subagents"; this is how to carry it out. Th
 | Security review or question | prefer OpenAI (`openai-codex/gpt-6-astra`); otherwise the normal other-family rule |
 
 Providers: `claude-bridge/*` bills the bridge's active account (switch with `/claude-account`);
-`anthropic/*` bills pi's own login (`~/.pi/agent/auth.json`); `openai-codex/*` is Court's OpenAI
-subscription (`/login` → `openai-codex`, "OpenAI Codex (legacy)"). Don't use the `openai/*` provider:
-its Sign in with ChatGPT login can't refresh, so it dies an hour after sign-in
-(openai/sign-in-with-chatgpt-devkit#5).
+`openai-codex/*` is Court's OpenAI subscription (`/login` → `openai-codex`, "OpenAI Codex (legacy)").
+Don't use the direct `anthropic/*` provider: pi has no Anthropic login, and Claude runs only
+through `claude-bridge`. Don't use the `openai/*` provider either: its Sign in with ChatGPT login
+can't refresh, so it dies an hour after sign-in (openai/sign-in-with-chatgpt-devkit#5).
 
 Dispatch with `isolated: false` (the default). Name the brief and report files in the prompt.
 
@@ -37,7 +37,7 @@ Dispatch with `isolated: false` (the default). Name the brief and report files i
 | `Codex error: The 'gpt-6.1-sol' model is not supported when using Codex with a ChatGPT account.` | The ChatGPT (Codex) login rejects this model. Seen 2026-10-15 on a reviewer dispatch; `gpt-6-astra` worked in the same session | Dispatch the reviewer on `openai-codex/gpt-6-astra` |
 | `400 Third-party apps now draw from your extra usage...` | Server-side classifier keys on pi's harness block in a child's system prompt; built-in `general-purpose` children carry it | Use a custom agent (`worker`, `reviewer`, or a `.pi/agents/*.md`) with its own lean prompt, never `general-purpose` |
 | `prompt-capture: no capture for this N-char system prompt` | Seen 2026-08/09 with `claude-bridge/*` children dispatched `isolated: true` | Dispatch bridge children with `isolated: false` |
-| `400 tools.N.custom: For 'number' type, property 'minimum' is not supported` | A tool schema uses JSON-Schema `minimum`, which the direct `anthropic/*` API rejects | Prefer `claude-bridge/*`; if `anthropic/*` is required, dispatch `isolated: true` |
+| `400 tools.N.custom: For 'number' type, property 'minimum' is not supported` | A tool schema uses JSON-Schema `minimum`, which the direct `anthropic/*` API rejects | Re-dispatch on `claude-bridge/*` |
 | `Cannot find module .../dist/bundle/chunks/<provider>-*.js` (e.g. `openai-responses-*`, `anthropic-messages-*`) | The session started before a pi upgrade and never loaded that provider's code; the upgrade replaced the files. Providers already used in the session keep working | Restart pi (resume the session). Check with a fresh `pi -p --no-session --model <m> ...` |
 
 ## Smoke test
