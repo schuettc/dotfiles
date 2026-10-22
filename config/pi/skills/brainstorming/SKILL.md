@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: Turns an idea into an approved design through one-question-at-a-time dialogue with Court, scoped to the smallest correct change that does the ask, with an optional browser visual companion for mockups. Use before any creative work (creating features, building components, adding functionality, or modifying behavior) and before writing a spec or plan.
+description: Turns an idea into an approved design scoped to the smallest correct change that does the ask: spikes and bounded designs through one-question-at-a-time dialogue in chat (with an optional browser visual companion for mockups), architectural designs and their spec on diazo's planning page. Use before any creative work (creating features, building components, adding functionality, or modifying behavior) and before writing a spec or plan.
 ---
 
 # Brainstorming Ideas Into Designs
@@ -16,7 +16,7 @@ Start by classifying how much process the request needs, then work through your 
 The outcome of brainstorming is an understanding Court can recognize and correct, grounded in what Court wants to accomplish.
 
 1. **Discover intent.** Use the request and available context to identify the intended outcome, who it is for, and what success looks like. When that information is missing, ask one focused question about purpose or intended use before proposing features or an approach. Knowing the app genre does not tell you why Court wants it. Gathering missing requirements does not ask Court to authorize the task again.
-2. **Write back your understanding.** Summarize the intended outcome, relevant constraints, and success criteria in a short note Court can assess. Separate what Court said from assumptions. Invite correction and incorporate the answer before treating this as the design brief.
+2. **Write back your understanding.** Summarize the intended outcome, relevant constraints, and success criteria in a short note Court can assess. Separate what Court said from assumptions. Invite correction and incorporate the answer before treating this as the design brief. On the architectural path this note is diazo's understanding card.
 3. **Carry intent into the design.** Preserve the agreed understanding in the selected path's design artifact: the written spec for architectural work, or the in-chat design/probe for bounded work and spikes. Check proposed features and technical choices against that understanding.
 
 When the request already supplies the purpose and constraints, reflect that understanding instead of asking the same questions again. Keep the note concise; its accuracy and the opportunity to correct it matter.
@@ -26,7 +26,7 @@ Before taking any implementation action, including invoking an implementation sk
 
 - Spike: Court approves the question and probe.
 - Bounded: Court approves the short in-chat design.
-- Architectural: Court reviews and approves the written spec, then reviews the written implementation plan. Conversational design approval only permits writing the spec; written-spec approval only permits invoking writing-plans.
+- Architectural: Court approves the written spec on diazo's page, then the written implementation plan there. Court's answers to the decisions only permit writing the spec; written-spec approval (Approve on the page) only permits invoking writing-plans.
 
 A reply approves the stage actually presented. Approval of an idea or feature scope does not approve artifacts that do not exist yet. Resume at the earliest incomplete stage; do not turn one approval into permission to skip the rest of the selected path. Read-only project exploration is allowed while those prerequisites remain incomplete.
 </HARD-GATE>
@@ -37,7 +37,7 @@ Before your first question, classify the request and say the classification out 
 
 - **Spike**: a feasibility question ("can we...", "is it possible...", "quick and dirty is fine") whose output is an answer, not code you keep. Present the question and what you'll try in 2-3 sentences, get a nod, then find out as cheaply as correctness allows. No design doc, no spec file. Report findings as a recommendation; anything you built stays labeled throwaway.
 - **Bounded**: a well-scoped change to code that already exists in this repo: a new flag, a small endpoint, a one-file fix. Understanding the kind of app is not enough: bounded means the flow you are changing is already here to read. If there is no existing flow to change, the task is not bounded. Ask the clarifying questions that matter, present a short design IN CHAT (a few sentences to a few short paragraphs), and STOP. Implementation starts only after Court says yes to that design; a bounded task's approval is as hard a gate as an architectural one. No spec file, no implementation plan document.
-- **Architectural**: new projects, new subsystems, changes that restructure how components fit together or alter interfaces others depend on. Follow the full process: questions, approaches, sectioned design, written spec, then the writing-plans skill.
+- **Architectural**: new projects, new subsystems, changes that restructure how components fit together or alter interfaces others depend on. Run it in diazo: the understanding, the decisions with their approaches, and the written spec on diazo's page, then the writing-plans skill.
 
 When in doubt between two paths, take the heavier one. The ratchet is one-way: hidden complexity discovered mid-task upgrades the path: stop, say so, and step up. Nothing downgrades mid-task.
 
@@ -66,27 +66,24 @@ Classify first, announce the path, then create a task for each item on your path
 
 **Bounded:**
 1. **Explore project context**: check files, docs, recent commits
-2. **Ask clarifying questions**: one at a time, the ones that matter
+2. **Ask clarifying questions**: one at a time, the ones that matter; when one would be clearer shown than described, show it with the visual companion (see below)
 3. **Present short design in chat**: approach, files touched, testing, and what it leaves out
 4. **Get approval**: STOP and wait for an explicit yes; presenting the design and starting in the same breath is skipping the gate
 5. **Implement**: write the failing test first where the change has behavior to test; no plan document. When done, push and open a PR per AGENTS.md's Git rules.
 
 **Architectural:**
 1. **Explore project context**: check files, docs, recent commits
-2. **Show it when it helps**: the first time a question would be clearer shown than described, start the visual companion and show it, without asking first. If no visual question arises, don't start it. See the Visual Companion section below.
-3. **Ask clarifying questions**: one at a time, understand purpose/constraints/success criteria
-4. **Propose approaches**: the smallest correct change that does the ask first, each option with what it pulls in, and "not yet" where it applies; recommend the smallest correct one
-5. **Present design**: in sections scaled to their complexity, get Court's approval after each section
-6. **Write design doc**: see "Where the spec goes" below
-7. **Spec self-review**: quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-8. **Court reviews the written spec**: section by section in the conversation, then the whole file in Court's Markdown editor
-9. **Transition to implementation**: invoke the writing-plans skill to create the implementation plan
+2. **Open diazo**: load the diazo skill and open the planning folder with `diazo_open` (see "Where the spec goes" below)
+3. **Understanding and decisions on the page**: follow the diazo skill; each decision's options follow "Exploring approaches" below
+4. **Write and print the spec**: `spec.md` in the folder, self-reviewed (see below) before `diazo_print_spec`
+5. **Court approves the spec on the page**: this is the written-spec approval
+6. **Transition to implementation**: invoke the writing-plans skill to create the implementation plan
 
 **Terminal states are path-bound.** Architectural: the ONLY skill you invoke after brainstorming is writing-plans. Bounded: after approval, implementation proceeds directly; no plan document. Spike: the terminal state is a reported recommendation.
 
 ## The Process
 
-The subsections below serve the bounded and architectural paths (a spike stops at "present the probe, get a nod"). Sections from **Exploring approaches** onward are architectural-path depth: for bounded work, context plus a few questions plus a short in-chat design is the whole process.
+The subsections below serve the bounded and architectural paths (a spike stops at "present the probe, get a nod"). Sections from **Exploring approaches** onward are architectural-path depth: for bounded work, context plus a few questions plus a short in-chat design is the whole process. On the architectural path the questions, approaches and design are diazo's cards and spec, posted as the diazo skill says; the rules below still decide what goes on them.
 
 **Understanding the idea:**
 
@@ -105,13 +102,10 @@ The subsections below serve the bounded and architectural paths (a spike stops a
 - Offer "not yet" (and "by hand") as real options when nothing breaks today without the change.
 - Recommend the smallest correct option and explain why, conversationally.
 
-**Presenting the design:**
+**What the spec covers:**
 
-- Once you believe you understand what you're building, present the design
+- Architecture, components, data flow, error handling, testing
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
-- Ask after each section whether it looks right so far
-- Cover: architecture, components, data flow, error handling, testing
-- Be ready to go back and clarify if something doesn't make sense
 
 **Design for isolation and clarity:**
 
@@ -130,11 +124,11 @@ The subsections below serve the bounded and architectural paths (a spike stops a
 
 **Where the spec goes:**
 
-- Default: `docs/specs/YYYY-MM-DD-<topic>-design.md` in the repo, committed on the work branch.
-- If `gh repo view --json visibility --jq .visibility` prints `PUBLIC`, write it to private tools-ops instead, at `~/GitHub/schuettc/tools-workspace/tools-ops/docs/<repo>/specs/YYYY-MM-DD-<topic>-design.md`, and commit it there under AGENTS.md's Git rules. Never commit it in the public repo.
+- `spec.md` in diazo's planning folder, `docs/specs/YYYY-MM-DD-<topic>/` in the repo, committed on the work branch at each approval.
+- If `gh repo view --json visibility --jq .visibility` prints `PUBLIC`, the folder goes in private tools-ops instead, at `~/GitHub/schuettc/tools-workspace/tools-ops/docs/<repo>/specs/YYYY-MM-DD-<topic>/`, committed there under AGENTS.md's Git rules. Never commit it in the public repo.
 
 **Spec Self-Review:**
-After writing the spec document, look at it with fresh eyes:
+After writing `spec.md` and before printing it, look at it with fresh eyes:
 
 1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
 2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
@@ -144,7 +138,7 @@ After writing the spec document, look at it with fresh eyes:
 Fix any issues inline. No need to re-review: just fix and move on. No reviewer subagent for the spec; Court is its reviewer.
 
 **Court's review:**
-A spec is a design, so its review is a conversation, not a round of edits. Walk Court through it one section at a time in the conversation, asking after each whether it is right, and change the file as you agree. When every section is agreed, open the plain file in Court's Markdown editor (`open <path>`) for a last read and any small fixes. Only proceed once Court approves. Don't use galley for specs: it is for prose meant for people.
+Court reviews the printed spec on diazo's page, where a change is a reopened decision, settled and printed again (the diazo skill says how). Only proceed once Court approves it there. Don't use galley for specs: it is for prose meant for people.
 
 **Implementation:**
 
@@ -153,7 +147,7 @@ A spec is a design, so its review is a conversation, not a round of edits. Walk 
 
 ## Visual Companion
 
-A browser-based companion for showing mockups, diagrams, and visual options during brainstorming. Available as a tool, not a mode: it doesn't mean every question goes through the browser.
+A browser-based companion for showing mockups, diagrams, and visual options during a bounded design (the architectural path shows them on diazo's cards). Available as a tool, not a mode: it doesn't mean every question goes through the browser.
 
 **Using the companion:** Court wants mockups built without asking first. When a question would be clearer shown than told (a real mockup, layout or diagram question, not merely a UI topic), start the server with `--open` and show it; say in one line that it's up.
 
