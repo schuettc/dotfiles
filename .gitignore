@@ -27,3 +27,4 @@ config/pi/skills/sift/
 config/pi/skills/muda/
 config/pi/skills/muda-*/
 config/pi/skills/imprint/
+config/pi/skills/diazo/
