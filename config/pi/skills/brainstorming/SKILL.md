@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: Turns an idea into an approved design scoped to the smallest correct change that does the ask: spikes and bounded designs through one-question-at-a-time dialogue in chat (with an optional browser visual companion for mockups), architectural designs and their spec on diazo's planning page. Use before any creative work (creating features, building components, adding functionality, or modifying behavior) and before writing a spec or plan.
+description: "Turns an idea into an approved design scoped to the smallest correct change that does the ask: spikes and bounded designs through one-question-at-a-time dialogue in chat (with an optional browser visual companion for mockups), architectural designs and their spec on diazo's planning page. Use before any creative work (creating features, building components, adding functionality, or modifying behavior) and before writing a spec or plan."
 ---
 
 # Brainstorming Ideas Into Designs
