@@ -95,7 +95,7 @@ The subsections below serve the bounded and architectural paths (a spike stops a
 - If the project is too large for a single spec, help Court decompose it into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
 - Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message; if a topic needs more exploration, break it into multiple questions
+- Only one question per message. Ask only the forks you can't settle from Court's earlier answers or a standard; decide the rest and list them as reversible. Say up front how many questions to expect, and ask fewer once Court keeps taking your recommendations.
 - Focus on understanding: purpose, constraints, success criteria
 
 **Exploring approaches (apply AGENTS.md's "Scope"):**
