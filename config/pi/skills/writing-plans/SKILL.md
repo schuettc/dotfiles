@@ -16,7 +16,8 @@ The plan is usually executed by one `worker` subagent reading the whole plan as 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
 **Where the plan goes:**
-- Default: `docs/plans/YYYY-MM-DD-<feature>.md` in the repo, committed on the work branch.
+- When the spec came from diazo: `plan.md` in the same planning folder as `spec.md` (`docs/specs/YYYY-MM-DD-<topic>/`, or its tools-ops folder for a public repo), committed with it.
+- Otherwise, by default: `docs/plans/YYYY-MM-DD-<feature>.md` in the repo, committed on the work branch.
 - If `gh repo view --json visibility --jq .visibility` prints `PUBLIC`, write it to private tools-ops instead, at `~/GitHub/schuettc/tools-workspace/tools-ops/docs/<repo>/plans/YYYY-MM-DD-<feature>.md`, and commit it there under AGENTS.md's Git rules. Never commit it in the public repo.
 
 ## Scope It First
@@ -160,6 +161,8 @@ If you find issues, fix them inline. No need to re-review: just fix and move on.
 
 ## Execution Handoff
 
-After saving and self-reviewing the plan, review it with Court in the conversation: the Scope line and the Follow-ups list first, then the tasks a few at a time, changing the file as you agree. When it is agreed, open the plain file in Court's Markdown editor (`open <path>`) for a last read. Don't use galley for plans: it is for prose meant for people.
+For a plan in a diazo folder, after saving and self-reviewing it, print its tasks with `diazo_print_plan` (each task's id, heading, what it does, what it pulls in and the decisions it serves); Court keeps or drops each task and approves the plan on the page, as the diazo skill describes. That replaces the conversation review and the Markdown-editor read below.
+
+For any other plan, after saving and self-reviewing it, review it with Court in the conversation: the Scope line and the Follow-ups list first, then the tasks a few at a time, changing the file as you agree. When it is agreed, open the plain file in Court's Markdown editor (`open <path>`) for a last read. Don't use galley for plans: it is for prose meant for people.
 
 Wait for Court's approval. If Court requests changes, make them and re-run the self-review. Once Court approves, use the executing-plans skill. It is the only execution path.
