@@ -392,37 +392,6 @@ only = { os = "darwin" }
   command-exists = "galley"
 
 # ---------------------------------------------------------------------------
-# diazo — planning and design in the browser, driven by the agent (diazo.tools).
-# The binary installs from diazo.tools/dl. Claude Code hears the planning page
-# through the diazo plugin: its .mcp.json runs `diazo channel` for diazo_open and
-# the other tools, and its mod runs `diazo watch`, which turns each press on the
-# page into a turn. The repo is private, so Claude Code fetches the plugin with
-# your git credentials. pi hears diazo through ~/.pi/agent/channels.json.
-# After an upgrade, run `diazo skills install` so the installed skill matches.
-# ---------------------------------------------------------------------------
-[packages.diazo]
-description = "diazo: planning and design in the browser, driven by the agent (diazo.tools)"
-needs = ["core"]
-only = { os = "darwin" }
-
-  [[packages.diazo.download]]
-  site = "diazo.tools"
-  tool = "diazo"
-  bin = "diazo"
-
-  [[packages.diazo.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { diazo = { source = { source = "github", repo = "subaud-tools/diazo" } } }, enabledPlugins = { "diazo@diazo" = true } }
-
-  # The bare server the plugin replaces.
-  [[packages.diazo.json-merge]]
-  file = "~/.claude.json"
-  remove = ["mcpServers.diazo"]
-
-  [[packages.diazo.verify]]
-  command-exists = "diazo"
-
-# ---------------------------------------------------------------------------
 # casebook — the fate of every repo, PR, issue, branch and worktree
 # (casebook.tools; binary from casebook.tools/dl). Mirrors subaud-tools/casebook's
 # cmd/casebook/kempt.toml, folded in here so `kempt update` keeps it current.
@@ -865,7 +834,7 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "diazo", "casebook", "sift", "cull", "muda", "pi", "pi-channels"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "casebook", "sift", "cull", "muda", "pi", "pi-channels"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
