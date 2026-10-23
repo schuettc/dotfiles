@@ -16,7 +16,7 @@ The plan is usually executed by one `worker` subagent reading the whole plan as 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
 **Where the plan goes:**
-- When the spec came from diazo: `plan.md` in the same planning folder as `spec.md` (`docs/specs/YYYY-MM-DD-<topic>/`, or its tools-ops folder for a public repo), committed with it.
+- When the spec came from diazo: one plan per file, `plans/<n>-<topic>.md` in the planning folder, declared with `diazo_update` `plans` and printed with `diazo_print_plan`; a large spec gets several plans, each written when the one before it has produced its facts.
 - Otherwise, by default: `docs/plans/YYYY-MM-DD-<feature>.md` in the repo, committed on the work branch.
 - If `gh repo view --json visibility --jq .visibility` prints `PUBLIC`, write it to private tools-ops instead, at `~/GitHub/schuettc/tools-workspace/tools-ops/docs/<repo>/plans/YYYY-MM-DD-<feature>.md`, and commit it there under AGENTS.md's Git rules. Never commit it in the public repo.
 
