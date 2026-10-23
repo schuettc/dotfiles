@@ -293,10 +293,19 @@ only = { os = "darwin" }
   stderr = "~/.local/share/muster/serve.log"
 
   # MCP registration into Claude (~/.claude.json), Cursor (~/.cursor/mcp.json),
-  # and Codex (~/.codex/config.toml).
+  # and Codex (~/.codex/config.toml). Claude Code hears mail through the muster
+  # plugin, enabled below: its .mcp.json runs `muster channel` (as
+  # muster-channel, for muster_channel_status) and its mod runs `muster watch`,
+  # which turns each message into a turn. The bare muster-channel server it
+  # replaces is removed.
   [[packages.muster.json-merge]]
   file = "~/.claude.json"
-  merge = { mcpServers = { muster = { type = "stdio", command = "muster", args = ["mcp"], env = {} }, "muster-channel" = { type = "stdio", command = "muster", args = ["channel"], env = {} } } }
+  merge = { mcpServers = { muster = { type = "stdio", command = "muster", args = ["mcp"], env = {} } } }
+  remove = ["mcpServers.muster-channel"]
+
+  [[packages.muster.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { extraKnownMarketplaces = { muster = { source = { source = "github", repo = "subaud-tools/muster" } } }, enabledPlugins = { "muster@muster" = true } }
 
   [[packages.muster.toml-merge]]
   file = "~/.codex/config.toml"
@@ -383,12 +392,44 @@ only = { os = "darwin" }
   command-exists = "galley"
 
 # ---------------------------------------------------------------------------
+# diazo — planning and design in the browser, driven by the agent (diazo.tools).
+# The binary installs from diazo.tools/dl. Claude Code hears the planning page
+# through the diazo plugin: its .mcp.json runs `diazo channel` for diazo_open and
+# the other tools, and its mod runs `diazo watch`, which turns each press on the
+# page into a turn. The repo is private, so Claude Code fetches the plugin with
+# your git credentials. pi hears diazo through ~/.pi/agent/channels.json.
+# After an upgrade, run `diazo skills install` so the installed skill matches.
+# ---------------------------------------------------------------------------
+[packages.diazo]
+description = "diazo: planning and design in the browser, driven by the agent (diazo.tools)"
+needs = ["core"]
+only = { os = "darwin" }
+
+  [[packages.diazo.download]]
+  site = "diazo.tools"
+  tool = "diazo"
+  bin = "diazo"
+
+  [[packages.diazo.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { extraKnownMarketplaces = { diazo = { source = { source = "github", repo = "subaud-tools/diazo" } } }, enabledPlugins = { "diazo@diazo" = true } }
+
+  # The bare server the plugin replaces.
+  [[packages.diazo.json-merge]]
+  file = "~/.claude.json"
+  remove = ["mcpServers.diazo"]
+
+  [[packages.diazo.verify]]
+  command-exists = "diazo"
+
+# ---------------------------------------------------------------------------
 # casebook — the fate of every repo, PR, issue, branch and worktree
 # (casebook.tools; binary from casebook.tools/dl). Mirrors subaud-tools/casebook's
 # cmd/casebook/kempt.toml, folded in here so `kempt update` keeps it current.
 # pi-casebook is in the pi package's list below (dotfiles owns that list); the
 # pi channel entry is in pi-channels. First run on a new machine:
 # `casebook init` and `casebook hooks install` (see casebook.tools/guide).
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 # muda — find and fix delivery waste in a repository's pipelines (muda.tools).
 # The binary only; its skills reach agents through `muda skills install`.
@@ -426,11 +467,17 @@ only = { os = "darwin" }
   file = "~/.claude/settings.json"
   merge = { hooks = { SessionStart = [ { matcher = "startup|resume", hooks = [ { type = "command", command = "~/.local/bin/casebook brief" } ] } ] } }
 
-  # Claude Code: the casebook channel and the Stop hook that tells casebook
-  # serve the turn ended, so queued page messages go out.
+  # Claude Code: the casebook plugin (its .mcp.json runs `casebook channel` for
+  # the tools, its mod runs `casebook watch`, which turns each page message into
+  # a turn), the bare server it replaces removed, and the Stop hook that tells
+  # casebook serve the turn ended, so queued page messages go out.
+  [[packages.casebook.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { extraKnownMarketplaces = { casebook = { source = { source = "github", repo = "subaud-tools/casebook" } } }, enabledPlugins = { "casebook@casebook" = true } }
+
   [[packages.casebook.json-merge]]
   file = "~/.claude.json"
-  merge = { mcpServers = { casebook = { type = "stdio", command = "casebook", args = ["channel"], env = {} } } }
+  remove = ["mcpServers.casebook"]
 
   [[packages.casebook.json-merge]]
   file = "~/.claude/settings.json"
@@ -647,7 +694,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
 # sift — audits agent instruction files and puts one recommendation per file in
 # front of you on a review page (tackle.tools). Registered like galley: the
 # session opens the review with its sift_review tool and Send wakes that same
-# session through the channel. The binary installs from tackle.tools/dl; pi's
+# session, through the sift plugin under Claude Code and the channel under pi. The binary installs from tackle.tools/dl; pi's
 # channel is in [packages.pi-channels] with the others. After an upgrade, run
 # `sift skills install` so the installed skill matches the binary.
 # ---------------------------------------------------------------------------
@@ -661,9 +708,15 @@ only = { os = "darwin" }
   tool = "sift"
   bin = "sift"
 
+  # Claude Code: the sift plugin from tackle's marketplace (its mod runs
+  # `sift watch`), in place of the bare server, which is removed.
+  [[packages.sift.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" } } }, enabledPlugins = { "sift@tackle" = true } }
+
   [[packages.sift.json-merge]]
   file = "~/.claude.json"
-  merge = { mcpServers = { sift = { type = "stdio", command = "sift", args = ["channel"], env = {} } } }
+  remove = ["mcpServers.sift"]
 
   [[packages.sift.verify]]
   command-exists = "sift"
@@ -671,8 +724,8 @@ only = { os = "darwin" }
 # ---------------------------------------------------------------------------
 # imprint — guides an agent through npm: login, publish, trusted publishers,
 # deprecation, and confirming a CI release landed signed by the right repo
-# (tackle.tools). It opens each npm approval in the browser and reports back
-# through its channel. The binary installs from tackle.tools/dl; pi's channel
+# (tackle.tools). It opens each npm approval in the browser and reports back,
+# through the imprint plugin under Claude Code and its channel under pi. The binary installs from tackle.tools/dl; pi's channel
 # is in [packages.pi-channels] with the others. After an upgrade, run
 # `imprint skills install` so the installed skill matches the binary.
 # ---------------------------------------------------------------------------
@@ -686,9 +739,15 @@ only = { os = "darwin" }
   tool = "imprint"
   bin = "imprint"
 
+  # Claude Code: the imprint plugin from tackle's marketplace (its mod runs
+  # `imprint watch`), in place of the bare server, which is removed.
+  [[packages.imprint.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" } } }, enabledPlugins = { "imprint@tackle" = true } }
+
   [[packages.imprint.json-merge]]
   file = "~/.claude.json"
-  merge = { mcpServers = { imprint = { type = "stdio", command = "imprint", args = ["channel"], env = {} } } }
+  remove = ["mcpServers.imprint"]
 
   [[packages.imprint.verify]]
   command-exists = "imprint"
@@ -697,7 +756,8 @@ only = { os = "darwin" }
 # cull — judges agent-written tests with TypeSafe's Jev, removes the ones Jev is
 # sure don't earn their place, and puts the rest on a review page (tackle.tools).
 # Registered like sift: the session opens the review with its cull_review tool
-# and Send wakes that same session through the channel. The binary installs from
+# and Send wakes that same session, through the cull plugin under Claude Code
+# and the channel under pi. The binary installs from
 # tackle.tools/dl; pi's channel is in [packages.pi-channels] with the others.
 # First run in each project: `cull init` (asks for the TypeSafe key once, and
 # whether that project's test source may be sent to TypeSafe).
@@ -712,9 +772,15 @@ only = { os = "darwin" }
   tool = "cull"
   bin = "cull"
 
+  # Claude Code: the cull plugin from tackle's marketplace (its mod runs
+  # `cull watch`), in place of the bare server, which is removed.
+  [[packages.cull.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" } } }, enabledPlugins = { "cull@tackle" = true } }
+
   [[packages.cull.json-merge]]
   file = "~/.claude.json"
-  merge = { mcpServers = { cull = { type = "stdio", command = "cull", args = ["channel"], env = {} } } }
+  remove = ["mcpServers.cull"]
 
   [[packages.cull.verify]]
   command-exists = "cull"
@@ -799,7 +865,7 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "casebook", "sift", "cull", "muda", "pi", "pi-channels"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "diazo", "casebook", "sift", "cull", "muda", "pi", "pi-channels"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"

@@ -118,62 +118,19 @@ __claude_session_name() {
 # a gesture for CHANGING a name, being used to set one that was already
 # decided. config/claude/statusline.sh compares Claude's name against #S on
 # every tick; starting them equal is what keeps it on its cheap path.
-# The channel flags an interactive session carries: galley review rounds and
-# muster mail arrive as channel events that WAKE the pane, instead of being
-# silently missed — which is exactly what happened to a claude session launched
-# without them (`claude --resume …` bypassed proj/pt, got no channels, and a
-# Revise never woke it). galley and muster are MCP-SERVER channels, so this is
-# the development flag (server:<name>), not the stable --channels, which takes
-# plugin channels — revisit if they ever ship as plugins. Adding channels is
-# NOT the identity-seeding this file bans above: it names no bus alias and mints
-# no session id, so it is safe on --resume/--continue, which the identity ban
-# had to skip.
-__claude_channels=(--dangerously-load-development-channels server:galley server:muster-channel server:sift)
-
-# The verbs that reach the real binary untouched: the fleet, mcp config, auth,
-# installers and the other one-shot management commands. A prompt string is not
-# in this list, so `claude "fix it"` still takes the interactive path and gets
-# channels. Keep in step with `claude --help`'s Commands: block.
-__claude_subcommands=(
-  agents attach auth auto-mode config doctor gateway import install logs
-  mcp plugin plugins project respawn rm setup-token stop kill ultrareview
-  update upgrade migrate-installer completion bug
-)
-
 claude() {
   # Bare word: no argv opens agent view, not a session, so name it after this
   # pane and add `--` to force the session path. `command` is load-bearing —
-  # without it this recurses into itself.
+  # without it this recurses into itself. Family tools reach the session through
+  # their Claude Code plugins, so nothing else is added.
   if (( $# == 0 )); then
     local -a name_args
     local n; n=$(__claude_session_name)
     [[ -n "$n" ]] && name_args=(--name "$n")
-    command claude "${__claude_channels[@]}" "${name_args[@]}" --
+    command claude "${name_args[@]}" --
     return
   fi
-
-  # A recognised subcommand is never an interactive session — pass it through.
-  if (( ${__claude_subcommands[(Ie)$1]} )); then
-    command claude "$@"; return
-  fi
-
-  # Not a foreground pane session: a --print/-p run is one-shot output, and a
-  # --bg/--background launch detaches immediately — neither has a pane for a
-  # channel event to wake, so both reach the binary untouched. Stop scanning at
-  # `--`: everything past it is the prompt, not a flag.
-  local a
-  for a in "$@"; do
-    case "$a" in
-      -p|--print|--bg|--background) command claude "$@"; return ;;
-      --) break ;;
-    esac
-  done
-
-  # Everything else is an interactive session — bare prompt, --resume,
-  # --continue, --name, --model, -w… — so it carries the channels. The session
-  # name is not re-injected here: --resume restores the saved name, and an
-  # explicit --name is the caller's own.
-  command claude "${__claude_channels[@]}" "$@"
+  command claude "$@"
 }
 
 # Quick navigation
