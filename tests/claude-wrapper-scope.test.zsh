@@ -5,13 +5,10 @@
 #
 # The wrapper shapes ARGV and nothing else. It adds `--` when called with no
 # arguments, because a bare `claude` opens agent view (the fleet launcher)
-# instead of starting a session; it prepends the development-channel flags to
-# any INTERACTIVE launch (bare, --resume, --continue, --name, --model, -w, a
-# bare prompt) so galley/muster events wake the pane; and it passes everything
-# else through byte-identical. "Everything else" is a closed set: a recognised
-# subcommand (`agents`, `mcp`, `update`…), a --print/-p run, and a --bg/
-# --background launch — none of which is a foreground pane a channel could wake.
-# That passthrough is the reason this is a wrapper instead of the global
+# instead of starting a session, and names that session after the tmux pane;
+# it passes every other call through byte-identical. Family tools reach the
+# session through their Claude Code plugins, so the wrapper adds no channel
+# flags. That passthrough is the reason this is a wrapper instead of the global
 # `disableAgentView` switch, which would take `--bg`, `/background` and the
 # on-demand daemon with it.
 #
@@ -106,28 +103,21 @@ drive_in_tmux() {  # drive_in_tmux <session-name> <arg>... -> received argv
     | grep '^ARGV:'
 }
 
-# The channel prefix every interactive launch carries. Kept as one string so
-# the expectations below read as `<chans> <the rest>`.
-CH="[--dangerously-load-development-channels][server:galley][server:muster-channel]"
-
-ok "bare gets channels + --" "ARGV:${CH}[--]"        "$(drive)"
+ok "bare gets --"           "ARGV:[--]"             "$(drive)"
 ok "subcommand passes"       "ARGV:[agents]"         "$(drive agents)"
-# --bg detaches (no pane to wake) and -p is one-shot: both pass through clean.
 ok "bg + print pass"         "ARGV:[--bg][-p][hi]"   "$(drive --bg -p hi)"
-ok "resume gets channels"    "ARGV:${CH}[--resume]"  "$(drive --resume)"
-# The name/model/worktree forms are the whole point of the rewrite: they are
-# interactive launches too, so they must carry channels rather than fall
-# through to a channel-less passthrough.
-ok "name gets channels"      "ARGV:${CH}[--name][foo]"       "$(drive --name foo)"
-ok "name+resume gets chans"  "ARGV:${CH}[--name][foo][--resume][x]" "$(drive --name foo --resume x)"
-ok "model gets channels"     "ARGV:${CH}[--model][opus]"     "$(drive --model opus)"
-# `claude --` is the bare-launch form typed by hand: interactive, so channels,
-# and the wrapper must not DOUBLE the `--`.
-ok "explicit -- not doubled" "ARGV:${CH}[--]"        "$(drive --)"
+# Interactive launches pass through untouched: no channel flag is added.
+ok "resume passes"           "ARGV:[--resume]"       "$(drive --resume)"
+ok "name passes"             "ARGV:[--name][foo]"    "$(drive --name foo)"
+ok "name+resume passes"      "ARGV:[--name][foo][--resume][x]" "$(drive --name foo --resume x)"
+ok "model passes"            "ARGV:[--model][opus]"  "$(drive --model opus)"
+# `claude --` is the bare-launch form typed by hand: the wrapper must not
+# DOUBLE the `--`.
+ok "explicit -- not doubled" "ARGV:[--]"             "$(drive --)"
 # A quoted argument containing spaces must survive as ONE argument — this is
-# what catches a wrapper that rebuilds argv instead of forwarding "$@". -p also
-# forces the passthrough path, so no channel prefix here.
+# what catches a wrapper that rebuilds argv instead of forwarding "$@".
 ok "quoting preserved"       "ARGV:[-p][two words]"  "$(drive -p 'two words')"
+ok "no channel flag anywhere" "0" "$(grep -c 'dangerously-load-development-channels' "$ZSHDIR/04-aliases.zsh")"
 
 echo "── inside tmux, a bare claude adopts the session name ──"
 # The session name IS the identity, and proj/pt already picked it. A
@@ -136,17 +126,17 @@ echo "── inside tmux, a bare claude adopts the session name ──"
 # time. This is display-name shaping, not identity seeding: `--name` names
 # the conversation, it does not claim a bus alias or mint a session id, and
 # the three bans above still assert zero hits.
-ok "adopts #S"              "ARGV:${CH}[--name][dotfiles/nfl-4][--]" \
+ok "adopts #S"              "ARGV:[--name][dotfiles/nfl-4][--]" \
    "$(drive_in_tmux 'dotfiles/nfl-4')"
 # Home base sessions are bare <project> — still a name worth carrying.
-ok "adopts a bare #S"       "ARGV:${CH}[--name][dotfiles][--]" \
+ok "adopts a bare #S"       "ARGV:[--name][dotfiles][--]" \
    "$(drive_in_tmux 'dotfiles')"
-# --resume gets channels but NOT a name: the picker restores the conversation's
-# own name, so forcing #S onto it would fight the picker.
-ok "resume gets channels, no name" "ARGV:${CH}[--resume]" "$(drive_in_tmux 'dotfiles/nfl-4' --resume)"
+# --resume gets NO name: the picker restores the conversation's own name, so
+# forcing #S onto it would fight the picker.
+ok "resume gets no name"     "ARGV:[--resume]"       "$(drive_in_tmux 'dotfiles/nfl-4' --resume)"
 # A tmux that answers nothing (server gone, pane detached) must degrade to
 # the plain form rather than emitting `--name '' --`.
-ok "empty #S falls back"    "ARGV:${CH}[--]"        "$(drive_in_tmux '')"
+ok "empty #S falls back"    "ARGV:[--]"             "$(drive_in_tmux '')"
 
 echo "── it cannot recurse into itself ──"
 # Without `command`, `claude` inside claude() re-enters the function forever.
