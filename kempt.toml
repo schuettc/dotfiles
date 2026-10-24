@@ -305,7 +305,7 @@ only = { os = "darwin" }
 
   [[packages.muster.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { muster = { source = { source = "github", repo = "subaud-tools/muster" } } }, enabledPlugins = { "muster@muster" = true } }
+  merge = { extraKnownMarketplaces = { muster = { source = { source = "github", repo = "subaud-tools/muster" }, autoUpdate = true } }, enabledPlugins = { "muster@muster" = true } }
 
   [[packages.muster.toml-merge]]
   file = "~/.codex/config.toml"
@@ -381,7 +381,7 @@ only = { os = "darwin" }
 
   [[packages.galley.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { galley = { source = { source = "github", repo = "subaud-tools/galley" } } }, enabledPlugins = { "galley@galley" = true } }
+  merge = { extraKnownMarketplaces = { galley = { source = { source = "github", repo = "subaud-tools/galley" }, autoUpdate = true } }, enabledPlugins = { "galley@galley" = true } }
 
   # The bare server the plugin replaces.
   [[packages.galley.json-merge]]
@@ -442,7 +442,7 @@ only = { os = "darwin" }
   # casebook serve the turn ended, so queued page messages go out.
   [[packages.casebook.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { casebook = { source = { source = "github", repo = "subaud-tools/casebook" } } }, enabledPlugins = { "casebook@casebook" = true } }
+  merge = { extraKnownMarketplaces = { casebook = { source = { source = "github", repo = "subaud-tools/casebook" }, autoUpdate = true } }, enabledPlugins = { "casebook@casebook" = true } }
 
   [[packages.casebook.json-merge]]
   file = "~/.claude.json"
@@ -681,7 +681,7 @@ only = { os = "darwin" }
   # `sift watch`), in place of the bare server, which is removed.
   [[packages.sift.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" } } }, enabledPlugins = { "sift@tackle" = true } }
+  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" }, autoUpdate = true } }, enabledPlugins = { "sift@tackle" = true } }
 
   [[packages.sift.json-merge]]
   file = "~/.claude.json"
@@ -712,7 +712,7 @@ only = { os = "darwin" }
   # `imprint watch`), in place of the bare server, which is removed.
   [[packages.imprint.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" } } }, enabledPlugins = { "imprint@tackle" = true } }
+  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" }, autoUpdate = true } }, enabledPlugins = { "imprint@tackle" = true } }
 
   [[packages.imprint.json-merge]]
   file = "~/.claude.json"
@@ -745,7 +745,7 @@ only = { os = "darwin" }
   # `cull watch`), in place of the bare server, which is removed.
   [[packages.cull.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" } } }, enabledPlugins = { "cull@tackle" = true } }
+  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" }, autoUpdate = true } }, enabledPlugins = { "cull@tackle" = true } }
 
   [[packages.cull.json-merge]]
   file = "~/.claude.json"
