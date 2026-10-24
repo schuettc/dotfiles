@@ -1,6 +1,6 @@
 ---
 name: writing-plans
-description: Writes an implementation plan from an approved spec or requirements, stating the smallest correct change that does the ask and what it leaves out, with tasks only as fine as one implementer needs, then hands off to executing-plans. Use when you have a spec or requirements for a multi-step task, before touching code.
+description: Writes an implementation plan from an approved spec or requirements, stating the correct change for the ask, kept as small as correctness allows, and what it leaves out, with tasks only as fine as one implementer needs, then hands off to executing-plans. Use when you have a spec or requirements for a multi-step task, before touching code.
 ---
 
 # Writing Plans
@@ -22,7 +22,7 @@ The plan is usually executed by one `worker` subagent reading the whole plan as 
 
 ## Scope It First
 
-Before tasks, write down the smallest correct change that does the ask: what it includes and what it leaves out. Apply AGENTS.md's "Scope": every case, guard, option, fallback or test in the plan names when it happened in real use; anything else goes in a "Follow-ups" list of one line each, not in a task. If the plan comes out much bigger than the spec implied, show Court the list with what you'd drop before writing tasks.
+Before tasks, write down the correct change for the ask, kept as small as correctness allows: what it includes and what it leaves out. Apply AGENTS.md's "Scope": every case, guard, option, fallback or test in the plan names when it happened in real use; anything else goes in a "Follow-ups" list of one line each, not in a task. If the plan comes out much bigger than the spec implied, show Court the list with what you'd drop before writing tasks.
 
 ## Scope Check
 

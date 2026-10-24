@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "Turns an idea into an approved design scoped to the smallest correct change that does the ask: spikes and bounded designs through one-question-at-a-time dialogue in chat (with an optional browser visual companion for mockups), architectural designs and their spec on diazo's planning page. Use before any creative work (creating features, building components, adding functionality, or modifying behavior) and before writing a spec or plan."
+description: "Turns an idea into an approved design scoped to the correct change for the ask, kept as small as correctness allows: spikes and bounded designs through one-question-at-a-time dialogue in chat (with an optional browser visual companion for mockups), architectural designs and their spec on diazo's planning page. Use before any creative work (creating features, building components, adding functionality, or modifying behavior) and before writing a spec or plan."
 ---
 
 # Brainstorming Ideas Into Designs
@@ -98,9 +98,9 @@ The subsections below serve the bounded and architectural paths (a spike stops a
 **Exploring approaches (apply AGENTS.md's "Scope"):**
 
 - Build for what has happened. For every case, option, guard or fallback an approach adds, name when it happened in real use and who needs it this week; otherwise it becomes a one-line follow-up, not part of the design.
-- Lead with the smallest correct change that does the ask. Each bigger option shows what it pulls in.
+- Lead with the correct change for the ask, at the smallest size that stays correct. Each bigger option shows what it pulls in.
 - Offer "not yet" (and "by hand") as real options when nothing breaks today without the change.
-- Recommend the smallest correct option and explain why, conversationally.
+- Recommend the option that does the ask correctly while pulling in the least, and explain why, conversationally. If a smaller option leaves the ask only partly working, say so; don't recommend it.
 
 **What the spec covers:**
 

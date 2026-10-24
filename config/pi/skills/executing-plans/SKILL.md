@@ -62,7 +62,7 @@ Work the plan's steps in order under the test-driven-development skill, as above
 
 - **Matches.** Next step.
 - **The code is wrong.** Find the cause; never patch the symptom to make the step's output match. If two or three fixes in a row each surface a new error, the model of the problem is wrong: stop and bring it to Court.
-- **The plan is wrong** (a step contradicts the spec, an interface from an earlier task doesn't match, a command that cannot work). Rule on the smallest change that satisfies the spec, record the ruling in the report, and continue.
+- **The plan is wrong** (a step contradicts the spec, an interface from an earlier task doesn't match, a command that cannot work). Rule on the change that correctly satisfies the spec, keeping it small, record the ruling in the report, and continue.
 
 After each task, append one line to the report: `Task <N>: complete (commits <base7>..<head7>, tests: <command> → <result>)`, in the same tool call as the commit. Conversation memory does not survive compaction: after compaction, trust the report and `git log` over recollection, and resume at the first task without a line.
 
