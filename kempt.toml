@@ -438,8 +438,7 @@ only = { os = "darwin" }
 
   # Claude Code: the casebook plugin (its .mcp.json runs `casebook channel` for
   # the tools, its mod runs `casebook watch`, which turns each page message into
-  # a turn), the bare server it replaces removed, and the Stop hook that tells
-  # casebook serve the turn ended, so queued page messages go out.
+  # a turn), and the bare server it replaces removed.
   [[packages.casebook.json-merge]]
   file = "~/.claude/settings.json"
   merge = { extraKnownMarketplaces = { casebook = { source = { source = "github", repo = "subaud-tools/casebook" }, autoUpdate = true } }, enabledPlugins = { "casebook@casebook" = true } }
@@ -447,10 +446,6 @@ only = { os = "darwin" }
   [[packages.casebook.json-merge]]
   file = "~/.claude.json"
   remove = ["mcpServers.casebook"]
-
-  [[packages.casebook.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { hooks = { Stop = [ { hooks = [ { type = "command", command = "~/.local/bin/casebook settled --harness claude" } ] } ] } }
 
   # Full sync (including the GitHub refresh) every 30 minutes.
   [[packages.casebook.service]]
