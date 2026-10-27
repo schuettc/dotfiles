@@ -501,10 +501,9 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # pinned name@version converges to exactly that version. An unversioned git:
   # entry rolls to its repo's default-branch head (kempt >= 0.5.4; older kempt
   # installs it once and never updates it). pi-provider-guard /
-  # pi-tmux-bridge / pi-wakeup / pi-bang / pi-auto-reload are Court's own extensions,
-  # published to the pi-extensions monorepo (formerly the private local
-  # packages in the now-retired schuettc/pi repo). pi-hail is declared in
-  # Court's private layer until its next release.
+  # pi-tmux-bridge / pi-wakeup / pi-bang / pi-auto-reload / pi-hail are Court's own
+  # extensions, published to the pi-extensions monorepo (formerly the private local
+  # packages in the now-retired schuettc/pi repo).
   pi = [
     # pi-claude-bridge is THE harness (registers the pane with muster on
     # session_start) and is the provider defaultProvider=claude-bridge points at.
@@ -556,6 +555,9 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # 2026-09-27): kempt rolls it to the latest; casebook publishes the binary
     # before the extension, so a new pi-casebook never arrives ahead of it.
     "npm:pi-casebook",
+    # pi-hail: the pane end of hail (hail.tools); pinned to the release the hail
+    # daemon was accepted with.
+    "npm:pi-hail@0.8.0",
   ]
 
   # settings — kempt is AUTHORITATIVE over the live packages/extensions arrays
