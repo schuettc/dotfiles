@@ -6,15 +6,19 @@
 # haven't visited it yet. tmux clears window_bell_flag automatically when
 # you switch to that window, so the banner disappears once you've looked.
 #
+# Sessions never attached (session_last_attached empty) are skipped: diazo
+# starts a pi session per plan that is worked on its page, not in tmux, and
+# proj lists those under "not opened" instead.
+#
 # Output: "⚠ 2: now-playing, mlb-dk " on a peach background, or nothing
 # when no session needs attention.
 
 set -u
 
-# session names with at least one bell-flagged window, deduped
+# session names with at least one bell-flagged window, attached at least once, deduped
 sessions=$(
-  tmux list-windows -a -F '#{session_name} #{window_bell_flag}' 2>/dev/null \
-    | awk '$2 == 1 { print $1 }' \
+  tmux list-windows -a -F '#{session_name} #{window_bell_flag} #{session_last_attached}' 2>/dev/null \
+    | awk '$2 == 1 && $3 != "" { print $1 }' \
     | sort -u
 )
 [[ -z "$sessions" ]] && exit 0
