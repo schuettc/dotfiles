@@ -305,7 +305,8 @@ only = { os = "darwin" }
 
   [[packages.muster.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { muster = { source = { source = "github", repo = "subaud-tools/muster" }, autoUpdate = true } }, enabledPlugins = { "muster@muster" = true } }
+  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "muster@subaud-tools" = true } }
+  remove = ["extraKnownMarketplaces.muster", "enabledPlugins.muster@muster"]
 
   [[packages.muster.toml-merge]]
   file = "~/.codex/config.toml"
@@ -442,7 +443,8 @@ only = { os = "darwin" }
   # a turn), and the bare server it replaces removed.
   [[packages.casebook.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { casebook = { source = { source = "github", repo = "subaud-tools/casebook" }, autoUpdate = true } }, enabledPlugins = { "casebook@casebook" = true } }
+  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "casebook@subaud-tools" = true } }
+  remove = ["extraKnownMarketplaces.casebook", "enabledPlugins.casebook@casebook"]
 
   [[packages.casebook.json-merge]]
   file = "~/.claude.json"
@@ -675,11 +677,12 @@ only = { os = "darwin" }
   tool = "sift"
   bin = "sift"
 
-  # Claude Code: the sift plugin from tackle's marketplace (its mod runs
+  # Claude Code: the sift plugin from the subaud-tools marketplace (subaud-tools/plugins) (its mod runs
   # `sift watch`), in place of the bare server, which is removed.
   [[packages.sift.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" }, autoUpdate = true } }, enabledPlugins = { "sift@tackle" = true } }
+  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "sift@subaud-tools" = true } }
+  remove = ["extraKnownMarketplaces.tackle", "enabledPlugins.sift@tackle"]
 
   [[packages.sift.json-merge]]
   file = "~/.claude.json"
@@ -706,11 +709,12 @@ only = { os = "darwin" }
   tool = "imprint"
   bin = "imprint"
 
-  # Claude Code: the imprint plugin from tackle's marketplace (its mod runs
+  # Claude Code: the imprint plugin from the subaud-tools marketplace (subaud-tools/plugins) (its mod runs
   # `imprint watch`), in place of the bare server, which is removed.
   [[packages.imprint.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" }, autoUpdate = true } }, enabledPlugins = { "imprint@tackle" = true } }
+  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "imprint@subaud-tools" = true } }
+  remove = ["extraKnownMarketplaces.tackle", "enabledPlugins.imprint@tackle"]
 
   [[packages.imprint.json-merge]]
   file = "~/.claude.json"
@@ -739,11 +743,12 @@ only = { os = "darwin" }
   tool = "cull"
   bin = "cull"
 
-  # Claude Code: the cull plugin from tackle's marketplace (its mod runs
+  # Claude Code: the cull plugin from the subaud-tools marketplace (subaud-tools/plugins) (its mod runs
   # `cull watch`), in place of the bare server, which is removed.
   [[packages.cull.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { tackle = { source = { source = "github", repo = "subaud-tools/tackle" }, autoUpdate = true } }, enabledPlugins = { "cull@tackle" = true } }
+  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "cull@subaud-tools" = true } }
+  remove = ["extraKnownMarketplaces.tackle", "enabledPlugins.cull@tackle"]
 
   [[packages.cull.json-merge]]
   file = "~/.claude.json"
