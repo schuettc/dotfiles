@@ -368,6 +368,7 @@ only = { os = "darwin" }
 # tools, and its mod runs `galley watch`, which turns each Revise into a turn.
 # The old ~/.claude.json mcpServers.galley entry is removed, or the channel
 # would start twice. pi still hears galley through [packages.pi-channels].
+# After an upgrade, run `galley skills install` so the installed skill matches the binary.
 # ---------------------------------------------------------------------------
 [packages.galley]
 description = "Markdown/HTML review page shared with Claude Code (galley.tools)"
