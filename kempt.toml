@@ -361,15 +361,17 @@ only = { os = "darwin" }
 # loop; press Revise, Claude rewrites, changes land marked). The binary installs
 # from galley.tools/dl.
 #
-# Claude Code hears galley through the galley plugin, which this package
-# enables in ~/.claude/settings.json: extraKnownMarketplaces names galley's own
-# repo as the `galley` marketplace and enabledPlugins turns on galley@galley, so
-# the next plain `claude` session installs it at user scope, no command to run.
-# The plugin's .mcp.json runs `galley channel` for galley_open and the other
-# tools, and its mod runs `galley watch`, which turns each Revise into a turn.
-# The old ~/.claude.json mcpServers.galley entry is removed, or the channel
+# Claude Code hears galley through the galley plugin from the subaud-tools
+# marketplace (subaud-tools/plugins), which this package enables in
+# ~/.claude/settings.json, so the next plain `claude` session installs it at
+# user scope, no command to run. The plugin's .mcp.json runs `galley channel`
+# for galley_open and the other tools, and its mod runs `galley watch`, which
+# turns each Revise into a turn. The old galley marketplace and galley@galley,
+# and the ~/.claude.json mcpServers.galley entry, are removed, or the channel
 # would start twice. pi still hears galley through [packages.pi-channels].
-# After an upgrade, run `galley skills install` so the installed skill matches the binary.
+# The plugin carries no skill: on a new machine and after an upgrade, run
+# `galley skills install`, which writes the reviewing-a-document skill for
+# Claude Code, Codex and pi (`galley channel` keeps an installed copy current).
 # ---------------------------------------------------------------------------
 [packages.galley]
 description = "Markdown/HTML review page shared with Claude Code (galley.tools)"
@@ -383,7 +385,8 @@ only = { os = "darwin" }
 
   [[packages.galley.json-merge]]
   file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { galley = { source = { source = "github", repo = "subaud-tools/galley" }, autoUpdate = true } }, enabledPlugins = { "galley@galley" = true } }
+  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "galley@subaud-tools" = true } }
+  remove = ["extraKnownMarketplaces.galley", "enabledPlugins.galley@galley"]
 
   # The bare server the plugin replaces.
   [[packages.galley.json-merge]]
