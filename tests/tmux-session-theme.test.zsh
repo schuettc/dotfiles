@@ -40,6 +40,8 @@ chmod +x "$WORK/bin/"*
 export PATH="$WORK/bin:$PATH"
 "$REAL_TMUX" -S "$THEME_SOCKET" -f /dev/null new-session -d -s example -x 80 -y 24
 pane=$(tmux display-message -p '#{pane_id}')
+# Status jobs inherit their own server context, never the test caller's.
+export TMUX="$THEME_SOCKET,$("$REAL_TMUX" -S "$THEME_SOCKET" display-message -p '#{pid}'),0" TMUX_PANE="$pane"
 for role value in accent '#112233' accent_text '#223344' success '#334455' warning '#445566' error '#556677' muted '#667788'; do
   tmux set-option "@proj_theme_$role" "$value"
 done
@@ -67,7 +69,9 @@ printf '%s\n' "$1" >> "$THEME_CALLS"
 if [[ "$1" == display-message && "$*" == *pane_current_command* ]]; then
   fmt="${!#}"
   fmt="${fmt//'#{pane_current_command}'/node}"
-  set -- display-message -p "$fmt"
+  args=("$@")
+  args[${#args[@]}-1]="$fmt"
+  set -- "${args[@]}"
 fi
 exec "$REAL_TMUX" -S "$THEME_SOCKET" "$@"
 SH
