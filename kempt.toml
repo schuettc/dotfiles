@@ -546,7 +546,8 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     "npm:pi-bang",
     # pi-copy: /copy-part and alt+c copy one code block or the prose of the last
     # answer cleanly (no wraps, no borders, no markdown marks). Court's own.
-    "npm:pi-copy@0.1.1",
+    # Unpinned: kempt update rolls it to the newest release, like pi-bang.
+    "npm:pi-copy",
     # pi-typesafe-ai — TypeSafe Jev credential UX (bare `/typesafe` panel, or setup|status|
     # logout`, key stored at ~/.pi/agent/typesafe/config.json 0600). Also the
     # client library Jev-backed extensions use (subagent model routing, MCP
@@ -586,7 +587,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", defaultThinkingLevel = "medium", hideThinkingBlock = true, theme = "dark", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = ["-builtin:mcp"], packages = [ "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2", "npm:@subaud-tools/pi-usage@0.11.7-subaud-tools.4", "npm:@gotgenes/pi-permission-system@npm:@subaud-tools/pi-permission-system@40.3.0-subaud-tools.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@subaud-tools/pi-schedule@0.4.0-subaud-tools.2", "npm:@nicknisi/pi-artifacts", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.5", "npm:pi-wakeup@0.2.2", "npm:pi-creel", "npm:pi-bang", "npm:pi-copy@0.1.1", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.2.1", "npm:pi-casebook", "npm:pi-hail@0.8.0" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", defaultThinkingLevel = "medium", hideThinkingBlock = true, theme = "dark", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = ["-builtin:mcp"], packages = [ "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2", "npm:@subaud-tools/pi-usage@0.11.7-subaud-tools.4", "npm:@gotgenes/pi-permission-system@npm:@subaud-tools/pi-permission-system@40.3.0-subaud-tools.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@subaud-tools/pi-schedule@0.4.0-subaud-tools.2", "npm:@nicknisi/pi-artifacts", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.5", "npm:pi-wakeup@0.2.2", "npm:pi-creel", "npm:pi-bang", "npm:pi-copy", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.2.1", "npm:pi-casebook", "npm:pi-hail@0.8.0" ] }
 
   # pi-permission-system policy. yoloMode is on: tool calls run without asking,
   # and the static policy below still applies its denies (secrets, SSH keys,
