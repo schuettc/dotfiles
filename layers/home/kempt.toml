@@ -1,0 +1,119 @@
+# HOME layer: tools for personal machines only, applied on top of the base
+# (kempt.toml at the repo root). Add it on a machine that should have them:
+#   kempt layer add home ~/dotfiles/layers/home
+# Leave it off a work machine. Public, like the base; private settings go in
+# dotfiles-private.
+[kempt]
+spec = 1
+layer = "user"
+
+[profiles.home]
+description = "casebook and cull"
+packages = ["casebook", "cull"]
+
+# ---------------------------------------------------------------------------
+# casebook — the fate of every repo, PR, issue, branch and worktree
+# (casebook.tools; binary from casebook.tools/dl). Mirrors subaud-tools/casebook's
+# cmd/casebook/kempt.toml, folded in here so `kempt update` keeps it current.
+# First run on a new machine:
+# `casebook init` and `casebook hooks install` (see casebook.tools/guide).
+# ---------------------------------------------------------------------------
+[packages.casebook]
+description = "casebook: triage page, agent channel, rules and apply (casebook.tools)"
+only = { os = "darwin" }
+
+  [[packages.casebook.download]]
+  site = "casebook.tools"
+  tool = "casebook"
+  bin = "casebook"
+
+  # Claude Code: journal Bash tool calls; brief the session on its repo.
+  [[packages.casebook.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { PostToolUse = [ { matcher = "Bash", hooks = [ { type = "command", command = "~/.local/bin/casebook record --harness claude" } ] } ] } }
+
+  [[packages.casebook.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { hooks = { SessionStart = [ { matcher = "startup|resume", hooks = [ { type = "command", command = "~/.local/bin/casebook brief" } ] } ] } }
+
+  # Claude Code: the casebook plugin (its .mcp.json runs `casebook channel` for
+  # the tools, its mod runs `casebook watch`, which turns each page message into
+  # a turn), and the bare server it replaces removed.
+  [[packages.casebook.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "casebook@subaud-tools" = true } }
+  remove = ["extraKnownMarketplaces.casebook", "enabledPlugins.casebook@casebook"]
+
+  [[packages.casebook.json-merge]]
+  file = "~/.claude.json"
+  remove = ["mcpServers.casebook"]
+
+  # Full sync (including the GitHub refresh) every 30 minutes.
+  [[packages.casebook.service]]
+  label = "tools.tackle.casebook.sync"
+  program = ["/bin/zsh", "-lc", "exec \"$HOME/.local/bin/casebook\" sync"]
+  keep-alive = false
+  run-at-load = true
+  start-interval = 1800
+  process-type = "Background"
+  session-type = "Aqua"
+  stdout = "~/.local/state/casebook/sync.log"
+  stderr = "~/.local/state/casebook/sync.log"
+
+  [[packages.casebook.verify]]
+  command-exists = "casebook"
+
+  # pi: the pi-casebook extension (journals git/gh bash calls with the pi
+  # session, briefs the first turn). Unpinned: casebook publishes the binary
+  # before the extension, so a new pi-casebook never arrives ahead of it. The
+  # base sets pi's packages with arrays = "replace"; kempt adds this entry to it.
+  [[packages.casebook.install]]
+  pi = ["npm:pi-casebook"]
+
+  [[packages.casebook.json-merge]]
+  file = "~/.pi/agent/settings.json"
+  arrays = "append"
+  merge = { packages = ["npm:pi-casebook"] }
+
+  # pi: the casebook channel (channels.tools reads channels.json).
+  [[packages.casebook.json-merge]]
+  file = "~/.pi/agent/channels.json"
+  merge = { channelServers = { casebook = { command = "casebook", args = ["channel"] } } }
+
+# ---------------------------------------------------------------------------
+# cull — judges agent-written tests with TypeSafe's Jev, removes the ones Jev is
+# sure don't earn their place, and puts the rest on a review page (tackle.tools).
+# Registered like sift: the session opens the review with its cull_review tool
+# and Send wakes that same session, through the cull plugin under Claude Code
+# and the channel under pi. The binary installs from
+# tackle.tools/dl.
+# First run in each project: `cull init` (asks for the TypeSafe key once, and
+# whether that project's test source may be sent to TypeSafe).
+# ---------------------------------------------------------------------------
+[packages.cull]
+description = "cull: judges agent-written tests and reviews the uncertain ones on a page, with an agent channel (tackle.tools)"
+only = { os = "darwin" }
+
+  [[packages.cull.download]]
+  site = "tackle.tools"
+  tool = "cull"
+  bin = "cull"
+
+  # Claude Code: the cull plugin from the subaud-tools marketplace (subaud-tools/plugins) (its mod runs
+  # `cull watch`), in place of the bare server, which is removed.
+  [[packages.cull.json-merge]]
+  file = "~/.claude/settings.json"
+  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "cull@subaud-tools" = true } }
+  remove = ["extraKnownMarketplaces.tackle", "enabledPlugins.cull@tackle"]
+
+  [[packages.cull.json-merge]]
+  file = "~/.claude.json"
+  remove = ["mcpServers.cull"]
+
+  [[packages.cull.verify]]
+  command-exists = "cull"
+
+  # pi: the cull channel (channels.tools reads channels.json).
+  [[packages.cull.json-merge]]
+  file = "~/.pi/agent/channels.json"
+  merge = { channelServers = { cull = { command = "cull", args = ["channel"] } } }
