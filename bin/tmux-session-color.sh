@@ -1,17 +1,24 @@
 #!/bin/bash
-# Print the session name wrapped in a stable, name-hashed color for tmux's
-# status-left. Same name → same color across restarts, so each session keeps
-# a consistent identity at a glance.
+# Render session identity, or the opt-in indicator used by native status formats.
+# Opt-in uses proj roles; normal rendering retains the stable name hash.
 #
-# Usage:
-#   tmux-session-color.sh <session_name>     # from tmux's '#S'
-#
-# Output: "#[fg=<color>,bold] <name> #[default]"
+# Usage: tmux-session-color.sh [--enabled] <session_name>
 
 set -u
 
-name="${1:-}"
+mode="${1:-}"
+name="${2:-$mode}"
 [[ -z "$name" ]] && exit 0
+
+# The setting is the only opt-in boundary; missing/older proj stays normal.
+themed=false
+if proj theme --enabled --json 2>/dev/null | jq -e '.enabled == true' >/dev/null 2>&1; then
+  themed=true
+fi
+if [[ "$mode" == --enabled ]]; then
+  if $themed; then printf '1'; else printf '0'; fi
+  exit 0
+fi
 
 # Catppuccin Mocha accents. No red — it reads as an error state.
 palette=(
@@ -25,7 +32,16 @@ palette=(
   "#74c7ec"  # sapphire
 )
 
-sum=$(printf '%s' "$name" | cksum | awk '{print $1}')
-idx=$(( sum % ${#palette[@]} ))
-
-printf '#[fg=%s,bold] %s #[default]' "${palette[$idx]}" "$name"
+if ! $themed; then
+  sum=$(printf '%s' "$name" | cksum | awk '{print $1}')
+  idx=$(( sum % ${#palette[@]} ))
+  color="${palette[$idx]}"
+else
+  color='#{?@proj_theme_accent,#{@proj_theme_accent},default}'
+fi
+format="#[fg=${color},bold] ${name} #[default]"
+if $themed; then
+  tmux display-message -p -t "$name" "$format" 2>/dev/null
+else
+  printf '%s' "$format"
+fi
