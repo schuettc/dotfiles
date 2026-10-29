@@ -126,6 +126,16 @@ needs = ["core"]
   [[packages.terminal.verify]]
   command-exists = "creel"
 
+# Optional; adopt explicitly, never through a default profile.
+[packages.session-themes]
+description = "Optional persistent terminal session themes"
+needs = ["terminal"]
+
+  [[packages.session-themes.symlink]]
+  from = "config/proj/config.toml"
+  to = "~/.config/proj/config.toml"
+  backup = true
+
 # ---------------------------------------------------------------------------
 # nvim — Neovim ($EDITOR) with LazyVim config
 # ---------------------------------------------------------------------------

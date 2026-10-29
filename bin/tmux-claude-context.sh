@@ -30,9 +30,18 @@ pane_id="${1:-}"
 # The same query also yields '#{socket_path}' — the server that owns this pane
 # — so one tmux call covers both the liveness gate and the state key below.
 info=$(tmux display-message -p -t "$pane_id" '#{pane_current_command}
-#{socket_path}' 2>/dev/null)
+#{socket_path}|#{?@proj_theme_accent,#{@proj_theme_accent},default}|#{?@proj_theme_accent_text,#{@proj_theme_accent_text},default}|#{?@proj_theme_muted,#{@proj_theme_muted},default}|#{?@proj_theme_success,#{@proj_theme_success},default}|#{?@proj_theme_warning,#{@proj_theme_warning},default}|#{?@proj_theme_error,#{@proj_theme_error},default}' 2>/dev/null)
 cmd=${info%%$'\n'*}
-sock_path=${info#*$'\n'}
+IFS='|' read -r sock_path accent text muted success warning error <<< "${info#*$'\n'}"
+accent="${accent:-default}"; text="${text:-default}"; muted="${muted:-default}"
+success="${success:-default}"; warning="${warning:-default}"; error="${error:-default}"
+# The setting is the only opt-in boundary; missing/older proj stays normal.
+themed=false
+if proj theme --enabled --json 2>/dev/null | jq -e '.enabled == true' >/dev/null 2>&1; then
+  themed=true
+fi
+badge_text='#1e1e2e'
+$themed && badge_text="$text"
 [[ "$cmd" == claude || "$cmd" == pi || "$cmd" == node || "$cmd" =~ ^[0-9]+\.[0-9]+ ]] || exit 0
 
 # Stable path: $HOME/.cache is identical for the Claude process (even when
@@ -82,7 +91,8 @@ if [[ -n "$model" ]]; then
     *[Gg]pt*|*[Cc]odex*)                                     mbg="#89dceb" ;;
     *)                                                        mbg="#89b4fa" ;;
   esac
-  model_badge="#[fg=#1e1e2e,bg=${mbg},bold] ${model} #[default]"
+  $themed && mbg="$accent"
+  model_badge="#[fg=${badge_text},bg=${mbg},bold] ${model} #[default]"
 fi
 
 # Thinking badge, tinted cool to warm as the effort rises, so the level reads
@@ -100,7 +110,15 @@ if [[ -n "$thinking" ]]; then
     max)     tbg="#f38ba8" ;;
     *)       tbg="#b4befe" ;;
   esac
-  think_badge="#[fg=#1e1e2e,bg=${tbg},bold] ${thinking} #[default]"
+  if $themed; then
+    case "$thinking" in
+      off) tbg="$muted" ;;
+      high) tbg="$warning" ;;
+      xhigh|max) tbg="$error" ;;
+      *) tbg="$accent" ;;
+    esac
+  fi
+  think_badge="#[fg=${badge_text},bg=${tbg},bold] ${thinking} #[default]"
 fi
 
 # Context badge, tinted by how full the window is: green < 50, yellow 50-79,
@@ -111,7 +129,13 @@ if [[ "$pct" =~ ^[0-9]+$ ]] && (( pct > 0 )); then
   elif (( pct >= 50 )); then cbg="#f9e2af"
   else                       cbg="#a6e3a1"
   fi
-  ctx_badge="#[fg=#1e1e2e,bg=${cbg},bold] ⌬ ${pct}% #[default]"
+  if $themed; then
+    if (( pct >= 80 )); then cbg="$error"
+    elif (( pct >= 50 )); then cbg="$warning"
+    else cbg="$success"
+    fi
+  fi
+  ctx_badge="#[fg=${badge_text},bg=${cbg},bold] ⌬ ${pct}% #[default]"
 fi
 
 # Nothing useful to show → stay silent. A thin gap between badges reads

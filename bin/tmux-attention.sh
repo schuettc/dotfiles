@@ -26,4 +26,15 @@ sessions=$(
 count=$(printf '%s\n' "$sessions" | grep -c .)
 names=$(printf '%s' "$sessions" | paste -sd ',' - | sed 's/,/, /g')
 
-printf '#[fg=#1e1e2e,bg=#f38ba8,bold] ⚠ %d: %s #[default] ' "$count" "$names"
+# The setting is the only opt-in boundary; missing/older proj stays normal.
+themed=false
+if proj theme --enabled --json 2>/dev/null | jq -e '.enabled == true' >/dev/null 2>&1; then
+  themed=true
+fi
+
+text='#1e1e2e'; error='#f38ba8'
+if $themed; then
+  IFS='|' read -r text error < <(tmux display-message -p -t "${1:-}" '#{?@proj_theme_accent_text,#{@proj_theme_accent_text},default}|#{?@proj_theme_error,#{@proj_theme_error},default}' 2>/dev/null)
+  text="${text:-default}"; error="${error:-default}"
+fi
+printf '#[fg=%s,bg=%s,bold] ⚠ %d: %s #[default] ' "$text" "$error" "$count" "$names"
