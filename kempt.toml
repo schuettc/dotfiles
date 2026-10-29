@@ -407,14 +407,6 @@ only = { os = "darwin" }
   command-exists = "galley"
 
 # ---------------------------------------------------------------------------
-# casebook — the fate of every repo, PR, issue, branch and worktree
-# (casebook.tools; binary from casebook.tools/dl). Mirrors subaud-tools/casebook's
-# cmd/casebook/kempt.toml, folded in here so `kempt update` keeps it current.
-# pi-casebook is in the pi package's list below (dotfiles owns that list); the
-# pi channel entry is in pi-channels. First run on a new machine:
-# `casebook init` and `casebook hooks install` (see casebook.tools/guide).
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
 # muda — find and fix delivery waste in a repository's pipelines (muda.tools).
 # The binary only; its skills reach agents through `muda skills install`.
 # ---------------------------------------------------------------------------
@@ -430,53 +422,6 @@ only = { os = "darwin" }
 
   [[packages.muda.verify]]
   command-exists = "muda"
-
-# ---------------------------------------------------------------------------
-[packages.casebook]
-description = "casebook: triage page, agent channel, rules and apply (casebook.tools)"
-needs = ["core"]
-only = { os = "darwin" }
-
-  [[packages.casebook.download]]
-  site = "casebook.tools"
-  tool = "casebook"
-  bin = "casebook"
-
-  # Claude Code: journal Bash tool calls; brief the session on its repo.
-  [[packages.casebook.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { hooks = { PostToolUse = [ { matcher = "Bash", hooks = [ { type = "command", command = "~/.local/bin/casebook record --harness claude" } ] } ] } }
-
-  [[packages.casebook.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { hooks = { SessionStart = [ { matcher = "startup|resume", hooks = [ { type = "command", command = "~/.local/bin/casebook brief" } ] } ] } }
-
-  # Claude Code: the casebook plugin (its .mcp.json runs `casebook channel` for
-  # the tools, its mod runs `casebook watch`, which turns each page message into
-  # a turn), and the bare server it replaces removed.
-  [[packages.casebook.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "casebook@subaud-tools" = true } }
-  remove = ["extraKnownMarketplaces.casebook", "enabledPlugins.casebook@casebook"]
-
-  [[packages.casebook.json-merge]]
-  file = "~/.claude.json"
-  remove = ["mcpServers.casebook"]
-
-  # Full sync (including the GitHub refresh) every 30 minutes.
-  [[packages.casebook.service]]
-  label = "tools.tackle.casebook.sync"
-  program = ["/bin/zsh", "-lc", "exec \"$HOME/.local/bin/casebook\" sync"]
-  keep-alive = false
-  run-at-load = true
-  start-interval = 1800
-  process-type = "Background"
-  session-type = "Aqua"
-  stdout = "~/.local/state/casebook/sync.log"
-  stderr = "~/.local/state/casebook/sync.log"
-
-  [[packages.casebook.verify]]
-  command-exists = "casebook"
 
 # ---------------------------------------------------------------------------
 # pi — Pi coding agent (portable). Runs on the claude-bridge provider out of the
@@ -568,13 +513,6 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # sessions never run a mix of old and new code and channel servers restart
     # on the new binary. Court's own, from the pi-extensions monorepo.
     "npm:pi-auto-reload@0.2.1",
-    # casebook (casebook.tools): journals git/gh bash calls with the pi session,
-    # briefs the first turn, syncs in the background. Installed HERE because this
-    # manifest owns the packages list; casebook's own manifest
-    # (subaud-tools/casebook cmd/casebook/kempt.toml) installs everything else. Unpinned (Court,
-    # 2026-09-27): kempt rolls it to the latest; casebook publishes the binary
-    # before the extension, so a new pi-casebook never arrives ahead of it.
-    "npm:pi-casebook",
     # pi-hail: the pane end of hail (hail.tools); pinned to the release the hail
     # daemon was accepted with.
     "npm:pi-hail@0.8.0",
@@ -597,7 +535,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", defaultThinkingLevel = "medium", hideThinkingBlock = true, theme = "dark", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = ["-builtin:mcp"], packages = [ "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2", "npm:@subaud-tools/pi-usage@0.11.7-subaud-tools.4", "npm:@gotgenes/pi-permission-system@npm:@subaud-tools/pi-permission-system@40.3.0-subaud-tools.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@subaud-tools/pi-schedule@0.4.0-subaud-tools.2", "npm:@nicknisi/pi-artifacts", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.5", "npm:pi-wakeup@0.2.2", "npm:pi-creel", "npm:pi-bang", "npm:pi-copy", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.2.1", "npm:pi-casebook", "npm:pi-hail@0.8.0" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", defaultThinkingLevel = "medium", hideThinkingBlock = true, theme = "dark", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = ["-builtin:mcp"], packages = [ "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2", "npm:@subaud-tools/pi-usage@0.11.7-subaud-tools.4", "npm:@gotgenes/pi-permission-system@npm:@subaud-tools/pi-permission-system@40.3.0-subaud-tools.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@subaud-tools/pi-schedule@0.4.0-subaud-tools.2", "npm:@nicknisi/pi-artifacts", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.5", "npm:pi-wakeup@0.2.2", "npm:pi-creel", "npm:pi-bang", "npm:pi-copy", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.2.1", "npm:pi-hail@0.8.0" ] }
 
   # pi-permission-system policy. yoloMode is on: tool calls run without asking,
   # and the static policy below still applies its denies (secrets, SSH keys,
@@ -741,40 +679,6 @@ only = { os = "darwin" }
   command-exists = "imprint"
 
 # ---------------------------------------------------------------------------
-# cull — judges agent-written tests with TypeSafe's Jev, removes the ones Jev is
-# sure don't earn their place, and puts the rest on a review page (tackle.tools).
-# Registered like sift: the session opens the review with its cull_review tool
-# and Send wakes that same session, through the cull plugin under Claude Code
-# and the channel under pi. The binary installs from
-# tackle.tools/dl; pi's channel is in [packages.pi-channels] with the others.
-# First run in each project: `cull init` (asks for the TypeSafe key once, and
-# whether that project's test source may be sent to TypeSafe).
-# ---------------------------------------------------------------------------
-[packages.cull]
-description = "cull: judges agent-written tests and reviews the uncertain ones on a page, with an agent channel (tackle.tools)"
-needs = ["core"]
-only = { os = "darwin" }
-
-  [[packages.cull.download]]
-  site = "tackle.tools"
-  tool = "cull"
-  bin = "cull"
-
-  # Claude Code: the cull plugin from the subaud-tools marketplace (subaud-tools/plugins) (its mod runs
-  # `cull watch`), in place of the bare server, which is removed.
-  [[packages.cull.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "cull@subaud-tools" = true } }
-  remove = ["extraKnownMarketplaces.tackle", "enabledPlugins.cull@tackle"]
-
-  [[packages.cull.json-merge]]
-  file = "~/.claude.json"
-  remove = ["mcpServers.cull"]
-
-  [[packages.cull.verify]]
-  command-exists = "cull"
-
-# ---------------------------------------------------------------------------
 # pi-channels — wire the galley + muster channels into pi sessions.
 #
 # channels.tools (installed by [packages.pi]) is the bridge, but it spawns
@@ -792,13 +696,13 @@ only = { os = "darwin" }
 # hooks class that needs absolute ${HOME} paths. Matches live channels.json.
 # ---------------------------------------------------------------------------
 [packages.pi-channels]
-description = "Wire galley, muster, casebook, sift, cull and imprint channels into pi sessions (channels.tools → channels.json)"
-needs = ["pi", "muster", "galley", "casebook", "sift", "cull", "imprint"]
+description = "Wire galley, muster, sift and imprint channels into pi sessions (channels.tools → channels.json)"
+needs = ["pi", "muster", "galley", "sift", "imprint"]
 only = { os = "darwin" }
 
   [[packages.pi-channels.json-merge]]
   file = "~/.pi/agent/channels.json"
-  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] }, casebook = { command = "casebook", args = ["channel"] }, sift = { command = "sift", args = ["channel"] }, cull = { command = "cull", args = ["channel"] }, imprint = { command = "imprint", args = ["channel"] } } }
+  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] }, sift = { command = "sift", args = ["channel"] }, imprint = { command = "imprint", args = ["channel"] } } }
 
 # ---------------------------------------------------------------------------
 # pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
@@ -850,11 +754,12 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
   http-ok = "http://127.0.0.1:42137/health"
 
 # ---------------------------------------------------------------------------
-# Profiles
+# Profiles. casebook and cull are personal-machine tools: they live in the home
+# layer (layers/home/kempt.toml), added per machine, not here.
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "casebook", "sift", "cull", "muda", "pi", "pi-channels"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "sift", "muda", "pi", "pi-channels"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
