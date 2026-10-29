@@ -81,33 +81,45 @@ contains model "$out" 'bg=#112233,bold] Claude '
 contains thinking "$out" 'bg=#445566,bold] high '
 contains context "$out" 'bg=#556677,bold] ⌬ 88% '
 [[ $(grep -c display-message "$THEME_CALLS") == 1 ]]
+[[ $(render tmux-session-color --enabled example) == 1 ]]
+tmux source-file "$REPO/.tmux.conf"
 tmux set-option @claude_task 'writing docs'
+contains native-task "$(tmux display-message -p -t example '#{E:status-left}')" 'writing docs'
+# Supply the completed setting-job result; status fields must not need a job.
+tmux set-option -g @proj_theme_enabled_format 1
+left() { tmux display-message -p -t example '#{E:status-left}'; }
+right() { tmux display-message -p -t example '#{E:status-right}'; }
 tmux set-option @muster_agent other-alias
 tmux set-option @muster_inbox 2
 tmux set-option @wakeup '14:00 in 2m'
 tmux set-option -t waiting @proj_theme_accent '#998877'
-out=$(render tmux-session-color --left example)
+out=$(left)
 contains task "$out" '#[fg=#112233]writing docs '
 contains mail "$out" '#[fg=#223344,bg=#112233,bold] 📬2 '
-[[ $(grep -c display-message "$THEME_CALLS") == 1 ]]
-[[ $(grep -c 'theme --enabled --json' "$THEME_CALLS") == 1 ]]
+tmux set-option @claude_task 'changed task'
+tmux set-option @muster_inbox 3
+contains changed-task "$(left)" '#[fg=#112233]changed task '
+contains changed-mail "$(left)" '📬3 '
 tmux set-option -u @muster_inbox
-contains alias "$(render tmux-session-color --left example)" '#[fg=#667788]@other-alias'
-contains wakeup "$(render tmux-session-color --right example)" '#[fg=#445566]⏰ 14:00 in 2m'
-contains clock "$(render tmux-session-color --clock example)" '#[fg=#667788]'
+contains alias "$(left)" '#[fg=#667788]@other-alias'
+contains wakeup "$(right)" '#[fg=#445566]⏰ 14:00 in 2m'
+contains clock "$(right)" '#[fg=#667788]'
 for pct expected in 24 '#334455' 64 '#445566' 88 '#556677'; do
   printf 'context_pct=%s\n' "$pct" > "$XDG_CACHE_HOME/claude-status/server_${pane#%}"
   contains "context $pct" "$(render tmux-claude-context "$pane")" "bg=${expected},bold] ⌬ ${pct}%"
 done
 export THEME_ENABLED=false
+tmux set-option -g @proj_theme_enabled_format 0
+[[ $(render tmux-session-color --enabled example) == 0 ]]
 contains normal "$(render tmux-session-color example)" '#[fg=#f9e2af,bold] example '
 contains normal-context "$(render tmux-claude-context "$pane")" 'bg=#f38ba8,bold] ⌬ 88% '
-contains normal-task "$(render tmux-session-color --left example)" '#[fg=#b4befe]writing docs '
-contains normal-alias "$(render tmux-session-color --left example)" '#[fg=#6c7086]@other-alias'
-contains normal-wakeup "$(render tmux-session-color --right example)" '#[fg=#f9e2af]⏰ 14:00 in 2m'
-contains normal-clock "$(render tmux-session-color --clock example)" '#[fg=#a6adc8]'
+contains normal-task "$(left)" '#[fg=#b4befe]changed task '
+contains normal-alias "$(left)" '#[fg=#6c7086]@other-alias'
+contains normal-wakeup "$(right)" '#[fg=#f9e2af]⏰ 14:00 in 2m'
+contains normal-clock "$(right)" '#[fg=#a6adc8]'
 contains normal-git "$(render tmux-git-status "$WORK" example)" '#[fg=#f9e2af] feature #[fg=#fab387,bold]●1'
 export THEME_ENABLED=true
+tmux set-option -g @proj_theme_enabled_format 1
 for role in accent accent_text success warning error muted; do tmux set-option -u "@proj_theme_$role"; done
 contains unassigned "$(render tmux-session-color example)" '#[fg=default,bold] example '
 contains unassigned-git "$(render tmux-git-status "$WORK" example)" '#[fg=default] feature #[fg=default,bold]●1'
@@ -115,6 +127,8 @@ contains unassigned-context "$(render tmux-claude-context "$pane")" '#[fg=defaul
 # Load only this worktree config on the private server; no status jobs run without clients.
 tmux source-file "$REPO/.tmux.conf"
 contains refresh "$(tmux show-option -gv status-right)" '#(proj __theme-sync)'
+contains enabled-format "$(tmux show-option -gv @proj_theme_enabled_format)" 'tmux-session-color.sh --enabled'
+contains native-clock "$(tmux show-option -gv status-right)" '%a %b %d  %H:%M'
 [[ $(tmux show-option -gv status-interval) == 5 ]]
 contains focus "$(tmux show-hooks -g client-focus-in)" 'claude-attn clear'
 contains title "$(tmux show-option -gv set-titles-string)" '@muster_inbox'
