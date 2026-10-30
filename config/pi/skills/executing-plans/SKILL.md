@@ -27,7 +27,7 @@ Tasks build their tests per the test-driven-development skill: one failing test 
 
 ## Setup
 
-1. Work in a worktree on a branch cut from a freshly fetched base, per AGENTS.md's Git rules. Confirm it with `git -C <wt> branch --show-current` before anyone writes to it. Never implement on `main` without Court's explicit consent.
+1. Resolve the canonical clone and workspace from its workspace instructions, then create and confirm the worktree and branch under AGENTS.md's Git rules before naming a worker's worktree. Never implement on `main` without Court's explicit consent.
 2. Read the plan once, note its Scope line, Global Constraints and Review Focus. If the plan names a Spec, read that too: conflicts inside the plan resolve against it. A plan with no reachable spec gets a report note saying so; rulings made without one are provisional.
 3. Record the base commit: `BASE=$(git -C <wt> rev-parse HEAD)`; the commands below use `$BASE`.
 4. Pick a run directory outside the repo: `${XDG_STATE_HOME:-$HOME/.local/state}/plans/<plan-basename>/`. The report (`report.md`) and the review package live there, never in the repo.
@@ -117,7 +117,7 @@ Your final message to Court carries, from the report: anything built beyond the 
 ```
 You: I'm using the executing-plans skill. The plan is 3 tasks, so I'm dispatching one worker.
 
-[Worktree /tmp/feat-x on feat/x, confirmed; BASE a1b2c3d]
+[Canonical workspace resolved; worktree per AGENTS.md on feat/x, confirmed; BASE a1b2c3d]
 [Run dir ~/.local/state/plans/2026-10-05-feat-x/]
 [Dispatch worker (session model) with plan, spec, worktree, report path]
 [Keep talking with Court while it runs]

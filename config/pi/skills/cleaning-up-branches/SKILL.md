@@ -7,6 +7,8 @@ description: Use when cleaning up stale local or remote git branches or worktree
 
 `git branch --merged` and other ancestry checks miss squash-merged branches: their commits never become ancestors of the base, so finished work looks unmerged.
 
+Locate agent-created worktrees using AGENTS.md's Git placement rule and the canonical workspace instructions, then verify actual git registrations; placement never proves a branch or worktree disposable.
+
 ## Which branches are disposable
 
 A branch is disposable if either is true:
