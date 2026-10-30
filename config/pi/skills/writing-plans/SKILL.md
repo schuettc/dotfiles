@@ -71,7 +71,7 @@ Each task carries its own check commands: the test command (and any build or lin
 
 **Spec:** [path to the spec/design doc this plan implements; the plan argues from the spec, so the spec travels with it; executors read both]
 
-**Worktree and branch:** [path and branch name, per AGENTS.md's Git rules]
+**Worktree and branch:** [resolve the canonical clone and workspace from its workspace instructions before naming the worker's worktree; path and branch name follow AGENTS.md's Git rules]
 
 ## Global Constraints
 
