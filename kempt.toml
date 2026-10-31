@@ -524,6 +524,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # pi-hail: the pane end of hail (hail.tools); pinned to the release the hail
     # daemon was accepted with.
     "npm:pi-hail@0.8.0",
+    "git:github.com/Fundamental-Technologies/fundamental-marketplace",
   ]
 
   # settings — kempt is AUTHORITATIVE over the live packages/extensions arrays
@@ -543,7 +544,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", defaultThinkingLevel = "medium", hideThinkingBlock = true, theme = "dark", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = ["-builtin:mcp"], packages = [ "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2", "npm:@subaud-tools/pi-usage@0.11.7-subaud-tools.4", "npm:@gotgenes/pi-permission-system@npm:@subaud-tools/pi-permission-system@40.3.0-subaud-tools.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@subaud-tools/pi-schedule@0.4.0-subaud-tools.2", "npm:@nicknisi/pi-artifacts", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.5", "npm:pi-wakeup@0.2.2", "npm:pi-creel", "npm:pi-bang", "npm:pi-copy", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.2.1", "npm:pi-hail@0.8.0" ] }
+  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", defaultThinkingLevel = "medium", hideThinkingBlock = true, theme = "dark", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = ["-builtin:mcp"], packages = [ "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2", "npm:@subaud-tools/pi-usage@0.11.7-subaud-tools.4", "npm:@gotgenes/pi-permission-system@npm:@subaud-tools/pi-permission-system@40.3.0-subaud-tools.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@subaud-tools/pi-schedule@0.4.0-subaud-tools.2", "npm:@nicknisi/pi-artifacts", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.5", "npm:pi-wakeup@0.2.2", "npm:pi-creel", "npm:pi-bang", "npm:pi-copy", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.2.1", "npm:pi-hail@0.8.0", "git:github.com/Fundamental-Technologies/fundamental-marketplace" ] }
 
   # pi-permission-system policy. yoloMode is on: tool calls run without asking,
   # and the static policy below still applies its denies (secrets, SSH keys,
@@ -620,7 +621,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { skills = [] }
+  merge = { skills = [ "/Users/courtschuett/.pi/agent/git/github.com/Fundamental-Technologies/fundamental-marketplace/plugins/prism/skills", "/Users/courtschuett/.pi/agent/git/github.com/Fundamental-Technologies/fundamental-marketplace/plugins/prism-ops/skills" ] }
 
 # ---------------------------------------------------------------------------
 # sift — audits agent instruction files and puts one recommendation per file in
