@@ -15,6 +15,7 @@ Court's rule (2026-09-29): **one system for every tool.** "There's no reason to 
 |---|---|---|
 | CLI framework: commands, help, `man`, `commands --json`, exit codes 0/1/2, `version`, `update` (self-update from `<site>/dl`) | `github.com/schuettc/tools-common`: `tools.New(tools.Config{...})`, `Register`, `Dispatch`, `tools.Version`, `SelfUpdate` (kempt's `internal/cli/cli.go` is the model). `internal/version` only holds the `-X`-stamped `version`/`commit`/`date` that feed `tools.Version` | cobra, a hand-rolled dispatcher, printing or parsing versions yourself |
 | Session identity, channel MCP server, atomic writes, XDG dirs, local page, SQLite | tools-common `harness`, `channelmcp`, `WriteFileAtomic`/`PIDAlive`, `ConfigDir`/`StateDir`/..., `localweb/page`, `sqlitedb` (separate module) | a private copy |
+| A tool's server and page: what they must do, and the part that delivers each rule | tools-common `PAGE-STANDARD.md`; `pageserve.Run`, the `localweb/page` kit, and `conformance.Check` in the tool's own tests | its own idle exit, kept token, binary watch, tab list or version header |
 | Justfile first block, `lefthook.yml`, `version-guard.yml` | copy **verbatim** from `tools-ops/templates/family/` | editing them in one repo |
 | Go gate (gofmt, vet, golangci-lint, `go test -race`, 4 builds) | `schuettc/tools-actions/go-ci@vX.Y.Z` in CI; `just gate` runs the same version locally | installing golangci-lint by hand, CI steps that re-spell the gate |
 | Lint config | ships inside tools-actions `go-ci` | a repo `.golangci.yml` |
