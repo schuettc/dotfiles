@@ -20,6 +20,16 @@ The `playwright` MCP server runs in extension mode: it drives Court's own Chrome
 - If a call times out or says "page closed", check `lsof -nP -iTCP:8931 -sTCP:LISTEN`; restart the window if nothing listens. Never read the `.env`.
 - To see what the extension is doing, start the server with `DEBUG='pw:mcp*'` and `2>&1 | tee /tmp/pw-mcp.log`.
 
+## A session with its own Chrome window
+
+Playwright opens its first tab in whichever Chrome window is current, and its later tabs follow that one. If `proj terminal --socket "${TMUX%%,*}" --pane "$TMUX_PANE" --json` says `"chrome": true`, this session has its own window:
+
+1. Just before the session's first Playwright call, run `proj window --socket "${TMUX%%,*}" --pane "$TMUX_PANE"` to bring that window forward, then make the call.
+2. Check that the new tab is in that window: the window id is in `proj window --json`'s output, and an AppleScript listing of the window's tab URLs should include the page you opened.
+3. If it is not there, close it with `browser_tabs` and make the call once more.
+
+A session without its own window uses Playwright as before.
+
 ## The rules that keep the tab attached
 
 1. **Never type into a field with `browser_type` or `browser_fill_form`.** Focusing a field makes 1Password insert its menu, an iframe from another extension; Chrome then detaches the debugger ("Cannot access a chrome-extension:// URL of different extension") and the tab disappears from Playwright. Set values by script instead:
