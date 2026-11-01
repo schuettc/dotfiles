@@ -125,7 +125,7 @@ The subsections below serve the bounded and architectural paths (a spike stops a
 **Where the spec goes:**
 
 - `spec.md` in diazo's planning folder, `docs/specs/YYYY-MM-DD-<topic>/` in the repo, committed on the work branch at each approval.
-- If `gh repo view --json visibility --jq .visibility` prints `PUBLIC`, the folder goes in private tools-ops instead, at `~/GitHub/schuettc/tools-workspace/tools-ops/docs/<repo>/specs/YYYY-MM-DD-<topic>/`, committed there under AGENTS.md's Git rules. Never commit it in the public repo.
+- If `gh repo view --json visibility --jq .visibility` prints `PUBLIC`, the folder goes in private tools-ops instead, at `~/GitHub/tools-workspace/tools-ops/docs/<repo>/specs/YYYY-MM-DD-<topic>/`, committed there under AGENTS.md's Git rules. Never commit it in the public repo.
 
 **Spec Self-Review:**
 After writing `spec.md` and before printing it, look at it with fresh eyes:
