@@ -22,11 +22,15 @@ The `playwright` MCP server runs in extension mode: it drives Court's own Chrome
 
 ## A session with its own Chrome window
 
-Playwright opens its first tab in whichever Chrome window is current, and its later tabs follow that one. If `proj terminal --socket "${TMUX%%,*}" --pane "$TMUX_PANE" --json` says `"chrome": true`, this session has its own window:
+If `proj terminal --socket "${TMUX%%,*}" --pane "$TMUX_PANE" --json` says `"window": true`, this session has its own Chrome window. That window holds one Chrome tab, the session's split page: the terminal on the left and, on the right, a bar of tabs, each one of our own tool pages on `127.0.0.1` (diazo, casebook, cull, ...) in a frame. A tool page an agent opens goes there as a tab of the split page, not as a Chrome tab.
 
-1. Just before the session's first Playwright call, run `proj window --socket "${TMUX%%,*}" --pane "$TMUX_PANE"` to bring that window forward, then make the call.
-2. Check that the new tab is in that window: the window id is in `proj window --json`'s output, and an AppleScript listing of the window's tab URLs should include the page you opened.
-3. If it is not there, close it with `browser_tabs` and make the call once more.
+To work in a tool page with Playwright:
+
+1. Select the Chrome tab whose URL starts `http://127.0.0.1:<port>/term?` and carries this session's `session=` (`browser_tabs` lists them).
+2. Act inside the frame whose URL is the page's, in `browser_run_code_unsafe`: `page.frames().find(f => f.url().startsWith('http://127.0.0.1:<page-port>/'))`, then `evaluate` on that frame as the rules below say. The page's address loses its `?t=` once it loads, so match on its origin and path, not the whole URL you opened.
+3. `browser_evaluate` and snapshots read the split page itself, not the frame: go through the frame.
+
+Outside sites don't open in the split page. Playwright opens its first tab in whichever Chrome window is current, and its later tabs follow that one; to have them land in the session's window, run `proj window --socket "${TMUX%%,*}" --pane "$TMUX_PANE"` just before the session's first Playwright call, and check that the new tab is in that window (its id is in `proj window --json`'s output). If it isn't, close it with `browser_tabs` and make the call once more.
 
 A session without its own window uses Playwright as before.
 
