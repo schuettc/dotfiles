@@ -124,7 +124,7 @@ First, the window-vs-tab distinction — they behave differently on purpose
   A plain shell at `~`. Run `proj` to enter or create a workspace from there.
 * **⌘T (new *tab*) inside a project window** inherits the project's cwd
   (`tab-inherit-working-directory = true`). The zsh auto-join hook
-  (`06-tmux-autojoin.zsh`) sees you're in a project and opens `proj
+  (proj's shell wrapper) sees you're in a project and opens `proj
   <project>` — Screen 2 (live sessions · home base · new work) — so naming
   the tab is always an explicit gesture, never an anonymous slot.
 

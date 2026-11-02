@@ -10,14 +10,30 @@ This machine is set up declaratively with **[kempt](https://github.com/schuettc/
 the config lives in [`kempt.toml`](kempt.toml), and kempt installs, verifies, and
 updates everything from it. You read the whole plan before anything runs.
 
-**1. Install kempt, then set up this machine:**
+**1. Install kempt (0.13.0 or later), then set up this machine:**
 ```bash
 curl -fsSL https://kempt.tools/install.sh | sh      # install the kempt binary
 kempt init https://github.com/schuettc/dotfiles.git  # clone → pick packages → plan → apply
 ```
 `kempt init` walks a picker to choose a profile (`developer` = everything,
 `minimal` = just the shell) and package set, shows the full plan, and applies
-it on your confirmation.
+it on your confirmation. It clones this repo to `~/.config/kempt/repo` unless
+you say otherwise; nothing here depends on where the checkout lives.
+
+Family tools (muster, galley, proj, sift, imprint, muda, diazo, hail, and the
+home layer's casebook and cull) bring their own hooks, plugins, agent
+channels, services and skills: kempt fetches each tool's matching setup with
+its binary and shows both in the plan before anything is applied. That needs
+the network; `kempt plan` on its own works from what the last apply prepared,
+and says so when a tool has not been prepared yet. diazo and hail are gated:
+sign the machine in first with `kempt login`, to an account entitled to them.
+
+Personal machines can add the home layer from the checkout:
+`kempt layer add home <checkout>/layers/home`.
+
+Already have a selection from an earlier version? It never grows by itself.
+Compare it with the `developer` profile and adopt what you want deliberately,
+e.g. `kempt adopt diazo`; the install-wizard skill walks through it.
 
 No git? kempt can also `init` straight from a tarball of this repo — the tree is
 fetched and extracted, and `kempt update` re-fetches it:
@@ -44,17 +60,21 @@ design rationale behind the migration off cmux.
 | Prompt-safe status line (used by `proj`) | `kempt status` |
 | Add / drop a package from this machine's selection | `kempt adopt <pkg>` / `kempt drop <pkg>` |
 
-Every kempt run is idempotent and shows its plan first. The packages are
-`core`, `terminal`, `nvim`, `markedit`, `claude`, `codex`, `muster`, and the
-macOS-only `pi` (Pi coding agent on the `claude-bridge` provider + published
-extensions). `developer` selects all; `minimal` selects `core`. The local
-llama.cpp inference rig is a separate opt-in package, `pi-llama` (it needs GGUF
-weights this repo doesn't ship) — add it on a machine that has them with
-`kempt adopt pi-llama`.
+Every kempt run is idempotent and shows its plan first. `developer` selects
+`core`, `terminal`, `nvim`, `markedit`, `claude`, `swiftbar`, `codex`,
+`muster`, `galley`, `sift`, `imprint`, `muda`, `diazo`, `hail`, `pi` (Pi on
+the `claude-bridge` provider + published extensions) and `pi-channels`;
+`minimal` selects `core`. Two packages are opt-in only: `session-themes`, and
+the local llama.cpp inference rig `pi-llama` (it needs GGUF weights this repo
+doesn't ship) — add it on a machine that has them with `kempt adopt pi-llama`.
 
-**Manual follow-ups** kempt can't automate (it prints these after `apply`):
-run `codex login` to authenticate Codex; restart any running pi session so it
-picks up the pinned extensions.
+**Follow-ups** only you can do, for what you selected (kempt prints package
+notes after `apply`): `kempt login` for diazo and hail; pair your phone with
+hail; `codex login`; sign in to Claude Code on first run; `sift init --root
+DIR`; SwiftBar's plugin folder, login item and Accessibility grant; with the
+home layer, `casebook init` (and, if you want it, `casebook hooks install`)
+and `cull init` per project; with `pi-llama`, the model weights. Restart any
+running pi session so it picks up new extensions.
 
 ## What's Included
 
@@ -101,7 +121,7 @@ positional project — `proj --claude dotfiles` works, `proj dotfiles
 | `bell-clear` | dismiss the attention banner (`-k` to kill flagged sessions) |
 
 ⌘T in a project window auto-joins a new tmux session for that project (via
-`config/zsh/06-tmux-autojoin.zsh`); ⌘N opens a fresh window at `$HOME`, outside
+proj's shell wrapper, fired by `config/zsh/06-proj.zsh`); ⌘N opens a fresh window at `$HOME`, outside
 any project. Project roots are configured per-machine in `~/.config/proj/roots`
 (not tracked; first `proj` run sets it up). See
 [`docs/terminal-usage.md`](docs/terminal-usage.md) for the day-to-day walkthrough.
@@ -111,19 +131,17 @@ any project. Project roots are configured per-machine in `~/.config/proj/roots`
 - **Lazy-loaded NVM** — Node available immediately, NVM loads on demand
 - **Starship prompt** — two-line prompt with git status, language versions, AWS profile
 
-### Pi with local models
+### Pi
 
-This is an optional, macOS-only component (part of the `developer` profile).
-It's declared as the `pi` package in `kempt.toml`; `kempt apply` installs it.
-To add it to an existing selection: `kempt adopt pi && kempt apply`.
+The macOS-only `pi` package (part of the `developer` profile) installs Pi on
+the `claude-bridge` provider with its published extensions; it needs no local
+models. To add it to an existing selection: `kempt adopt pi && kempt apply`.
 
-The `pi` package installs Pi and a launchd-managed llama.cpp router on the
-loopback-only port 42137. Pi's native `/llama` command downloads, loads, and
-unloads GGUF models; normal `pi`, `pi --resume`, and `pi --session ...` commands
-need no wrapper. The model, port, defaults, runtime tuning, and service controls
-are documented in [`docs/pi-local-models.md`](docs/pi-local-models.md).
+Local models are the separate, opt-in `pi-llama` package: a launchd-managed
+llama.cpp router on the loopback-only port 42137, for a machine that has the
+GGUF weights. See [`docs/pi-local-models.md`](docs/pi-local-models.md).
 
-### Modern CLI Tools (via packages/*/Brewfile)
+### Modern CLI Tools (the core package)
 | Tool | Replaces | Purpose |
 |------|----------|---------|
 | eza | ls | File listing with icons and git status |
@@ -151,7 +169,7 @@ The branch/context indicators come from the helpers in `bin/`.
 
 ### Claude Code Integration
 
-The install script configures [Claude Code](https://claude.ai/code) with:
+The `claude` package installs [Claude Code](https://claude.ai/code) (the `claude-code` cask) and configures:
 
 - **Status line** (`config/claude/statusline.sh`) — model + working directory.
   (Context % and git status are shown in the **tmux** status bar instead, to
@@ -181,30 +199,24 @@ metered OpenAI API key. Check auth with `codex login status`. See
 
 ### Cursor Agent
 
-[Cursor Agent CLI](https://cursor.com/cli) is a peer coding agent on the muster
-bus. Install `packages/cursor` with `muster` to install the CLI and wire Cursor
-session hooks, the muster MCP server, and its permission allowlist. Start a
-workspace with `proj --cursor`; the left pane runs
-`cursor-agent --trust --approve-mcps` (or `agent` when that is the available
-CLI). See [`docs/cursor-bridge.md`](docs/cursor-bridge.md).
+This repo does not select Cursor. If you use the
+[Cursor Agent CLI](https://cursor.com/cli) yourself, `muster setup --force
+--agent cursor` wires it onto the muster bus and `proj --cursor` launches it. See
+[`docs/cursor-bridge.md`](docs/cursor-bridge.md).
 
 ### muster — cross-terminal agent bus
 
 Where the Codex bridge is *vertical* (one terminal), **[muster](https://github.com/schuettc/muster)**
 is *horizontal*: a local coordination bus that lets standing agent sessions in
-separate terminals (Claude Code, Codex, and/or Cursor) message and hand tasks to each
-other — no copy/paste, subscription-only. The `muster` package self-installs
-the whole stack: installed from the latest GitHub release (a checksummed
-binary written to `~/.local/bin/muster` — no clone, no Go toolchain
-required; `~/GitHub/schuettc/muster`, if present, is a dev checkout the
-installer never touches), installs a **LaunchAgent** (`tools.muster.serve` —
-`muster serve` runs at login, restarts on crash, logs to
-`~/.local/share/muster/serve.log`), and registers the MCP server in Claude
-Code, Codex, and Cursor. Session hooks (auto-register on the bus +
-self-resolving inbox via `muster hook`, built into the binary since v0.3.0) are
-merged into the Claude/Codex/Cursor settings by the same script. Don't want muster? Skip it and pick
-the rest of the packages with the install-wizard skill (see "Selective
-install" below).
+separate terminals (Claude Code, Codex and pi) message and hand tasks to each
+other — no copy/paste, subscription-only. The `muster` package installs the
+checksummed binary from muster.tools to `~/.local/bin/muster`, and its release
+setup adds a **LaunchAgent** (`tools.muster.serve` — `muster serve` runs at
+login, restarts on crash, logs to `~/.local/share/muster/serve.log`), the
+Claude Code plugin and session hooks, and the Codex hooks and MCP server. This
+repo adds the pi side: the MCP server in `~/.config/mcp/mcp.json` and, with
+`pi-channels`, the mail channel. Don't want muster? Leave it out of your
+selection (the install-wizard skill walks through each package).
 
 - **In an agent session:** the agent calls `register_agent` once, then
   `send_message` / `task_create` / `task_claim` / `get_inbox` / … to coordinate
@@ -215,8 +227,8 @@ install" below).
   `prefix m` nudges the session's agent to drain its inbox now (idle agents
   otherwise only check mail at turn boundaries).
 
-Verify with `claude mcp list` (`muster … ✔ Connected`) or Cursor's
-`~/.cursor/mcp.json`. Full docs live in the muster repo's README.
+Verify with `claude mcp list` (`muster … ✔ Connected`). Full docs live in the
+muster repo's README.
 
 ### The naming contract (tmux ↔ muster)
 
@@ -269,7 +281,7 @@ retired.
 ## Structure
 
 ```
-~/dotfiles/
+<checkout>/
 ├── .zshrc                 # Minimal loader, sources config/zsh/*
 ├── .tmux.conf             # tmux config (prefix C-a, plugins, status bar)
 ├── kempt.toml             # declarative machine manifest (kempt reads this)
@@ -291,7 +303,7 @@ retired.
 │   │   ├── 03-proj-roots.zsh   # project-roots loader (proj/pt)
 │   │   ├── 04-aliases.zsh      # aliases + proj/pt/tat/proj-clean/bell-clear
 │   │   ├── 05-completions.zsh  # Shell completions
-│   │   └── 06-tmux-autojoin.zsh # ⌘T → auto-join project tmux session
+│   │   └── 06-proj.zsh         # ⌘T → fires proj's auto-join once PATH is set
 │   ├── starship.toml      # Prompt configuration
 │   ├── atuin/config.toml  # History sync settings
 │   └── claude/
@@ -315,13 +327,13 @@ retired.
 | The prompt | `config/starship.toml` ([starship.rs/config](https://starship.rs/config/)) |
 | Terminal settings / keybinds | `config/ghostty/config` |
 | tmux behavior / status bar | `.tmux.conf` |
-| Homebrew packages | `packages/<name>/Brewfile`, then `brew bundle --file=packages/<name>/Brewfile` |
+| Homebrew packages | the package's `install` step in `kempt.toml`, then `kempt apply` |
 
 ## Requirements
 
 - macOS
 - [Homebrew](https://brew.sh)
-- MonoLisa font (paid; not in any package's Brewfile) — without it Ghostty falls back to a
+- MonoLisa font (paid; not installed by any package) — without it Ghostty falls back to a
   default monospace. Install your `.ttf`s into `~/Library/Fonts/` first. The
   config expects MonoLisa **3.000+**, whose family is `MonoLisaCode` (v2.x
   shipped as `MonoLisa`); on 3.000 the variable `MonoLisaCodeUpright.ttf` covers

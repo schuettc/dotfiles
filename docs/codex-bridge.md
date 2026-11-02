@@ -15,12 +15,12 @@ bill against the subscription too.
 ## One-time setup
 
 ```bash
-brew bundle --file=~/dotfiles/Brewfile   # installs cask "codex" (or: brew install --cask codex)
 codex login                              # browser sign-in with your ChatGPT plan
 codex login status                       # → should print your account, "logged in"
 ```
 
-`install.sh` already registers the MCP bridge. To do it by hand / re-verify:
+The `codex` kempt package installs the `codex` cask and registers the MCP
+bridge. To do it by hand / re-verify:
 
 ```bash
 claude mcp add codex -s user -- codex mcp-server   # idempotent; user scope = all projects

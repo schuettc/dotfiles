@@ -29,7 +29,7 @@ hook_name=$(printf '%s' "$input" | jq -r '.hook_event_name // .hook_name // ""' 
 
 ring_tmux_bell() {
   local pane_line tty
-  pane_line=$("$HOME/dotfiles/bin/tmux-hook-pane.sh" "$$" 2>/dev/null) || return 0
+  pane_line=$("$HOME/.local/bin/tmux-hook-pane.sh" "$$" 2>/dev/null) || return 0
   tty=$(printf '%s' "$pane_line" | cut -f4)
   [[ -n "$tty" ]] || return 0
   printf '\a' >> "$tty" 2>/dev/null || true

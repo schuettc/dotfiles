@@ -6,16 +6,17 @@ workspace and let both agents coordinate directly through muster.
 
 ## Install and sign in
 
-Install the `cursor` and `muster` packages (with their dependencies):
+This repo's kempt manifest does not select Cursor. To use it, install the
+Cursor CLI yourself (`brew install --cask cursor-cli`) and sign in with your
+Cursor subscription when `cursor-agent` (or its `agent` alias) prompts you.
+Then, with muster installed, wire Cursor onto the bus with muster's own
+direct setup (`--force` because kempt manages the rest of muster's setup):
 
 ```bash
-bash packages/run.sh core cursor muster
+muster setup --force --agent cursor
 ```
 
-`packages/cursor` installs the `cursor-cli` cask. Sign in with your Cursor
-subscription when `cursor-agent` (or its `agent` alias) prompts you.
-
-When muster builds successfully and Cursor is present, it automatically:
+That:
 
 - registers `~/.local/bin/muster mcp` in `~/.cursor/mcp.json`;
 - enables the `muster` MCP server in the Cursor CLI;

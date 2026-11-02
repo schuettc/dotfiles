@@ -20,88 +20,65 @@ the design rationale see [`setup-notes.md`](setup-notes.md).
 ## Prerequisites
 
 - macOS (Apple Silicon or Intel)
-- [Homebrew](https://brew.sh) — `install.sh` installs it if missing
-- A GitHub SSH key (to clone the repo via `git@`)
+- [Homebrew](https://brew.sh)
+- [kempt](https://kempt.tools) 0.13.0 or later:
+  `curl -fsSL https://kempt.tools/install.sh | sh`
 
 ## Choose an installation path
 
 | Installation | Use when | Command |
 |---|---|---|
-| Standard | You want the normal terminal and coding-agent setup | `./install.sh` |
+| Standard | You want the normal terminal and coding-agent setup | `kempt init https://github.com/schuettc/dotfiles.git`, profile `developer` |
 | Guided selective | You want to review and approve packages individually | Open `claude` in the repo and ask for the install wizard |
-| Explicit selective | You already know which packages you want | `./packages/run.sh <package>…` |
-| Local Pi models | You want the opt-in Pi + llama.cpp stack | `./packages/run.sh pi` after a standard install, or `./packages/run.sh core pi` when `core` is not installed (Homebrew required) |
+| Explicit selective | You already know which packages you want | `kempt init <repo>` and pick the packages, or `kempt adopt <pkg>` later |
+| Local Pi models | You want the opt-in Pi + llama.cpp stack | `kempt adopt pi-llama`, on a machine with the GGUF weights |
 
-The local Pi model stack is intentionally excluded from the standard install.
-Installing the Pi app by itself is also supported with
-`npm install -g @earendil-works/pi-coding-agent`; that does not install or
-configure llama.cpp. See [`pi-local-models.md`](pi-local-models.md) for the full
-set of local-model choices.
+`developer` selects `core`, `terminal`, `nvim`, `markedit`, `claude`,
+`swiftbar`, `codex`, `muster`, `galley`, `sift`, `imprint`, `muda`, `diazo`,
+`hail`, `pi` and `pi-channels`; `minimal` selects `core`. Pi runs on the
+`claude-bridge` provider and needs no local models; `pi-llama` and
+`session-themes` are opt-in only. Personal machines can add the home layer
+(casebook and cull): `kempt layer add home <checkout>/layers/home`.
 
-The standard package set is `core`, `terminal`, `nvim`, `markedit`, `claude`,
-`swiftbar`, `codex`, `cursor`, and `muster`; `pi` is available only when it is
-explicitly selected.
-
-## Standard one-command install
+## Standard install
 
 ```bash
-git clone git@github.com:schuettc/dotfiles.git ~/dotfiles
-cd ~/dotfiles
-./install.sh
+kempt init https://github.com/schuettc/dotfiles.git
 ```
 
-`install.sh` is idempotent — safe to re-run. It installs the standard package
-set and will:
+kempt clones the repo (to `~/.config/kempt/repo` unless you choose another
+path; nothing depends on where it lives), asks for a profile, then prepares
+the selected tools' releases online, each binary together with the setup its
+release publishes: hooks, the Claude Code plugin, agent channels, services and
+skills. You see the whole plan before anything changes. It will:
 
-1. Install Homebrew (if missing) and apply the selected packages' Brewfiles:
-   Ghostty, tmux, yazi, neovim, fzf, fd, ripgrep, bat, eza, zoxide, atuin,
-   starship, gh, jq, VS Code, Nerd Font casks, …
-2. Symlink configs into place (backing up any existing file to `*.bak`):
-   - `~/.zshrc`, `~/.tmux.conf`
-   - `~/.config/zsh/`, `~/.config/ghostty/`, `~/.config/yazi/`,
-     `~/.config/starship.toml`, `~/.config/atuin/`, `~/.config/claude/`
-3. Merge Claude Code settings into `~/.claude/settings.json`: wires the
-   `Notification` and `Stop` hooks to `claude-notify.sh` and sets the
-   status line
+1. Install the selected Homebrew formulas and casks: Ghostty, tmux, yazi,
+   neovim, fzf, fd, ripgrep, bat, eza, zoxide, atuin, starship, gh, jq,
+   Claude Code, Codex, VS Code, Nerd Font casks, …
+2. Link configs into place (backing up any existing file to `*.bak`):
+   `~/.zshrc`, `~/.tmux.conf`, `~/.config/zsh/`, `~/.config/ghostty/`,
+   `~/.config/yazi/`, `~/.config/starship.toml`, `~/.config/atuin/`,
+   `~/.config/claude/`, and the helpers tmux runs in `~/.local/bin`.
+3. Install the family tools' binaries into `~/.local/bin` and apply their
+   release setup, and merge this repo's own Claude Code, Codex and pi
+   settings additively, keeping your existing entries.
 
-Then reload your shell:
+diazo and hail are gated downloads: run `kempt login` first, with an account
+entitled to them. Then reload your shell (or open a fresh Ghostty window).
 
-```bash
-source ~/.zshrc      # or just open a fresh Ghostty window
-```
+## Updating, and machines set up earlier
+
+`kempt update` pulls this repo, updates kempt and converges again; `kempt
+plan` shows what would change and works offline from what the last apply
+prepared. A selection saved by an earlier version never grows by itself:
+compare it with the `developer` profile and adopt what you want, for example
+`kempt adopt diazo && kempt apply`.
 
 ## If the install fails partway
 
-`install.sh` is **resilient and re-runnable** — it no longer aborts on the first
-error. A failed step (a flaky brew cask, no network, …) prints a `⚠`
-warning and the install keeps going; a summary of all warnings prints at the end.
-Fix what's listed and just run `./install.sh` again (it's idempotent). Only a
-truly fatal problem — no Homebrew — stops it.
-
-## Uninstall / reset
-
-```bash
-./uninstall.sh           # remove our symlinks + config, restore *.bak backups
-./uninstall.sh --purge   # the above, plus uninstall SwiftBar + delete TPM
-```
-
-`uninstall.sh` undoes what `install.sh` did, conservatively:
-
-- Removes **only** symlinks that point into this dotfiles dir, then restores any
-  `*.bak` backup the install made — it never deletes a real file it didn't
-  create, and leaves foreign symlinks alone.
-- Removes the `~/.local/bin/claude-attn` symlink and the SwiftBar Login Item +
-  plugin-dir preference.
-- Strips the hooks / statusline / permission it merged into
-  `~/.claude/settings.json` (backed up to `settings.json.bak` first), preserving
-  any of your own entries.
-- Leaves Homebrew packages and the SwiftBar **app** installed unless you pass
-  `--purge`.
-
-It does **not** kill your tmux server (you'd lose live sessions) — restart tmux
-or run `tmux source ~/.tmux.conf` afterward to apply the reverted config.
-
-**Reset** = uninstall then reinstall: `./uninstall.sh && ./install.sh`.
+kempt reports each failed step and the next `kempt plan` shows what is left;
+fix the cause and run `kempt apply` again (it is idempotent). A family tool
+whose binary failed holds its setup until the binary is in place.
 
 ## Post-install (manual, one-time)
 
