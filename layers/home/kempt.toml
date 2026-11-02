@@ -65,5 +65,11 @@ only = { os = "darwin" }
   bin = "cull"
   setup = true
 
+  # The retired tackle marketplace: its release removes the old plugin
+  # enablement but not the marketplace entry itself.
+  [[packages.cull.json-merge]]
+  file = "~/.claude/settings.json"
+  remove = ["extraKnownMarketplaces.tackle"]
+
   [[packages.cull.verify]]
   command-exists = "cull"

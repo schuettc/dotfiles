@@ -615,6 +615,12 @@ only = { os = "darwin" }
   bin = "sift"
   setup = true
 
+  # The retired tackle marketplace: its release removes the old plugin
+  # enablement but not the marketplace entry itself.
+  [[packages.sift.json-merge]]
+  file = "~/.claude/settings.json"
+  remove = ["extraKnownMarketplaces.tackle"]
+
   [[packages.sift.verify]]
   command-exists = "sift"
 
@@ -636,6 +642,12 @@ only = { os = "darwin" }
   bin = "imprint"
   setup = true
 
+  # The retired tackle marketplace: its release removes the old plugin
+  # enablement but not the marketplace entry itself.
+  [[packages.imprint.json-merge]]
+  file = "~/.claude/settings.json"
+  remove = ["extraKnownMarketplaces.tackle"]
+
   [[packages.imprint.verify]]
   command-exists = "imprint"
 
@@ -655,16 +667,22 @@ notes = ["diazo.tools downloads need this machine signed in to a subaud.tools ac
   bin = "diazo"
   setup = true
 
+  # The bare MCP server the diazo plugin replaced; its release does not remove it.
+  [[packages.diazo.json-merge]]
+  file = "~/.claude.json"
+  remove = ["mcpServers.diazo"]
+
   [[packages.diazo.verify]]
   command-exists = "diazo"
 
 # ---------------------------------------------------------------------------
 # hail — approve agent prompts from your phone (hail.tools). Its release setup
-# supplies the daemon service; the pi end is pi-hail in [packages.pi].
+# supplies the daemon service; the pi end is pi-hail in [packages.pi], so hail
+# needs pi.
 # ---------------------------------------------------------------------------
 [packages.hail]
 description = "hail: answer agent prompts from your phone (hail.tools)"
-needs = ["core"]
+needs = ["pi"]
 only = { os = "darwin" }
 notes = [
   "hail.tools downloads need this machine signed in to a subaud.tools account entitled to hail",

@@ -23,6 +23,14 @@ HOME = tomllib.loads((REPO / "layers/home/kempt.toml").read_text())
 SETUP_TOOLS = {"proj", "muster", "galley", "muda", "sift", "imprint", "casebook", "cull", "diazo", "hail"}
 # Ordinary binary-only downloads.
 PLAIN_TOOLS = {"scratch", "creel"}
+# Retired registrations whose cleanup the releases do not carry, so the
+# packages that select those tools keep removing them here.
+RETAINED_CLEANUP = {
+    "sift": ("~/.claude/settings.json", "extraKnownMarketplaces.tackle"),
+    "imprint": ("~/.claude/settings.json", "extraKnownMarketplaces.tackle"),
+    "home/cull": ("~/.claude/settings.json", "extraKnownMarketplaces.tackle"),
+    "diazo": ("~/.claude.json", "mcpServers.diazo"),
+}
 # The developer selection as it was saved before this change.
 SAVED_DEVELOPER = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "sift", "muda", "pi", "pi-channels"]
 
@@ -102,7 +110,8 @@ class SetupContract(unittest.TestCase):
                 tokens = [t for t in walk(m.get("merge", {})) if isinstance(t, str)]
                 self.assertFalse([t for t in tokens if t.endswith("@subaud-tools")], f"{name}: release-owned plugin")
                 self.assertFalse([t for t in tokens if " hook " in t or "casebook " in t], f"{name}: release-owned hook")
-                self.assertFalse([r for r in m.get("remove", []) if r.startswith(("enabledPlugins.", "mcpServers."))], f"{name}: release-owned removal")
+                retained = {RETAINED_CLEANUP[name][1]} if name in RETAINED_CLEANUP else set()
+                self.assertFalse([r for r in m.get("remove", []) if r.startswith(("enabledPlugins.", "mcpServers.")) and r not in retained], f"{name}: release-owned removal")
                 for server in m.get("merge", {}).get("channelServers", {}):
                     channels.setdefault(server, []).append(name)
             for m in pkg.get("toml-merge", []):
@@ -129,6 +138,15 @@ class SetupContract(unittest.TestCase):
             self.assertEqual(len(listed), len(set(listed)), name)
         composed = [e for p in all_packages().values() for m in merges(p, "~/.pi/agent/settings.json") for e in m.get("merge", {}).get("packages", [])]
         self.assertEqual(len(composed), len(set(composed)))
+
+    def test_retired_registrations_still_removed(self):
+        pkgs = all_packages()
+        for name, (file, path) in RETAINED_CLEANUP.items():
+            removed = [r for m in merges(pkgs[name], file) for r in m.get("remove", [])]
+            self.assertIn(path, removed, name)
+
+    def test_hail_brings_its_pi_end(self):
+        self.assertIn("pi", needs_closure(["hail"], packages(BASE)))
 
     def test_home_casebook_needs_pi(self):
         self.assertIn("pi", packages(HOME)["casebook"].get("needs", []))
