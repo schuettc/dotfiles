@@ -15,12 +15,12 @@ Execute the whole plan without a reviewer per task. At the end, a reviewer from 
 
 **Rulings, not stalls.** Ordinary conflicts, ambiguities and small plan defects: decide them. The spec is the binding authority, the plan is its argument, and judgment settles what neither answers. Record every decision in the report as `Ruling: <what was decided> — <why> — <what it costs if wrong>`, and keep going. Deviating from the plan without a recorded ruling is a decision made in secret.
 
-Stop and bring it to Court for: an irreversible or destructive operation; a security-sensitive action; a side effect outside the worktree that AGENTS.md says to ask about first (a merge, a publish); a genuine design choice between correct approaches that is Court's to make; a finding that makes the accepted plan wrong; and the work going past the plan's scope (see "Stop when it grows"). For those, stop and bring it to Court.
+Stop and bring it to Court for: deleting something that exists only on this machine (one list, one Go, per writing-plans' "Sizing to the Risk"); a security-sensitive action; a side effect outside the worktree that AGENTS.md says to ask about first (a merge, a publish); a genuine design choice between correct approaches that is Court's to make; a finding that makes the accepted plan wrong; and the work going past the plan's scope (see "Stop when it grows"). For those, stop and bring it to Court.
 
 ## Choose who implements
 
-- **One `worker` subagent for the whole plan (default).** The main session stays responsive: dispatch it and keep talking with Court while it runs. Pick the model with the `pi-subagent-dispatch` skill (`worker` inherits the session model; routine work may run on Sonnet on the same provider).
-- **Inline, in this session,** when the plan is small: a single task, or judgment-heavy work that needs Court in the loop.
+- **One `worker` subagent for the whole plan (default).** The main session coordinates: it holds the plan, the diazo page and the conversation with Court, and runs no task commands itself beyond small reads and each task's check commands, so a long run rarely compacts. The worker returns a short result: what changed, and each check with its exit code. Pick the model with the `pi-subagent-dispatch` skill (`worker` inherits the session model; routine work may run on Sonnet on the same provider).
+- **Inline, in this session,** only when the plan is a single small task.
 - **Large-plan mode: a fresh `worker` per task,** when the plan has many independent tasks and one worker would carry too much context through them. Each task starts clean; the main session runs each task's own checks between tasks.
 
 Tasks build their tests per the test-driven-development skill: one failing test per behavior the plan asks for, watched failing, then passing.
@@ -71,6 +71,19 @@ Redirect long test output to a file in the run directory and read its tail.
 ## Stop when it grows
 
 When fixes keep surfacing new problems, or a worker went past its brief (files or features the plan doesn't name), stop (AGENTS.md "Stop when it grows"). Bring Court what was added beyond the plan, and why. A scope change is never your call.
+
+## The tripwire
+
+Stop adding checks and bring Court the simplest plan that finishes the job, before any other work, when:
+
+- Court questions the value of a check or a wait ("tedious", "phantom", "why are we doing this", "why are we parked"), or
+- a plan reaches its third step asking Court to Go on the same kind of action: another Go to move, clean or verify the same set of things. Different gates in one plan, such as a merge then a deploy, don't count.
+
+The simplest plan names what is left, the risk size it falls in (writing-plans, "Sizing to the Risk") and what it drops; Court picks it or keeps the current one. Never answer it with another gate.
+
+## Other live sessions
+
+When a run changes paths other sessions use, send one muster notice saying what moves and when, and proceed unless one objects (AGENTS.md: silence means go). A session whose own folder moves is listed in the same Go; stop it, move the folder and reopen it yourself. Never pause sessions one by one and wait on their replies, and never hand Court a click you can do yourself.
 
 ## Final Review
 
