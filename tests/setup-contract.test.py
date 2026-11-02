@@ -138,6 +138,16 @@ class SetupContract(unittest.TestCase):
             pkg = packages(BASE)[name]
             self.assertTrue(any("entitle" in n for n in pkg.get("notes", [])), name)
 
+    def test_anonymous_base_needs_no_identity(self):
+        for path in ("kempt.toml", "layers/home/kempt.toml"):
+            text = (REPO / path).read_text()
+            for needle in ("/Users/", "Fundamental-Technologies", "~/GitHub/", "~/dotfiles/"):
+                self.assertFalse(needle in text, f"{path} names {needle}")
+
+    def test_base_skills_list_is_explicitly_empty(self):
+        skills = [m for m in merges(packages(BASE)["pi"], "~/.pi/agent/settings.json") if "skills" in m["merge"]]
+        self.assertEqual([(m["merge"]["skills"], m.get("arrays")) for m in skills], [([], "replace")])
+
     def test_profiles(self):
         profiles = BASE["profiles"]
         developer = profiles["developer"]["packages"]

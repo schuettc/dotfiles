@@ -1,45 +1,80 @@
 ---
 name: install-wizard
-description: Use when someone wants to selectively install components of this dotfiles repo — walks through each package (what it does, what it touches), resolves dependencies, runs chosen package installs, verifies. Triggers on "install wizard", "selective install", "set up these dotfiles", "what would this install".
+description: Use when someone wants to set up this machine from these dotfiles, or choose which of its packages and layers to take — walks through kempt's profiles and packages (what each does, what it touches), resolves dependencies, runs `kempt init` or a deliberate adoption, and lists the personal follow-ups. Triggers on "install wizard", "selective install", "set up these dotfiles", "what would this install".
 ---
 
 # Dotfiles Install Wizard
 
-Guide the user through a selective install of this repo's packages. The
-packages — not this file — are the source of truth: read every
-`packages/*/pkg.sh` for `PKG_DESC` and `PKG_DEPS` before saying anything.
+Guide the user through setting up this machine with kempt (0.13.0 or later).
+The manifests, not this file, are the source of truth: read `kempt.toml`
+(base packages and profiles) and `layers/home/kempt.toml` (the optional home
+layer) before saying anything, and take descriptions, `needs`, `notes` and
+profiles from them. Do not keep a package list here.
+
+The commands below are yours to run. Ask the user only for the choices and
+sign-ins only they can make.
 
 ## Flow (one question per message, always)
 
-1. **Prereq scan.** Verify macOS (`uname`). Report what's already present:
-   brew, go, claude, codex, cursor-agent, SwiftBar, an existing ~/.claude/settings.json
-   (say clearly: merges are additive — their settings are preserved).
-2. **Inventory.** Present the package list with one-line descriptions and
-   the dependency graph, then walk packages ONE AT A TIME in canonical
-   order (core terminal nvim markedit claude swiftbar codex pi cursor muster).
-   Pi is an opt-in local-model package and is not part of root `install.sh`;
-   explicitly call out that it installs llama.cpp, writes additive Pi provider
-   defaults, and creates a persistent loopback-only router LaunchAgent. For
-   each: what it is, how it works, and EXACTLY what it touches — casks
-   installed, files symlinked into $HOME, settings files merged, and any
-   persistence (login items, LaunchAgents) called out explicitly. Codex
-   needs a paid ChatGPT subscription — say so. Then ask: install? yes/no.
-3. **Dependency closure.** Expand picks with hard deps (PKG_DEPS,
-   transitively). Tell the user exactly what was added and why. Show the
-   final list and get explicit confirmation before installing anything.
-4. **Execute.** Run `bash packages/run.sh <pkg>` one package at a time, in
-   canonical order, streaming output. On a failure: report it, ask
-   continue-or-stop. Never install anything outside the confirmed set;
-   never edit package scripts.
-5. **Report.** Per-package verify results (run.sh prints them), then an
-   honest summary: installed / skipped / failed / remaining manual steps
-   (SwiftBar Accessibility grant, `codex login`, `atuin login`).
+1. **Prereq scan.** Verify macOS (`uname`) and `kempt version` (0.13.0 or
+   later; otherwise install it from kempt.tools first). Find out whether this
+   machine already has a kempt selection: `kempt plan` with no flags uses the
+   saved selection, and `kempt layer list` shows its layers.
+2. **Choose.** New machine: present the profiles (`developer`, `minimal`) and
+   then each package ONE AT A TIME in the profile's order. For each: what it
+   is, and EXACTLY what it touches: casks and formulas, files linked into
+   $HOME, settings merged, and anything persistent (LaunchAgents, login
+   items). A download with `setup = true` also takes the hooks, plugins,
+   channels, services and skills its release publishes; name them from the
+   plan, not from memory. Call out access: diazo and hail are gated
+   downloads that need a subaud.tools account entitled to them, and Codex
+   needs a paid ChatGPT plan. Then ask: include it? yes/no.
+   Existing machine: its saved selection never grows by itself. Compare it
+   with the `developer` profile and offer each missing package as a deliberate
+   adoption (`kempt adopt <pkg>`), one at a time.
+3. **Dependency closure.** Expand picks with their `needs`, transitively. Say
+   exactly what was added and why, show the final list, and get explicit
+   confirmation before anything runs.
+4. **Layers.** Offer the home layer (casebook and cull, for personal machines)
+   from this checkout: `kempt layer add home <checkout>/layers/home`, where
+   `<checkout>` is the clone kempt made (`~/.config/kempt/repo` by default,
+   or wherever the user cloned it). Work and private layers are the user's
+   own; add them only from a path or repo they name.
+5. **Execute.** New machine: `kempt init <repo or tarball URL>` with the chosen
+   profile and packages. Existing machine: `kempt apply`. kempt prepares the
+   selected releases online (binary and setup together), shows the whole
+   plan and asks before applying; read the plan back to the user and wait for
+   their yes. `kempt plan` alone works offline from what an earlier apply
+   cached, and reports a release it has not prepared as blocked. On a
+   failure: report it, ask continue-or-stop.
+6. **Report.** `kempt verify`, then an honest summary: applied / skipped /
+   failed, and the follow-ups for what was selected (below).
+
+## Follow-ups, by package selected
+
+Offer each only for a selected package, one at a time, and only with the
+user's go-ahead. Never ask for a credential before saying what it is for and
+what lighter option exists; capture any secret with the secret tool, never in
+chat.
+
+- diazo, hail: before preparing them, sign this machine in to the entitled
+  subaud.tools account (`kempt login`, once for every subaud tool).
+- hail: pair the phone with the daemon.
+- codex: `codex login`. claude: sign in on first run.
+- casebook (home layer): `casebook init`, then decide whether to install its
+  Git recorder (`casebook hooks install`).
+- cull (home layer): `cull init` in each project, which asks for the TypeSafe
+  key and whether that project's tests may be sent.
+- sift: `sift init --root DIR` for the directories to audit.
+- swiftbar: the three macOS steps in its notes (plugin folder, login item,
+  Accessibility).
+- pi-llama (opt-in): the GGUF weights it serves.
 
 ## Rules
 
 - One question per message. No compound questions.
 - Explain before asking — the user should understand a package before
-  deciding. Answer side-questions from the pkg.sh/README content.
-- Never run root ./install.sh from this skill (that is the standard-package
-  path); the wizard only runs packages/run.sh with the confirmed set.
-- If a package's verify FAILs, say so plainly — no "mostly worked".
+  deciding. Answer side-questions from the manifests and the README.
+- Never apply anything outside the confirmed selection; never edit the
+  manifests during the wizard.
+- If a verify fails, say so plainly — no "mostly worked".
