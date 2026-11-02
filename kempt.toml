@@ -100,6 +100,43 @@ needs = ["core"]
   to = "~/.config/yazi"
   backup = true
 
+  # tmux helpers .tmux.conf runs, at a stable path wherever this repo is
+  # checked out.
+  [[packages.terminal.symlink]]
+  from = "bin/tmux-attention.sh"
+  to = "~/.local/bin/tmux-attention.sh"
+  backup = false
+
+  [[packages.terminal.symlink]]
+  from = "bin/tmux-claude-context.sh"
+  to = "~/.local/bin/tmux-claude-context.sh"
+  backup = false
+
+  [[packages.terminal.symlink]]
+  from = "bin/tmux-git-status.sh"
+  to = "~/.local/bin/tmux-git-status.sh"
+  backup = false
+
+  [[packages.terminal.symlink]]
+  from = "bin/tmux-session-color.sh"
+  to = "~/.local/bin/tmux-session-color.sh"
+  backup = false
+
+  [[packages.terminal.symlink]]
+  from = "bin/tmux-session-rename.sh"
+  to = "~/.local/bin/tmux-session-rename.sh"
+  backup = false
+
+  [[packages.terminal.symlink]]
+  from = "bin/tmux-sidebar-toggle.sh"
+  to = "~/.local/bin/tmux-sidebar-toggle.sh"
+  backup = false
+
+  [[packages.terminal.symlink]]
+  from = "bin/tmux-teammate-gc.sh"
+  to = "~/.local/bin/tmux-teammate-gc.sh"
+  backup = false
+
   # scratch + proj — installed from tackle.tools/dl (the family download
   # contract), each verified against its .sha256 sidecar. proj's release also
   # installs its shell wrapper at ~/.local/share/proj/proj.zsh.
@@ -206,6 +243,12 @@ needs = ["core"]
   to = "~/.local/bin/claude-attn"
   backup = false
 
+  # The pane lookup claude-notify.sh runs to ring the right tmux bell.
+  [[packages.claude.symlink]]
+  from = "bin/tmux-hook-pane.sh"
+  to = "~/.local/bin/tmux-hook-pane.sh"
+  backup = false
+
   # superpowers is removed from the harness (2026-09-30). pi-claude-bridge runs
   # Claude Code with its default setting sources, so an enabled CC plugin's
   # SessionStart hook injects into pi sessions too — keep it off here as well.
@@ -267,20 +310,26 @@ notes = ["run `codex login` to authenticate"]
 # ---------------------------------------------------------------------------
 # swiftbar — menu-bar attention indicator (🔔 turn-done / 🔐 waiting-on-you per
 # Claude/pi session; the plugin at config/swiftbar/plugins/ is driven by
-# claude-attn + the pi harness). Actively used, so kempt installs the app; the
-# three macOS one-offs (plugin folder, autostart, accessibility) are manual notes.
+# claude-attn + the pi harness). Actively used, so kempt installs the app and
+# links the plugins; the three macOS one-offs (plugin folder, autostart,
+# accessibility) are manual notes.
 # ---------------------------------------------------------------------------
 [packages.swiftbar]
 description = "SwiftBar menu-bar attention indicator for Claude/pi sessions"
 needs = ["claude"]
 notes = [
-  "point SwiftBar at the repo plugins: defaults write com.ameba.SwiftBar PluginDirectory ~/dotfiles/config/swiftbar/plugins",
+  "point SwiftBar at the linked plugins: defaults write com.ameba.SwiftBar PluginDirectory ~/.config/swiftbar/plugins",
   "add SwiftBar to Login Items (System Settings) to auto-start it",
   "grant SwiftBar Accessibility permission (System Settings → Privacy) so click-to-focus works",
 ]
 
   [[packages.swiftbar.install]]
   brew.casks = ["swiftbar"]
+
+  [[packages.swiftbar.symlink]]
+  from = "config/swiftbar/plugins"
+  to = "~/.config/swiftbar/plugins"
+  backup = true
 
 # ---------------------------------------------------------------------------
 # cursor — DROPPED: cursor-agent CLI is not installed on this machine (the

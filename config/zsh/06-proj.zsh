@@ -1,23 +1,7 @@
-# proj — thin shim over the tackle `proj` binary.
-#
-# The binary renders its TUI on the terminal and, for the one case it cannot
-# handle itself (attaching a bare shell to a session on another server), writes
-# an `exec tmux … attach` line to $PROJ_EXEC. We eval that line here so the
-# attach replaces THIS shell. The in-tmux switch/detach cases run in-process in
-# the binary and leave $PROJ_EXEC empty.
-proj() {
-  command -v proj >/dev/null 2>&1 || { echo "proj: binary not on PATH" >&2; return 127; }
-  local ef; ef="$(mktemp "${TMPDIR:-/tmp}/proj-exec.XXXXXX")" || return 1
-  PROJ_EXEC="$ef" command proj "$@"
-  local rc=$?
-  if [[ -s "$ef" ]]; then
-    local cmd; cmd="$(<"$ef")"; rm -f "$ef"
-    [[ -n "$cmd" ]] && eval "$cmd"
-    return
-  fi
-  rm -f "$ef"
-  return $rc
-}
+# proj() itself (over the binary, with the $PROJ_EXEC hand-back) comes from
+# proj's release at ~/.local/share/proj/proj.zsh, which .zshrc sources before
+# this file. That wrapper defines the same auto-join; this definition is used
+# only when it is absent.
 
 # Auto-join: a fresh interactive shell inside a project dir (and not already in
 # tmux) opens that project's proj view — so ⌘T in a project's Ghostty window
@@ -30,7 +14,7 @@ proj() {
 #   * silent no-op if tmux or proj is absent, or $PWD is outside every root
 # AUTO_CLAUDE=1 keeps its meaning: the project view is opened with claude
 # preselected as the agent for any new work.
-__proj_autojoin() {
+(( $+functions[__proj_autojoin] )) || __proj_autojoin() {
   [[ $- != *i* ]] && return 0                 # interactive only
   [[ -n "${TMUX:-}" ]] && return 0            # already in tmux
   [[ -n "${NO_AUTO_TMUX:-}" ]] && return 0    # per-shell opt-out
