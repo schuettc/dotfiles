@@ -24,6 +24,21 @@ The plan is usually executed by one `worker` subagent reading the whole plan as 
 
 Before tasks, write down the correct change for the ask, kept as small as correctness allows: what it includes and what it leaves out. Apply AGENTS.md's "Scope": every case, guard, option, fallback or test in the plan names when it happened in real use; anything else goes in a "Follow-ups" list of one line each, not in a task. If the plan comes out much bigger than the spec implied, show Court the list with what you'd drop before writing tasks.
 
+## Sizing to the Risk
+
+Every plan states, before any task:
+
+- **Risk:** what a mistake in this plan would destroy, and how it is undone.
+- **Cost:** how many Go steps and walkthrough steps it asks of Court, and any new program it writes. A gate or constraint the spec didn't have is named here.
+
+The Risk line sets the gates:
+
+- **Reversible local work** (moving or renaming folders, local config under git, anything a move back or a revert undoes): do it, check once, show Court. No Go per step and no pilot stage: the first real batch is the test.
+- **Deleting something that exists only on this machine:** one list naming every item, one Go, then delete and check once.
+- **Shared or external** (deploys, merges, publishes, other people's systems): the usual gates.
+
+A one-time local job uses the commands directly (`mv`, `git worktree move`, `git worktree repair`, a short loop over a list): no preview/apply/verify program, fixture suite or disposable proof unless something real failed first. A check looks at each item in its new state (`git -C <path> status` exits 0, the link resolves, the session reopens), never at the live machine against an earlier snapshot. A run records each check as one line in its report, not as snapshot files.
+
 ## Scope Check
 
 If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans, one per subsystem. Each plan should produce working, testable software on its own.
@@ -64,6 +79,10 @@ Each task carries its own check commands: the test command (and any build or lin
 **Goal:** [One sentence describing what this builds]
 
 **Scope:** [What the change includes, and what it leaves out for later]
+
+**Risk:** [What a mistake in this plan would destroy, and how it is undone]
+
+**Cost:** [Go steps and walkthrough steps for Court; any new program; any gate the spec didn't have]
 
 **Architecture:** [2-3 sentences about approach]
 

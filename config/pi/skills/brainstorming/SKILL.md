@@ -105,6 +105,7 @@ The subsections below serve the bounded and architectural paths (a spike stops a
 **What the spec covers:**
 
 - Architecture, components, data flow, error handling, testing
+- **Risk and Cost**, before any guard: what a mistake would destroy and how it's undone, and how many Go steps and walkthrough steps the work will ask of Court, with any new program it writes. Every guard, gate or check names that risk or a time it happened in real use; anything else is a follow-up line. Gates follow writing-plans' "Sizing to the Risk".
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 
 **Design for isolation and clarity:**
@@ -134,6 +135,7 @@ After writing `spec.md` and before printing it, look at it with fresh eyes:
 2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
 3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition? Does it carry anything that hasn't happened in real use? Move that to a follow-up line.
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
+5. **Proportion check:** Does every guard name the Risk line or a real case? Does the spec ask for a program, a pilot stage or a snapshot comparison for work a move back or a revert undoes? Cut them (writing-plans, "Sizing to the Risk").
 
 Fix any issues inline. No need to re-review: just fix and move on. No reviewer subagent for the spec; Court is its reviewer.
 
