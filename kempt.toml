@@ -1,13 +1,18 @@
 # kempt.toml — declarative description of this machine's dotfiles + tools.
-# Authored from packages/*/pkg.sh, the Brewfiles, and the live machine config.
 # Scope: core, terminal, nvim, markedit, claude, codex, swiftbar, muster,
-# galley, pi, pi-channels, pi-llama.
+# galley, muda, sift, imprint, diazo, hail, pi, pi-channels, pi-llama.
 # (cursor dropped — the cursor-agent CLI was never set up; see the cursor note
 # below. pi-llama is optional and NOT in the developer profile — adopt it only
 # on a box with local GGUF weights.)
+#
+# Family tools own their integration: a download with `setup = true` takes the
+# hooks, plugins, channels, services and skills its release publishes beside
+# the binary (kempt 0.13.0+ resolves both before showing the plan). This file
+# keeps what is dotfiles' own: which tools a machine selects, shared
+# preferences, and the pi package lists.
 
 [kempt]
-spec = 1
+spec = 2
 
 # ---------------------------------------------------------------------------
 # core — shell foundation: brew CLI tools, zsh, starship, atuin
@@ -96,21 +101,26 @@ needs = ["core"]
   backup = true
 
   # scratch + proj — installed from tackle.tools/dl (the family download
-  # contract), each verified against its .sha256 sidecar.
+  # contract), each verified against its .sha256 sidecar. proj's release also
+  # installs its shell wrapper at ~/.local/share/proj/proj.zsh.
   [[packages.terminal.download]]
   site = "tackle.tools"
+  product = "tackle"
   tool = "scratch"
   bin = "scratch"
 
   [[packages.terminal.download]]
   site = "tackle.tools"
+  product = "tackle"
   tool = "proj"
   bin = "proj"
+  setup = true
 
   # creel — masked secret capture into a local .env (prefix S, and the pi
   # request_secret tool). Same family download contract as scratch/proj.
   [[packages.terminal.download]]
   site = "tackle.tools"
+  product = "tackle"
   tool = "creel"
   bin = "creel"
 
@@ -179,8 +189,12 @@ needs = ["core"]
 # claude — Claude Code statusline, hooks, claude-attn CLI
 # ---------------------------------------------------------------------------
 [packages.claude]
-description = "Claude Code integration: tmux-aware statusline, attention-bell hooks, claude-attn CLI"
+description = "Claude Code CLI + integration: tmux-aware statusline, attention-bell hooks, claude-attn CLI"
 needs = ["core"]
+
+  # The native `claude` binary (Homebrew cask claude-code).
+  [[packages.claude.install]]
+  brew.casks = ["claude-code"]
 
   [[packages.claude.symlink]]
   from = "config/claude"
@@ -281,107 +295,34 @@ description = "Cross-terminal agent coordination bus (daemon, MCP + session hook
 needs = ["terminal"]
 only = { os = "darwin" }
 
-  # muster installs from muster.tools/dl (the family download contract): the
-  # `latest` pointer resolves the version, and the asset is verified fail-closed
-  # against its .sha256 sidecar. (Was github-release; muster.tools/dl now serves.)
+  # muster installs from muster.tools/dl (the family download contract). Its
+  # release setup supplies the daemon service, the Claude plugin, hooks and MCP
+  # registration, and the Codex hooks and MCP server. The optional tmux mailbox
+  # lines are not part of it: .tmux.conf here owns the title and status bar.
   [[packages.muster.download]]
   site = "muster.tools"
   tool = "muster"
   bin = "muster"
+  setup = true
 
-  # Run through a login shell so $HOME expands to an absolute muster path.
-  # launchd resolves ProgramArguments[0] against its OWN default PATH (NOT the
-  # job's EnvironmentVariables), and muster lives in ~/.local/bin — not on that
-  # default path — so a bare `muster` fails to exec (EX_CONFIG, forever). /bin/zsh
-  # is absolute and always resolvable; `-lc` gives the login PATH (homebrew for
-  # tmux, ~/.local/bin for muster) and `exec` replaces the shell so KeepAlive
-  # tracks the muster process directly. Same pattern as pi-llama's router below.
-  [[packages.muster.service]]
-  label = "tools.muster.serve"
-  program = ["/bin/zsh", "-lc", "exec \"$HOME/.local/bin/muster\" serve"]
-  stdout = "~/.local/share/muster/serve.log"
-  stderr = "~/.local/share/muster/serve.log"
-
-  # MCP registration into Claude (~/.claude.json), Cursor (~/.cursor/mcp.json),
-  # and Codex (~/.codex/config.toml). Claude Code hears mail through the muster
-  # plugin, enabled below: its .mcp.json runs `muster channel` (as
-  # muster-channel, for muster_channel_status) and its mod runs `muster watch`,
-  # which turns each message into a turn. The bare muster-channel server it
-  # replaces is removed.
-  [[packages.muster.json-merge]]
-  file = "~/.claude.json"
-  merge = { mcpServers = { muster = { type = "stdio", command = "muster", args = ["mcp"], env = {} } } }
-  remove = ["mcpServers.muster-channel"]
-
-  [[packages.muster.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "muster@subaud-tools" = true } }
-  remove = ["extraKnownMarketplaces.muster", "enabledPlugins.muster@muster"]
-
-  [[packages.muster.toml-merge]]
-  file = "~/.codex/config.toml"
-  merge = { mcp_servers = { muster = { command = "muster", args = ["mcp"] } } }
-
-  # MCP registration into pi. pi-mcp-adapter reads ~/.config/mcp/mcp.json (the
-  # all-projects target) and exposes muster's get_inbox/get_thread/reply/... as
-  # tools through its lazy mcp() proxy. Until now pi had only the muster CHANNEL
-  # (mail push, via [packages.pi-channels] → channels.json) and the `muster` CLI
-  # — no MCP tools — so every pi session drained mail by shelling out. This
-  # gives pi the same tool surface Claude and Codex already have; the CLI stays
-  # the equivalent fallback the guidance names for a session without the tools.
-  # Bare `muster` on $PATH matches pi's other mcp.json/channels.json entries
-  # (the login PATH includes ~/.local/bin), not the launchd absolute-path class.
-  # Deep-merge is additive: hand-added servers (polar, zoho) survive.
+  # MCP registration into pi, which muster's release does not declare.
+  # pi-mcp-adapter reads ~/.config/mcp/mcp.json (the all-projects target) and
+  # exposes muster's get_inbox/get_thread/reply/... as tools through its lazy
+  # mcp() proxy, the same tool surface Claude and Codex have. Bare `muster` on
+  # $PATH matches pi's other mcp.json/channels.json entries (the login PATH
+  # includes ~/.local/bin). Deep-merge is additive: hand-added servers survive.
   [[packages.muster.json-merge]]
   file = "~/.config/mcp/mcp.json"
   merge = { mcpServers = { muster = { command = "muster", args = ["mcp"] } } }
-
-  # muster hooks into claude settings + permission allowlist
-  [[packages.muster.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { permissions = { allow = ["mcp__muster"] } }
-
-  [[packages.muster.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { hooks = { Stop = [ { hooks = [ { type = "command", command = "~/.local/bin/muster hook Stop claude" } ] } ] } }
-
-  [[packages.muster.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { hooks = { UserPromptSubmit = [ { hooks = [ { type = "command", command = "~/.local/bin/muster hook UserPromptSubmit claude" } ] } ] } }
-
-  [[packages.muster.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { hooks = { SessionStart = [ { matcher = "startup|resume", hooks = [ { type = "command", command = "~/.local/bin/muster hook SessionStart claude" } ] } ] } }
-
-  [[packages.muster.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { hooks = { SessionEnd = [ { hooks = [ { type = "command", command = "~/.local/bin/muster hook SessionEnd claude" } ] } ] } }
-
-  # muster hooks into codex hooks.json. codex does not expand ~, so kempt expands
-  # the ${HOME} token at write time into an absolute, per-machine path.
-  [[packages.muster.json-merge]]
-  file = "~/.codex/hooks.json"
-  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "${HOME}/.local/bin/muster hook SessionStart codex" } ] } ], Stop = [ { hooks = [ { type = "command", command = "${HOME}/.local/bin/muster hook Stop codex" } ] } ] } }
 
   [[packages.muster.verify]]
   command-exists = "muster"
 
 # ---------------------------------------------------------------------------
 # galley — Markdown/HTML review page shared with Claude Code (a browser review
-# loop; press Revise, Claude rewrites, changes land marked). The binary installs
-# from galley.tools/dl.
-#
-# Claude Code hears galley through the galley plugin from the subaud-tools
-# marketplace (subaud-tools/plugins), which this package enables in
-# ~/.claude/settings.json, so the next plain `claude` session installs it at
-# user scope, no command to run. The plugin's .mcp.json runs `galley channel`
-# for galley_open and the other tools, and its mod runs `galley watch`, which
-# turns each Revise into a turn. The old galley marketplace and galley@galley,
-# and the ~/.claude.json mcpServers.galley entry, are removed, or the channel
-# would start twice. pi still hears galley through [packages.pi-channels].
-# The plugin carries no skill: on a new machine and after an upgrade, run
-# `galley skills install`, which writes the reviewing-a-document skill for
-# Claude Code, Codex and pi (`galley channel` keeps an installed copy current).
+# loop; press Revise, Claude rewrites, changes land marked). The binary and its
+# release setup (the Claude plugin, the pi channel and the reviewing-a-document
+# skill) install from galley.tools/dl.
 # ---------------------------------------------------------------------------
 [packages.galley]
 description = "Markdown/HTML review page shared with Claude Code (galley.tools)"
@@ -392,23 +333,14 @@ only = { os = "darwin" }
   site = "galley.tools"
   tool = "galley"
   bin = "galley"
-
-  [[packages.galley.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "galley@subaud-tools" = true } }
-  remove = ["extraKnownMarketplaces.galley", "enabledPlugins.galley@galley"]
-
-  # The bare server the plugin replaces.
-  [[packages.galley.json-merge]]
-  file = "~/.claude.json"
-  remove = ["mcpServers.galley"]
+  setup = true
 
   [[packages.galley.verify]]
   command-exists = "galley"
 
 # ---------------------------------------------------------------------------
 # muda — find and fix delivery waste in a repository's pipelines (muda.tools).
-# The binary only; its skills reach agents through `muda skills install`.
+# Its release setup supplies the Claude plugin, the pi channel and the skills.
 # ---------------------------------------------------------------------------
 [packages.muda]
 description = "muda: find and fix delivery waste in your pipelines (muda.tools)"
@@ -419,14 +351,7 @@ only = { os = "darwin" }
   site = "muda.tools"
   tool = "muda"
   bin = "muda"
-
-  # Claude Code: the muda plugin from the subaud-tools marketplace
-  # (subaud-tools/plugins). Its .mcp.json runs `muda channel` for the tools and
-  # its mod runs `muda watch`, which turns each Send from muda's page into a turn.
-  # pi's channel is in [packages.pi-channels] with the others.
-  [[packages.muda.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "muda@subaud-tools" = true } }
+  setup = true
 
   [[packages.muda.verify]]
   command-exists = "muda"
@@ -625,11 +550,8 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
 
 # ---------------------------------------------------------------------------
 # sift — audits agent instruction files and puts one recommendation per file in
-# front of you on a review page (tackle.tools). Registered like galley: the
-# session opens the review with its sift_review tool and Send wakes that same
-# session, through the sift plugin under Claude Code and the channel under pi. The binary installs from tackle.tools/dl; pi's
-# channel is in [packages.pi-channels] with the others. After an upgrade, run
-# `sift skills install` so the installed skill matches the binary.
+# front of you on a review page (tackle.tools). Its release setup supplies the
+# Claude plugin, the pi channel and the skill.
 # ---------------------------------------------------------------------------
 [packages.sift]
 description = "sift: instruction-file audits reviewed per file, with an agent channel (tackle.tools)"
@@ -638,19 +560,10 @@ only = { os = "darwin" }
 
   [[packages.sift.download]]
   site = "tackle.tools"
+  product = "tackle"
   tool = "sift"
   bin = "sift"
-
-  # Claude Code: the sift plugin from the subaud-tools marketplace (subaud-tools/plugins) (its mod runs
-  # `sift watch`), in place of the bare server, which is removed.
-  [[packages.sift.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "sift@subaud-tools" = true } }
-  remove = ["extraKnownMarketplaces.tackle", "enabledPlugins.sift@tackle"]
-
-  [[packages.sift.json-merge]]
-  file = "~/.claude.json"
-  remove = ["mcpServers.sift"]
+  setup = true
 
   [[packages.sift.verify]]
   command-exists = "sift"
@@ -658,10 +571,8 @@ only = { os = "darwin" }
 # ---------------------------------------------------------------------------
 # imprint — guides an agent through npm: login, publish, trusted publishers,
 # deprecation, and confirming a CI release landed signed by the right repo
-# (tackle.tools). It opens each npm approval in the browser and reports back,
-# through the imprint plugin under Claude Code and its channel under pi. The binary installs from tackle.tools/dl; pi's channel
-# is in [packages.pi-channels] with the others. After an upgrade, run
-# `imprint skills install` so the installed skill matches the binary.
+# (tackle.tools). Its release setup supplies the Claude plugin, the pi channel
+# and the skill.
 # ---------------------------------------------------------------------------
 [packages.imprint]
 description = "imprint: an npm guide for agents, with an agent channel (tackle.tools)"
@@ -670,48 +581,78 @@ only = { os = "darwin" }
 
   [[packages.imprint.download]]
   site = "tackle.tools"
+  product = "tackle"
   tool = "imprint"
   bin = "imprint"
-
-  # Claude Code: the imprint plugin from the subaud-tools marketplace (subaud-tools/plugins) (its mod runs
-  # `imprint watch`), in place of the bare server, which is removed.
-  [[packages.imprint.json-merge]]
-  file = "~/.claude/settings.json"
-  merge = { extraKnownMarketplaces = { subaud-tools = { source = { source = "github", repo = "subaud-tools/plugins" }, autoUpdate = true } }, enabledPlugins = { "imprint@subaud-tools" = true } }
-  remove = ["extraKnownMarketplaces.tackle", "enabledPlugins.imprint@tackle"]
-
-  [[packages.imprint.json-merge]]
-  file = "~/.claude.json"
-  remove = ["mcpServers.imprint"]
+  setup = true
 
   [[packages.imprint.verify]]
   command-exists = "imprint"
 
 # ---------------------------------------------------------------------------
-# pi-channels — wire the galley + muster channels into pi sessions.
+# diazo — planning sessions on a page shared with the agent (diazo.tools). Its
+# release setup supplies the Claude plugin, the pi channel and the skill.
+# ---------------------------------------------------------------------------
+[packages.diazo]
+description = "diazo: plan a change with an agent on a shared page (diazo.tools)"
+needs = ["core"]
+only = { os = "darwin" }
+notes = ["diazo.tools downloads need this machine signed in to a subaud.tools account entitled to diazo"]
+
+  [[packages.diazo.download]]
+  site = "diazo.tools"
+  tool = "diazo"
+  bin = "diazo"
+  setup = true
+
+  [[packages.diazo.verify]]
+  command-exists = "diazo"
+
+# ---------------------------------------------------------------------------
+# hail — approve agent prompts from your phone (hail.tools). Its release setup
+# supplies the daemon service; the pi end is pi-hail in [packages.pi].
+# ---------------------------------------------------------------------------
+[packages.hail]
+description = "hail: answer agent prompts from your phone (hail.tools)"
+needs = ["core"]
+only = { os = "darwin" }
+notes = [
+  "hail.tools downloads need this machine signed in to a subaud.tools account entitled to hail",
+  "pair your phone with the hail daemon once it is running",
+]
+
+  [[packages.hail.download]]
+  site = "hail.tools"
+  tool = "hail"
+  bin = "hail"
+  setup = true
+
+  [[packages.hail.verify]]
+  command-exists = "hail"
+
+# ---------------------------------------------------------------------------
+# pi-channels — wire the muster channel into pi sessions.
 #
 # channels.tools (installed by [packages.pi]) is the bridge, but it spawns
-# nothing until ~/.pi/agent/channels.json names the channel servers. This
-# package writes that file, so every pi session gets: galley document-review
-# rounds and muster mail push (wake-on-event), with each server's tools
-# registered under their own names. muster REGISTRATION already happens in the
-# harness (pi-claude-bridge session_start); this adds the live channel bridge
-# on top. The Claude Code equivalents live in [packages.muster] (MCP) and each
-# project's .mcp.json (galley) — this is the pi-side counterpart.
+# nothing until ~/.pi/agent/channels.json names the channel servers. galley,
+# sift, imprint, muda and diazo add their own entries through their release
+# setup; muster's release does not, so this package adds its mail push
+# (wake-on-event). muster REGISTRATION already happens in the harness
+# (pi-claude-bridge session_start); this adds the live channel bridge on top.
+# The dependency list is kept so an existing selection of this package keeps
+# the same set of tools.
 #
-# Bare command names (resolved via $PATH): pi spawns channel servers with the
-# session's login PATH, which includes ~/.local/bin — so these follow the same
-# convention as the Claude/Codex MCP `command` entries, NOT the launchd/codex-
-# hooks class that needs absolute ${HOME} paths. Matches live channels.json.
+# Bare command name (resolved via $PATH): pi spawns channel servers with the
+# session's login PATH, which includes ~/.local/bin.
 # ---------------------------------------------------------------------------
 [packages.pi-channels]
-description = "Wire galley, muster, sift, imprint and muda channels into pi sessions (channels.tools → channels.json)"
+description = "Wire the muster channel into pi sessions (channels.tools → channels.json); the other tools bring their own"
 needs = ["pi", "muster", "galley", "sift", "imprint", "muda"]
 only = { os = "darwin" }
 
   [[packages.pi-channels.json-merge]]
   file = "~/.pi/agent/channels.json"
-  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] }, galley = { command = "galley", args = ["channel", "--scope", "."] }, sift = { command = "sift", args = ["channel"] }, imprint = { command = "imprint", args = ["channel"] }, muda = { command = "muda", args = ["channel"] } } }
+  merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] } } }
 
 # ---------------------------------------------------------------------------
 # pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
@@ -768,7 +709,7 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "sift", "muda", "pi", "pi-channels"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "sift", "imprint", "muda", "diazo", "hail", "pi", "pi-channels"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
