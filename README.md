@@ -121,7 +121,7 @@ positional project — `proj --claude dotfiles` works, `proj dotfiles
 | `bell-clear` | dismiss the attention banner (`-k` to kill flagged sessions) |
 
 ⌘T in a project window auto-joins a new tmux session for that project (via
-proj's shell wrapper, `config/zsh/06-proj.zsh` when it is absent); ⌘N opens a fresh window at `$HOME`, outside
+proj's shell wrapper, fired by `config/zsh/06-proj.zsh`); ⌘N opens a fresh window at `$HOME`, outside
 any project. Project roots are configured per-machine in `~/.config/proj/roots`
 (not tracked; first `proj` run sets it up). See
 [`docs/terminal-usage.md`](docs/terminal-usage.md) for the day-to-day walkthrough.
@@ -303,7 +303,7 @@ retired.
 │   │   ├── 03-proj-roots.zsh   # project-roots loader (proj/pt)
 │   │   ├── 04-aliases.zsh      # aliases + proj/pt/tat/proj-clean/bell-clear
 │   │   ├── 05-completions.zsh  # Shell completions
-│   │   └── 06-proj.zsh         # ⌘T → auto-join, when proj's wrapper is absent
+│   │   └── 06-proj.zsh         # ⌘T → fires proj's auto-join once PATH is set
 │   ├── starship.toml      # Prompt configuration
 │   ├── atuin/config.toml  # History sync settings
 │   └── claude/
