@@ -1,6 +1,6 @@
 ---
 name: receiving-code-review
-description: Handles code review findings by verifying each against the code first, fixing those that show the approved behavior failing in real use, pushing back on wrong ones with evidence, and sending everything else to one-line follow-ups; the review is finished when the approved behavior works and nothing regressed. Use when a reviewer subagent, Court, or a PR comment returns findings, before changing any code.
+description: Handles code review findings by verifying each against the code first, fixing those that show the approved behavior failing in real use, pushing back on wrong ones with evidence, and sending everything else to one-line follow-ups; the review is finished when the approved behavior works and nothing regressed. Use when a reviewer subagent, the user, or a PR comment returns findings, before changing any code.
 ---
 
 # Receiving Code Review
@@ -24,7 +24,7 @@ A review is evidence to check, not a list of orders. Verify each finding against
 
 ## Sort Each Finding
 
-**Fix it:** the finding shows the approved behavior failing in real use (a reasonable person using what Court approved gets the wrong result, an error, or a regression of something that worked). Fix it under the test-driven-development skill: a test that reproduces the finding, watched failing, then passing, then the whole suite.
+**Fix it:** the finding shows the approved behavior failing in real use (a reasonable person using what the user approved gets the wrong result, an error, or a regression of something that worked). Fix it under the test-driven-development skill: a test that reproduces the finding, watched failing, then passing, then the whole suite.
 
 **Push back with evidence:** the finding is wrong for this codebase. Say why in one or two sentences and point at the proof (the line, the test, the command output, the spec section). Examples: the code path it describes isn't reachable; the build target makes the "legacy" code necessary; the spec chose this behavior.
 
@@ -37,24 +37,24 @@ A reviewer's severity label is advice. Grade a finding by what a person using th
 When a reviewer asks to "implement it properly" (metrics with date filters, a config option, full validation), first check whether anything uses it:
 
 - `grep` the codebase for callers.
-- Unused: "Nothing calls this endpoint. Remove it rather than build it out?" That question goes to Court if removing it changes what Court approved.
+- Unused: "Nothing calls this endpoint. Remove it rather than build it out?" That question goes to the user if removing it changes what the user approved.
 - Used: then the finding is about real behavior, so sort it as above.
 
-Court's rule: the implementer and the reviewer both answer to Court. If we don't need the feature, don't add it.
+The user's rule: the implementer and the reviewer both answer to the user. If we don't need the feature, don't add it.
 
 ## When the Review Is Finished
 
 - The approved behavior works and nothing regressed: the review is finished, even if a reviewer would find more on another pass.
 - A reviewer finding something new is not by itself a reason for another review pass. New findings get sorted like the rest; most become follow-up lines.
 - A re-review, when you ask for one, looks at the fixes (the diff since the reviewed commit), not the whole change again.
-- When fixes keep surfacing new problems, or the change goes past what was approved, stop and bring Court what was added (AGENTS.md "Stop when it grows").
+- When fixes keep surfacing new problems, or the change goes past what was approved, stop and bring the user what was added (AGENTS.md "Stop when it grows").
 
 ## Unclear Findings
 
 If any finding is unclear, ask about it before implementing any of them: findings are often related, and partial understanding produces the wrong fix.
 
 ```
-Court: "Fix 1-6"
+The user: "Fix 1-6"
 You understand 1, 2, 3 and 6; 4 and 5 are unclear.
 
 Wrong: fix 1, 2, 3 and 6 now and ask about 4 and 5 later.
@@ -63,14 +63,14 @@ Right: "I understand 1, 2, 3 and 6. What do you mean by 4 and 5?"
 
 ## By Source
 
-**From Court:** trusted. Implement after understanding, and still ask when the scope is unclear. A finding from Court that goes beyond what Court approved is a new ask: say what it adds and confirm before building it.
+**From the user:** trusted. Implement after understanding, and still ask when the scope is unclear. A finding from the user that goes beyond what the user approved is a new ask: say what it adds and confirm before building it.
 
 **From a reviewer subagent or an external reviewer:** check before acting.
 - Is it correct for this codebase, stack and platform?
 - Would the change break something that works?
 - Is there a reason for the current code (a spec decision, a compatibility constraint)?
 - Does the reviewer have the full context (the spec, the plan's rulings)?
-- If it conflicts with a decision Court made, bring it to Court rather than act on it.
+- If it conflicts with a decision the user made, bring it to the user rather than act on it.
 - If you can't verify it, say so: "I can't verify this without X. Should I look into it, or leave it as a follow-up?"
 
 ## How to Respond

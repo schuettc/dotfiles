@@ -22,18 +22,18 @@ The plan is usually executed by one `worker` subagent reading the whole plan as 
 
 ## Scope It First
 
-Before tasks, write down the correct change for the ask, kept as small as correctness allows: what it includes and what it leaves out. Apply AGENTS.md's "Scope": every case, guard, option, fallback or test in the plan names when it happened in real use; anything else goes in a "Follow-ups" list of one line each, not in a task. If the plan comes out much bigger than the spec implied, show Court the list with what you'd drop before writing tasks.
+Before tasks, write down the correct change for the ask, kept as small as correctness allows: what it includes and what it leaves out. Apply AGENTS.md's "Scope": every case, guard, option, fallback or test in the plan names when it happened in real use; anything else goes in a "Follow-ups" list of one line each, not in a task. If the plan comes out much bigger than the spec implied, show the user the list with what you'd drop before writing tasks.
 
 ## Sizing to the Risk
 
 Every plan states, before any task:
 
 - **Risk:** what a mistake in this plan would destroy, and how it is undone.
-- **Cost:** how many Go steps and walkthrough steps it asks of Court, and any new program it writes. A gate or constraint the spec didn't have is named here.
+- **Cost:** how many Go steps and walkthrough steps it asks of the user, and any new program it writes. A gate or constraint the spec didn't have is named here.
 
 The Risk line sets the gates:
 
-- **Reversible local work** (moving or renaming folders, local config under git, anything a move back or a revert undoes): do it, check once, show Court. No Go per step and no pilot stage: the first real batch is the test.
+- **Reversible local work** (moving or renaming folders, local config under git, anything a move back or a revert undoes): do it, check once, show the user. No Go per step and no pilot stage: the first real batch is the test.
 - **Deleting something that exists only on this machine:** one list naming every item, one Go, then delete and check once.
 - **Shared or external** (deploys, merges, publishes, other people's systems): the usual gates.
 
@@ -82,7 +82,7 @@ Each task carries its own check commands: the test command (and any build or lin
 
 **Risk:** [What a mistake in this plan would destroy, and how it is undone]
 
-**Cost:** [Go steps and walkthrough steps for Court; any new program; any gate the spec didn't have]
+**Cost:** [Go steps and walkthrough steps for the user; any new program; any gate the spec didn't have]
 
 **Architecture:** [2-3 sentences about approach]
 
@@ -180,8 +180,8 @@ If you find issues, fix them inline. No need to re-review: just fix and move on.
 
 ## Execution Handoff
 
-For a plan in a diazo folder, after saving and self-reviewing it, print its tasks with `diazo_print_plan` (each task's id, heading, what it does, what it pulls in and the decisions it serves); Court keeps or drops each task and approves the plan on the page, as the diazo skill describes. That replaces the conversation review and the Markdown-editor read below.
+For a plan in a diazo folder, after saving and self-reviewing it, print its tasks with `diazo_print_plan` (each task's id, heading, what it does, what it pulls in and the decisions it serves); the user keeps or drops each task and approves the plan on the page, as the diazo skill describes. That replaces the conversation review and the Markdown-editor read below.
 
-For any other plan, after saving and self-reviewing it, review it with Court in the conversation: the Scope line and the Follow-ups list first, then the tasks a few at a time, changing the file as you agree. When it is agreed, open the plain file in Court's Markdown editor (`open <path>`) for a last read. Don't use galley for plans: it is for prose meant for people.
+For any other plan, after saving and self-reviewing it, review it with the user in the conversation: the Scope line and the Follow-ups list first, then the tasks a few at a time, changing the file as you agree. When it is agreed, open the plain file in the user's Markdown editor (`open <path>`) for a last read. Don't use galley for plans: it is for prose meant for people.
 
-Wait for Court's approval. If Court requests changes, make them and re-run the self-review. Once Court approves, use the executing-plans skill. It is the only execution path.
+Wait for the user's approval. If the user requests changes, make them and re-run the self-review. Once the user approves, use the executing-plans skill. It is the only execution path.

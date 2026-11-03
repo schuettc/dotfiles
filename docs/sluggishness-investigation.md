@@ -11,7 +11,7 @@ Checked and ruled out:
 - **Stuck processes** — none in uninterruptible state.
 - **Startup items** — cleaned 6 dead orphans; they weren't running anyway (~0 MB).
 - **Session pileup** — was 33 tmux sessions / 16 Claudes / 20 GB; cleaned to ~5.
-- **Runaway pytest** — was 15 GB single-process; fixed with pytest-xdist + timeout in now-playing/pi.
+- **Runaway pytest** — was 15 GB single-process; fixed with pytest-xdist + timeout in my-app-2/pi.
 
 ## Leading hypothesis: UI compositing latency from continuous redraw
 Symptom signature: feels slow, but CPU 85% idle + no throttle + memory fine.

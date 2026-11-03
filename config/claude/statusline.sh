@@ -144,7 +144,7 @@ if [[ -n "$SESSION_NAME" && -n "${TMUX_PANE:-}" ]]; then
                 # swallowed entirely (both streams to /dev/null, exit status
                 # ignored), leaving #S and the bus alias silently diverged
                 # with nothing reported anywhere — that's how a live session
-                # ended up tmux-named "bettor-help-workspace/debug-alarms"
+                # ended up tmux-named "my-workspace/debug-alarms"
                 # while its alias stayed "debug-alarms". Same report shape
                 # as bin/tmux-session-rename.sh's identical situation.
                 # stdout here IS the rendered status line, so the failure

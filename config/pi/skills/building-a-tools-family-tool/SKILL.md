@@ -5,7 +5,7 @@ description: Use when creating a new .tools family tool (kempt, muster, galley, 
 
 # Building a .tools family tool
 
-Court's rule (2026-09-29): **one system for every tool.** "There's no reason to have different systems between similar tools." Only genuinely tool-specific steps differ, and only in fixed slots. If you are about to write something a sibling repo already has, stop: it comes from a shared place.
+The user's rule (2026-09-29): **one system for every tool.** "There's no reason to have different systems between similar tools." Only genuinely tool-specific steps differ, and only in fixed slots. If you are about to write something a sibling repo already has, stop: it comes from a shared place.
 
 **The standard's one description:** `tools-ops/templates/family/README.md`. **The proof:** `tools-ops/templates/family/check.sh` (run it; FAIL rows are drift).
 

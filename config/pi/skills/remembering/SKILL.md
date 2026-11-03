@@ -1,6 +1,6 @@
 ---
 name: remembering
-description: Use when Court says "remember this", "note that", "from now on", or "always/never do X", or when a session learns a lesson, decision or fact worth keeping beyond this session. There is no memory store; this skill says which file it belongs in and how to propose the edit.
+description: Use when the user says "remember this", "note that", "from now on", or "always/never do X", or when a session learns a lesson, decision or fact worth keeping beyond this session. There is no memory store; this skill says which file it belongs in and how to propose the edit.
 ---
 
 # Remembering
@@ -12,7 +12,7 @@ read in full, versioned, and reviewable. Your job is to find that file and propo
 
 | What | File |
 |---|---|
-| How Court works, true in every project (communication, engineering approach, git habits, model routing) | `~/.pi/agent/AGENTS.md` (repo `~/GitHub/schuettc/dotfiles-private`, file `pi/AGENTS.md`; private) |
+| How the user works, true in every project (communication, engineering approach, git habits, model routing) | the user's global instructions file (`~/.pi/agent/AGENTS.md`) |
 | A rule or lesson for one repo or workspace | that repo's `CLAUDE.md` (or `AGENTS.md` if that's what it uses) |
 | A rule every live session in a project must follow now | a muster standing order for that project (`muster standing set`) |
 | Project knowledge: strategy, data quirks, how a system behaves | a doc in that project's repo, next to the docs it relates to |
@@ -30,7 +30,7 @@ in the global `AGENTS.md`.
    point that out instead of adding a second copy.
 2. Write the smallest edit: one rule in plain language, in the file's existing section and style.
    Rules, not history: no dates, PR numbers or "as of" notes unless the rule depends on them.
-3. Show Court the edit as a diff (or open the file in galley for a longer change) and wait for
+3. Show the user the edit as a diff (or open the file in galley for a longer change) and wait for
    approval. Never edit `AGENTS.md` or a `CLAUDE.md` without it.
-4. Commit it the way that repo works (a PR in repos that use them). For `dotfiles-private`,
-   commit and push directly.
+4. Commit it the way that repo works (a PR in repos that use them). For a global instructions file kept in
+   a private dotfiles repo, commit and push directly.

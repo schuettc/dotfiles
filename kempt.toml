@@ -417,12 +417,12 @@ only = { os = "darwin" }
 #    guard reads optional private policy prose from
 #    ~/.pi/agent/extensions/pi-provider-guard/config.json; when that file is
 #    absent the extension is a no-op, so this package converges cleanly without
-#    it (that config is Court's private overlay, not part of this manifest).
+#    it (that config is your private overlay, not part of this manifest).
 [packages.pi]
 description = "Pi coding agent (claude-bridge provider) + public extensions"
 needs = ["core"]
 only = { os = "darwin" }
-notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json (Court's private kempt layer links it); absent = no-op"]
+notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json (your private kempt layer links it); absent = no-op"]
 
   # node@24: pi runs on the Node LTS line (config/zsh/01-paths.zsh puts it first
   # on PATH; it is keg-only). Not Homebrew's `node`, which tracks the newest
@@ -444,19 +444,19 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # pinned name@version converges to exactly that version. An unversioned git:
   # entry rolls to its repo's default-branch head (kempt >= 0.5.4; older kempt
   # installs it once and never updates it). pi-provider-guard /
-  # pi-tmux-bridge / pi-wakeup / pi-bang / pi-copy / pi-auto-reload / pi-hail are Court's own
+  # pi-tmux-bridge / pi-wakeup / pi-bang / pi-copy / pi-auto-reload / pi-hail are our own
   # extensions, published to the pi-extensions monorepo (formerly the private local
   # packages in the now-retired schuettc/pi repo).
   pi = [
     # pi-claude-bridge is THE harness (registers the pane with muster on
     # session_start) and is the provider defaultProvider=claude-bridge points at.
-    # It MUST load before channels.tools, so keep it first. Court's fork of the
+    # It MUST load before channels.tools, so keep it first. Our fork of the
     # third-party project, published to npm from a maintained patch stack.
     "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2",
     # Account-wide provider usage meter. Keep immediately after the bridge so
     # its optional Claude adapter is available when the meter starts.
     "npm:@subaud-tools/pi-usage@0.11.7-subaud-tools.4",
-    # pi-permission-system: Court's fork (schuettc/pi-permission-system, fork-sync),
+    # pi-permission-system: our fork (schuettc/pi-permission-system, fork-sync),
     # installed UNDER THE UPSTREAM NAME with an npm alias so pi-hail, which
     # imports "@gotgenes/pi-permission-system", resolves to it and the upstream
     # package can never also load (same path). Carries the
@@ -482,7 +482,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # pi-bang — `!` completions trigger a model turn; auto-space after `!`.
     "npm:pi-bang",
     # pi-copy: /copy-part and alt+c copy one code block or the prose of the last
-    # answer cleanly (no wraps, no borders, no markdown marks). Court's own.
+    # answer cleanly (no wraps, no borders, no markdown marks). Our own.
     # Unpinned: kempt update rolls it to the newest release, like pi-bang.
     "npm:pi-copy",
     # pi-typesafe-ai — TypeSafe Jev credential UX (bare `/typesafe` panel, or setup|status|
@@ -493,7 +493,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # pi-auto-reload — reloads an idle session after installed pi packages or
     # channel server binaries change on disk (e.g. after `kempt update`), so
     # sessions never run a mix of old and new code and channel servers restart
-    # on the new binary. Court's own, from the pi-extensions monorepo.
+    # on the new binary. Our own, from the pi-extensions monorepo.
     "npm:pi-auto-reload@0.2.1",
     # pi-hail: the pane end of hail (hail.tools); pinned to the release the hail
     # daemon was accepted with. It stays here rather than in [packages.hail]:
@@ -514,7 +514,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # `kempt update`. Consequence: every package you want MUST live in this list.
   # extensions holds only "-builtin:mcp": pi-mcp-adapter replaces pi's built-in
   # MCP support, so the built-in stays off; pi loads every other extension from
-  # packages. theme / defaultThinkingLevel / hideThinkingBlock are Court's
+  # packages. theme / defaultThinkingLevel / hideThinkingBlock are our
   # session defaults.
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/settings.json"
@@ -574,7 +574,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.verify]]
   symlink-target = { link = "~/.pi/agent/subagents.json", target = "config/pi/subagents.json" }
 
-  # Court's pi skills (config/pi/skills: remembering, pi-subagent-dispatch, the
+  # Our pi skills (config/pi/skills: remembering, pi-subagent-dispatch, the
   # family build/release/onboarding skills, cleaning-up-branches, and
   # brainstorming/writing-plans/executing-plans adapted from superpowers, whose
   # LICENSE and pinned SHA are in config/pi/superpowers). Whole-dir link
@@ -723,7 +723,7 @@ only = { os = "darwin" }
   merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] } } }
 
 # ---------------------------------------------------------------------------
-# pi-llama — OPTIONAL local llama.cpp inference rig for pi (Court's own setup).
+# pi-llama — OPTIONAL local llama.cpp inference rig for pi (our own setup).
 # Not in the developer profile: it needs GGUF model weights this manifest does
 # not fetch, so a fresh machine converges clean WITHOUT it. Add it deliberately
 # on a box that has the models with `kempt adopt pi-llama`.

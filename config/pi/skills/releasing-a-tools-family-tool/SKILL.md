@@ -1,11 +1,11 @@
 ---
 name: releasing-a-tools-family-tool
-description: Use when shipping, releasing, tagging or cutting a release candidate of a .tools family tool (kempt, muster, galley, hail, tackle's scratch/proj/creel/casebook), when a merged change needs to reach Court's machine, when a release run fails or publishes nothing, or when checking signing credentials or what /dl serves.
+description: Use when shipping, releasing, tagging or cutting a release candidate of a .tools family tool (kempt, muster, galley, hail, tackle's scratch/proj/creel/casebook), when a merged change needs to reach the user's machine, when a release run fails or publishes nothing, or when checking signing credentials or what /dl serves.
 ---
 
 # Releasing a .tools family tool
 
-Court's standing rules: PRs are approved in advance, so **merge once CI is green**; **anything merged that changes a shipped binary is released**, then **`kempt update`** puts it on the machine. Every release goes through tools-actions (`release-version` + `go-release`): signed and notarized on macOS, checksums, GitHub release, `<site>/dl/<tool>/<version>/`, and `latest` moves only for a non-prerelease.
+The user's standing rules: PRs are approved in advance, so **merge once CI is green**; **anything merged that changes a shipped binary is released**, then **`kempt update`** puts it on the machine. Every release goes through tools-actions (`release-version` + `go-release`): signed and notarized on macOS, checksums, GitHub release, `<site>/dl/<tool>/<version>/`, and `latest` moves only for a non-prerelease.
 
 ## First: is there anything to ship?
 
@@ -25,7 +25,7 @@ The next version comes from the newest release tag, not from memory. A PR into a
 
 ## Release candidates
 
-VERSION tools: `gh workflow run release.yml -R schuettc/<tool> --ref <release ref>` with no tag: cuts `vX.Y.Z-rc.<run>` from that ref's `VERSION` as a prerelease; `/dl/<tool>/<rc>/` exists, `latest` does not move. So set `VERSION` to the coming version first (the release-prep PR), then dispatch. tackle: push a tag `<tool>/vX.Y.Z-rc.N` (precedent `scratch/v0.5.5-rc.1`); a version with `-` is a prerelease. The `release` environment **only accepts release refs** (Court, 2026-09-29): `main` (kempt, hail), `dev` or `main` (galley, muster), `*/v*` tags (tackle). So an rc runs after merge, never from a PR branch; for main-model tools that means the rc is of what `main` already holds. Try one without touching `latest`: `<TOOL>_VERSION=<rc> curl -fsSL https://<site>/install.sh | sh` (Court runs the `curl | sh`).
+VERSION tools: `gh workflow run release.yml -R schuettc/<tool> --ref <release ref>` with no tag: cuts `vX.Y.Z-rc.<run>` from that ref's `VERSION` as a prerelease; `/dl/<tool>/<rc>/` exists, `latest` does not move. So set `VERSION` to the coming version first (the release-prep PR), then dispatch. tackle: push a tag `<tool>/vX.Y.Z-rc.N` (precedent `scratch/v0.5.5-rc.1`); a version with `-` is a prerelease. The `release` environment **only accepts release refs** (the user, 2026-09-29): `main` (kempt, hail), `dev` or `main` (galley, muster), `*/v*` tags (tackle). So an rc runs after merge, never from a PR branch; for main-model tools that means the rc is of what `main` already holds. Try one without touching `latest`: `<TOOL>_VERSION=<rc> curl -fsSL https://<site>/install.sh | sh` (the user runs the `curl | sh`).
 
 ## After merging: confirm, do not assume
 
@@ -40,6 +40,6 @@ VERSION tools: `gh workflow run release.yml -R schuettc/<tool> --ref <release re
 
 ## Signing
 
-The credentials are GitHub **environment secrets on each repo's `release` environment**: `APPLE_DEVELOPER_ID_P12`, `APPLE_NOTARY_KEY`, `APPLE_NOTARY_KEY_ID` (`4N7ZC9G3HF`), `APPLE_NOTARY_ISSUER_ID`, and `APPLE_DEVELOPER_ID_P12_PASSWORD` only where the p12 has one. List names with `gh api repos/schuettc/<tool>/environments/release/secrets`. Identity: "Developer ID Application: Court Schuett (9JA73SU683)". **The Developer ID certificate expires 2027-02-01**; after that every macOS release fails to sign. Replacing it is Court's (Apple account), then the p12 secret in every repo's `release` environment. go-release refuses to publish unsigned macOS binaries.
+The credentials are GitHub **environment secrets on each repo's `release` environment**: `APPLE_DEVELOPER_ID_P12`, `APPLE_NOTARY_KEY`, `APPLE_NOTARY_KEY_ID` (`4N7ZC9G3HF`), `APPLE_NOTARY_ISSUER_ID`, and `APPLE_DEVELOPER_ID_P12_PASSWORD` only where the p12 has one. List names with `gh api repos/schuettc/<tool>/environments/release/secrets`. Identity: the "Developer ID Application" certificate of team `9JA73SU683`. **The Developer ID certificate expires 2027-02-01**; after that every macOS release fails to sign. Replacing it is the user's (Apple account), then the p12 secret in every repo's `release` environment. go-release refuses to publish unsigned macOS binaries.
 
 Proof a binary is signed: `codesign -dv <binary>` shows `TeamIdentifier=9JA73SU683` (capture the output; do not pipe it into `grep -q` under `pipefail`).

@@ -15,7 +15,7 @@
 #   --url-host <host>     Hostname shown in returned URL JSON.
 #   --idle-timeout-minutes <n>  Shut down after n minutes idle (default 240 = 4h).
 #   --open                Auto-open the browser on the first screen (use only
-#                         after Court approves the visual companion).
+#                         after the user approves the visual companion).
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
