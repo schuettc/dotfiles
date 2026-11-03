@@ -21,7 +21,7 @@ global `AGENTS.md` under "Models and subagents"; this is how to carry it out. Th
 | Security review or question | prefer OpenAI (`openai-codex/gpt-6-astra`); otherwise the normal other-family rule |
 
 Providers: `claude-bridge/*` bills the bridge's active account (switch with `/claude-account`);
-`openai-codex/*` is the OpenAI subscription, if you use one (`/login` → `openai-codex`, "OpenAI Codex (legacy)").
+`openai-codex/*` is the OpenAI subscription, if the user has one (`/login` → `openai-codex`, "OpenAI Codex (legacy)").
 Don't use the direct `anthropic/*` provider: pi has no Anthropic login, and Claude runs only
 through `claude-bridge`. Don't use the `openai/*` provider either: its Sign in with ChatGPT login
 can't refresh, so it dies an hour after sign-in (openai/sign-in-with-chatgpt-devkit#5).

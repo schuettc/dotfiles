@@ -4,7 +4,7 @@
 # where <checkout> is this repo's clone (kempt init's default is
 # ~/.config/kempt/repo).
 # Leave it off a work machine. Public, like the base; private settings go in
-# dotfiles-private.
+# your private dotfiles repo.
 [kempt]
 spec = 2
 layer = "user"

@@ -235,8 +235,8 @@ counter stubbornly stayed at 0. `tmux list-panes -aF '#{pane_title}'`
 revealed why:
 
 ```
-slay-the-spire:1.1  title=[✳ Claude Code]
-slay-the-spire:1.2  title=[Yazi: slay-the-spire]
+other-app:1.1       title=[✳ Claude Code]
+other-app:1.2       title=[Yazi: other-app]
 my-app:1.1          title=[my-mac.local]
 my-app:1.2          title=[Yazi: my-app]
 ```
