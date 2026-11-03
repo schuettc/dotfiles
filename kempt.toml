@@ -103,11 +103,6 @@ needs = ["core"]
   # tmux helpers .tmux.conf runs, at a stable path wherever this repo is
   # checked out.
   [[packages.terminal.symlink]]
-  from = "bin/tmux-attention.sh"
-  to = "~/.local/bin/tmux-attention.sh"
-  backup = false
-
-  [[packages.terminal.symlink]]
   from = "bin/tmux-claude-context.sh"
   to = "~/.local/bin/tmux-claude-context.sh"
   backup = false

@@ -118,7 +118,6 @@ positional project — `proj --claude dotfiles` works, `proj dotfiles
 | `pt <work>` / `pt <project> <work>` | create-or-attach `<project>/<work>` without the picker |
 | `tat <name>` | attach-or-create a named session |
 | `proj-clean` | reap idle sessions (shell/yazi only — no Claude/editor/server) |
-| `bell-clear` | dismiss the attention banner (`-k` to kill flagged sessions) |
 
 ⌘T in a project window auto-joins a new tmux session for that project (via
 proj's shell wrapper, fired by `config/zsh/06-proj.zsh`); ⌘N opens a fresh window at `$HOME`, outside
@@ -158,9 +157,6 @@ GGUF weights. See [`docs/pi-local-models.md`](docs/pi-local-models.md).
 
 The status bar surfaces, for the focused pane:
 
-- **left** — an attention banner (`⚠ N: session1, session2`) listing any
-  session whose Claude finished a turn / is waiting for input and that you
-  haven't visited yet. Clears when you switch to the session.
 - **right** — current git branch + dirty count, the Claude context-window %
   (`⌬ 49%`, green/yellow/red) when the focused pane is running Claude, and
   the date/time.
@@ -176,7 +172,7 @@ The `claude` package installs [Claude Code](https://claude.ai/code) (the `claude
   avoid duplication.)
 - **Attention bell** (`config/claude/claude-notify.sh`) — the `Notification`
   and `Stop` hooks ring the tmux bell for the exact Claude pane, which drives
-  the status-left attention banner and a 🔔 on the Ghostty tab. Purely
+  a 🔔 on the Ghostty tab. Purely
   in-terminal — no macOS notification, no Dock bounce.
 
 ### Codex (GPT) bridge
@@ -288,7 +284,6 @@ retired.
 ├── bin/
 │   ├── tmux-git-status.sh      # branch + dirty count for status-right
 │   ├── tmux-claude-context.sh  # Claude context % for status-right
-│   ├── tmux-attention.sh       # attention banner for status-left
 │   ├── tmux-session-color.sh   # stable name-hashed session color
 │   └── claude-attn             # raise/clear the Claude attention flag
 ├── config/
@@ -301,7 +296,7 @@ retired.
 │   │   ├── 02-nvm-lazy.zsh     # Lazy NVM loading
 │   │   ├── 03-tools.zsh        # Atuin, zoxide, fzf init
 │   │   ├── 03-proj-roots.zsh   # project-roots loader (proj/pt)
-│   │   ├── 04-aliases.zsh      # aliases + proj/pt/tat/proj-clean/bell-clear
+│   │   ├── 04-aliases.zsh      # aliases + proj/pt/tat/proj-clean
 │   │   ├── 05-completions.zsh  # Shell completions
 │   │   └── 06-proj.zsh         # ⌘T → fires proj's auto-join once PATH is set
 │   ├── starship.toml      # Prompt configuration

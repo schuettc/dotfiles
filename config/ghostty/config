@@ -121,7 +121,6 @@ keybind = shift+enter=text:\n
 #   system    - macOS alert beep
 #   audio     - custom sound
 #
-# All alerting is purely in-terminal: the tmux status-left banner
-# (bin/tmux-attention.sh) plus these tab/border cues. No Dock bounce,
-# no macOS notification.
+# All alerting is purely in-terminal: these tab/border cues. No Dock
+# bounce, no macOS notification.
 bell-features = title,border,no-attention,no-system,no-audio

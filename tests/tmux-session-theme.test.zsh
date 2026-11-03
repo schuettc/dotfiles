@@ -55,13 +55,6 @@ export DIRTY=0
 contains clean "$(render tmux-git-status "$WORK" example)" '#[fg=#334455] feature'
 export DIRTY=1
 contains dirty "$(render tmux-git-status "$WORK" example)" '#[fg=#445566] feature #[fg=#445566,bold]●1'
-# A bell in another visited session still asks for attention.
-tmux new-session -d -s waiting
-# list-windows' bell state is external; return a controlled observation only there.
-sed -i '' '/exec/i\
-[[ "$1" == list-windows ]] \&\& { echo "waiting 1 123"; exit 0; }\
-' "$WORK/bin/tmux"
-contains attention "$(render tmux-attention example)" '#[fg=#223344,bg=#556677,bold] ⚠ 1: waiting '
 # The focused command and socket are observed, not inferred from live agent files.
 cat > "$WORK/bin/tmux" <<'SH'
 #!/bin/bash
@@ -92,7 +85,6 @@ right() { tmux display-message -p -t example '#{E:status-right}'; }
 tmux set-option @muster_agent other-alias
 tmux set-option @muster_inbox 2
 tmux set-option @wakeup '14:00 in 2m'
-tmux set-option -t waiting @proj_theme_accent '#998877'
 out=$(left)
 contains task "$out" '#[fg=#112233]writing docs '
 contains mail "$out" '#[fg=#223344,bg=#112233,bold] 📬2 '
