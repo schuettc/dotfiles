@@ -12,6 +12,7 @@ manifests in this checkout; release identities are checked during acceptance.
 """
 
 import pathlib
+import subprocess
 import tomllib
 import unittest
 
@@ -161,6 +162,12 @@ class SetupContract(unittest.TestCase):
             text = (REPO / path).read_text()
             for needle in ("/Users/", "Fundamental-Technologies", "~/GitHub/", "~/dotfiles/"):
                 self.assertFalse(needle in text, f"{path} names {needle}")
+        tracked = subprocess.run(
+            ["git", "ls-files", "config/pi/skills", "config/pi/agents"],
+            cwd=REPO, capture_output=True, text=True, check=True,
+        ).stdout.split()
+        named = [path for path in tracked if "Court" in (REPO / path).read_text()]
+        self.assertFalse(named, f"these tracked files name a person: {named}")
 
     def test_base_skills_list_is_explicitly_empty(self):
         skills = [m for m in merges(packages(BASE)["pi"], "~/.pi/agent/settings.json") if "skills" in m["merge"]]

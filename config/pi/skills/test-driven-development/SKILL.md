@@ -21,9 +21,9 @@ A test earns its place by pinning a behavior someone asked for or a failure that
 - **Bug fix:** start with a test that reproduces the failure actually seen (the input, the wrong output or the error from the real report or log). It must fail for the same reason the bug did.
 - **Behavior change:** change or add the test for the new behavior first, and watch the old code fail it.
 - **Not tested:** cases nobody asked for and that haven't happened, "more tests to be safe", trivial code (constants, getters, forwarding), and prose meant for people. Record a case you think matters as a one-line follow-up instead.
-- **Needs Court's yes:** stress or fuzz runs, and test code larger than the feature it tests (AGENTS.md: checks cost what they guard).
-- **Court checks by looking:** what Court can see (layout, motion, colour, the feel of a TUI) is checked by Court looking at the real thing, not by a test. Give Court the URL or command to see it.
-- **Ask Court first:** throwaway prototypes, generated code and configuration files, where a test may cost more than it protects.
+- **Needs the user's yes:** stress or fuzz runs, and test code larger than the feature it tests (AGENTS.md: checks cost what they guard).
+- **The user checks by looking:** what the user can see (layout, motion, colour, the feel of a TUI) is checked by the user looking at the real thing, not by a test. Give the user the URL or command to see it.
+- **Ask the user first:** throwaway prototypes, generated code and configuration files, where a test may cost more than it protects.
 
 ## Red, Green, Refactor
 
@@ -192,9 +192,9 @@ The reported case is pinned. A whitespace-only email, a malformed one, a missing
 | "Already manually tested" | There is no record of what was covered and no way to re-run it. Write the test for the behavior that was asked for. |
 | "More tests to be safe" | Every test costs maintenance. Test what the spec asks for and what has happened; the rest is a follow-up. |
 | "This edge case could happen" | Name when it happened in real use. If you can't, it is a follow-up line. |
-| "A quick fuzz run would be thorough" | Stress and fuzz runs need Court's yes. |
+| "A quick fuzz run would be thorough" | Stress and fuzz runs need the user's yes. |
 | "The test is hard to write" | Hard to test usually means hard to use. Simplify the interface. |
-| "I can test the layout with a snapshot" | What Court can see, Court checks by looking. |
+| "I can test the layout with a snapshot" | What the user can see, the user checks by looking. |
 
 ## Verification Checklist
 
@@ -206,13 +206,13 @@ Before calling the work done:
 - [ ] The whole suite passes by its exit code, with clean output.
 - [ ] Tests use real code (mocks only where the real dependency is slow or external).
 - [ ] No tests for cases nobody asked for; those are follow-up lines.
-- [ ] Anything Court can see has been put in front of Court to look at.
+- [ ] Anything the user can see has been put in front of the user to look at.
 
 ## When Stuck
 
 | Problem | Solution |
 |---------|----------|
-| Don't know how to test it | Write the API you wish existed and the assertion first. If still unclear, ask Court one question. |
+| Don't know how to test it | Write the API you wish existed and the assertion first. If still unclear, ask the user one question. |
 | Test too complicated | The design is too complicated. Simplify the interface. |
 | Must mock everything | The code is too coupled. Pass the dependency in. |
 | Test setup is huge | Extract helpers. Still complex? Simplify the design. |

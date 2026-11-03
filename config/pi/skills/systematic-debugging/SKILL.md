@@ -19,7 +19,7 @@ Nothing is urgent (AGENTS.md "Asking and explaining"). Say "I don't know yet" ra
 
 - **Gather real logs and state first.** Reading is always allowed (AGENTS.md "Running work"): logs, CI output (`gh run view <id> --log-failed`), the live store, `git log`, config files, process state. Collect them without asking. Mutations stay one explicit step at a time.
 - **Reproduce somewhere disposable.** Run reproductions in a throwaway clone or a temp dir (`mktemp -d`), never against a real or shared repo or a live system. A test run under a git hook once wrote junk into a shared `.git/config`: a script that runs git in a temp repo unsets the `GIT_*` environment variables first and asserts `git rev-parse --git-dir` is inside its temp dir (AGENTS.md "Git").
-- **Check siblings and history.** Before fixing, check how sibling repos solve the same thing and whether the failing path is live or legacy. Check whether something already shipped resolves the cause on its own; if so, say so and let Court choose (AGENTS.md "Verifying").
+- **Check siblings and history.** Before fixing, check how sibling repos solve the same thing and whether the failing path is live or legacy. Check whether something already shipped resolves the cause on its own; if so, say so and let the user choose (AGENTS.md "Verifying").
 
 ## The Four Phases
 
@@ -59,7 +59,7 @@ Before reporting that something is missing or wrong, query the underlying source
 1. **State one hypothesis.** "I think X is the root cause because Y." Write it down and make it specific.
 2. **Test it with the smallest change.** One variable at a time, in the disposable reproduction. Changing several things at once means you can't tell which one mattered.
 3. **Read the result.** Confirmed: go to Phase 4. Not confirmed: form a new hypothesis from what you learned, and undo the change rather than stacking another on top.
-4. **When you don't know,** say "I don't understand X yet" and gather more evidence or ask Court one specific question.
+4. **When you don't know,** say "I don't understand X yet" and gather more evidence or ask the user one specific question.
 
 ### Phase 4: Fix the Cause
 
@@ -67,7 +67,7 @@ Before reporting that something is missing or wrong, query the underlying source
 2. **Make one fix at the root cause.** No "while I'm here" improvements and no bundled refactoring; those go in a one-line follow-up.
 3. **Verify.** The reproducing test passes, the whole suite passes by its exit code, and the original symptom is gone where it was seen. For anything that touches an external system, that means a live run reaches it.
 4. **If the fix doesn't work,** go back to Phase 1 with what you learned.
-5. **When two or three fixes in a row each surface a new error,** the model of the problem is wrong (AGENTS.md "Verifying"). Stop fixing and bring it to Court: what you found, what each fix revealed, and the question it raises about the design (shared state, coupling, a pattern that doesn't fit). Each fix revealing a new problem in a different place is a sign of a wrong design, not a run of failed hypotheses.
+5. **When two or three fixes in a row each surface a new error,** the model of the problem is wrong (AGENTS.md "Verifying"). Stop fixing and bring it to the user: what you found, what each fix revealed, and the question it raises about the design (shared state, coupling, a pattern that doesn't fit). Each fix revealing a new problem in a different place is a sign of a wrong design, not a run of failed hypotheses.
 
 ## Signs You've Skipped Ahead
 
@@ -82,7 +82,7 @@ These thoughts mean go back to Phase 1:
 - Listing fixes before tracing the data flow.
 - Reaching for one more fix after the last ones each surfaced something new.
 
-Court's questions are signals too: "Is that actually happening?" means you assumed without verifying; "Will it show us...?" means gather evidence first; "Stop guessing" means you proposed a fix without understanding; "We're stuck?" means the approach isn't working. Go back to Phase 1.
+The user's questions are signals too: "Is that actually happening?" means you assumed without verifying; "Will it show us...?" means gather evidence first; "Stop guessing" means you proposed a fix without understanding; "We're stuck?" means the approach isn't working. Go back to Phase 1.
 
 ## Common Rationalizations
 
@@ -94,7 +94,7 @@ Court's questions are signals too: "Is that actually happening?" means you assum
 | "Several fixes at once saves time" | You can't tell which one worked, and you add new bugs. |
 | "I'll reproduce it here, it's quicker" | Reproduce in a temp dir or throwaway clone; the real repo is not a test bench. |
 | "I see the problem, let me fix it" | Seeing the symptom is not understanding the cause. |
-| "One more fix will do it" | After fixes that each surface something new, the model is wrong. Bring it to Court. |
+| "One more fix will do it" | After fixes that each surface something new, the model is wrong. Bring it to the user. |
 | "I'll add guards everywhere so it can't happen again" | Guard the path the bad value actually took; anything more is a follow-up (see defense-in-depth.md). |
 
 ## Quick Reference
@@ -108,7 +108,7 @@ Court's questions are signals too: "Is that actually happening?" means you assum
 
 ## When the Cause Is Outside the Code
 
-If investigation shows the cause is environmental, timing-dependent or external: write down what you investigated and what you found, and bring Court the options (handle it with a retry, timeout or clearer error; fix it at its source elsewhere; leave it). Most "no root cause" findings are incomplete investigations, so check Phase 1 was finished first.
+If investigation shows the cause is environmental, timing-dependent or external: write down what you investigated and what you found, and bring the user the options (handle it with a retry, timeout or clearer error; fix it at its source elsewhere; leave it). Most "no root cause" findings are incomplete investigations, so check Phase 1 was finished first.
 
 ## Supporting Files
 

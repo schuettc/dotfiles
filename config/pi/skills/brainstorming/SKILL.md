@@ -9,14 +9,14 @@ Adapted from obra/superpowers (MIT) at 8ca22db; see config/pi/superpowers/.
 
 Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
 
-Start by classifying how much process the request needs, then work through your path: understand the context, refine the idea, present a design, and get Court's approval.
+Start by classifying how much process the request needs, then work through your path: understand the context, refine the idea, present a design, and get the user's approval.
 
 ## Establish Shared Understanding
 
-The outcome of brainstorming is an understanding Court can recognize and correct, grounded in what Court wants to accomplish.
+The outcome of brainstorming is an understanding the user can recognize and correct, grounded in what the user wants to accomplish.
 
-1. **Discover intent.** Use the request and available context to identify the intended outcome, who it is for, and what success looks like. When that information is missing, ask one focused question about purpose or intended use before proposing features or an approach. Knowing the app genre does not tell you why Court wants it. Gathering missing requirements does not ask Court to authorize the task again.
-2. **Write back your understanding.** Summarize the intended outcome, relevant constraints, and success criteria in a short note Court can assess. Separate what Court said from assumptions. Invite correction and incorporate the answer before treating this as the design brief. On the architectural path this note is diazo's understanding card.
+1. **Discover intent.** Use the request and available context to identify the intended outcome, who it is for, and what success looks like. When that information is missing, ask one focused question about purpose or intended use before proposing features or an approach. Knowing the app genre does not tell you why the user wants it. Gathering missing requirements does not ask the user to authorize the task again.
+2. **Write back your understanding.** Summarize the intended outcome, relevant constraints, and success criteria in a short note the user can assess. Separate what the user said from assumptions. Invite correction and incorporate the answer before treating this as the design brief. On the architectural path this note is diazo's understanding card.
 3. **Carry intent into the design.** Preserve the agreed understanding in the selected path's design artifact: the written spec for architectural work, or the in-chat design/probe for bounded work and spikes. Check proposed features and technical choices against that understanding.
 
 When the request already supplies the purpose and constraints, reflect that understanding instead of asking the same questions again. Keep the note concise; its accuracy and the opportunity to correct it matter.
@@ -24,19 +24,19 @@ When the request already supplies the purpose and constraints, reflect that unde
 <HARD-GATE>
 Before taking any implementation action, including invoking an implementation skill, writing product code, scaffolding, installing product dependencies, or creating an external project, complete the selected path's prerequisites:
 
-- Spike: Court approves the question and probe.
-- Bounded: Court approves the short in-chat design.
-- Architectural: Court approves the written spec on diazo's page, then the written implementation plan there. Court's answers to the decisions only permit writing the spec; written-spec approval (Approve on the page) only permits invoking writing-plans.
+- Spike: the user approves the question and probe.
+- Bounded: the user approves the short in-chat design.
+- Architectural: the user approves the written spec on diazo's page, then the written implementation plan there. The user's answers to the decisions only permit writing the spec; written-spec approval (Approve on the page) only permits invoking writing-plans.
 
 A reply approves the stage actually presented. Approval of an idea or feature scope does not approve artifacts that do not exist yet. Resume at the earliest incomplete stage; do not turn one approval into permission to skip the rest of the selected path. Read-only project exploration is allowed while those prerequisites remain incomplete.
 </HARD-GATE>
 
 ## Three Paths
 
-Before your first question, classify the request and say the classification out loud ("this looks bounded, so I'll present a short design here rather than write a spec") so Court can override it:
+Before your first question, classify the request and say the classification out loud ("this looks bounded, so I'll present a short design here rather than write a spec") so the user can override it:
 
 - **Spike**: a feasibility question ("can we...", "is it possible...", "quick and dirty is fine") whose output is an answer, not code you keep. Present the question and what you'll try in 2-3 sentences, get a nod, then find out as cheaply as correctness allows. No design doc, no spec file. Report findings as a recommendation; anything you built stays labeled throwaway.
-- **Bounded**: a well-scoped change to code that already exists in this repo: a new flag, a small endpoint, a one-file fix. Understanding the kind of app is not enough: bounded means the flow you are changing is already here to read. If there is no existing flow to change, the task is not bounded. Ask the clarifying questions that matter, present a short design IN CHAT (a few sentences to a few short paragraphs), and STOP. Implementation starts only after Court says yes to that design; a bounded task's approval is as hard a gate as an architectural one. No spec file, no implementation plan document.
+- **Bounded**: a well-scoped change to code that already exists in this repo: a new flag, a small endpoint, a one-file fix. Understanding the kind of app is not enough: bounded means the flow you are changing is already here to read. If there is no existing flow to change, the task is not bounded. Ask the clarifying questions that matter, present a short design IN CHAT (a few sentences to a few short paragraphs), and STOP. Implementation starts only after the user says yes to that design; a bounded task's approval is as hard a gate as an architectural one. No spec file, no implementation plan document.
 - **Architectural**: new projects, new subsystems, changes that restructure how components fit together or alter interfaces others depend on. Run it in diazo: the understanding, the decisions with their approaches, and the written spec on diazo's page, then the writing-plans skill.
 
 When in doubt between two paths, take the heavier one. The ratchet is one-way: hidden complexity discovered mid-task upgrades the path: stop, say so, and step up. Nothing downgrades mid-task.
@@ -47,11 +47,11 @@ When in doubt between two paths, take the heavier one. The ratchet is one-way: h
 |---------|---------|
 | "This is too simple to need a design" | Follow the selected path: a bounded change gets a short chat design; an architectural change gets the written spec and planning handoffs. |
 | "I'll call it bounded and skip the spec" | Reaching for a label to skip work IS the doubt. Take the heavier path. |
-| "It's bounded and the design is obvious; I'll start while Court reads it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
+| "It's bounded and the design is obvious; I'll start while the user reads it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow; it is architectural. |
 | "The spike works, so I'll keep the code" | A spike's output is an answer. Keeping the code is a new request: classify it. |
 | "It grew, but I'm almost done; no need to re-classify" | Hidden complexity upgrades the path mid-task. Stop and say so. |
-| "Court approved the spike, so the follow-up change is approved too" | Each task gets its own classification and its own approval. |
+| "The user approved the spike, so the follow-up change is approved too" | Each task gets its own classification and its own approval. |
 
 ## Checklist
 
@@ -76,7 +76,7 @@ Classify first, announce the path, then create a task for each item on your path
 2. **Open diazo**: load the diazo skill and open the planning folder with `diazo_open` (see "Where the spec goes" below)
 3. **Understanding and decisions on the page**: follow the diazo skill; each decision's options follow "Exploring approaches" below
 4. **Write and print the spec**: `spec.md` in the folder, self-reviewed (see below) before `diazo_print_spec`
-5. **Court approves the spec on the page**: this is the written-spec approval
+5. **The user approves the spec on the page**: this is the written-spec approval
 6. **Transition to implementation**: invoke the writing-plans skill to create the implementation plan
 
 **Terminal states are path-bound.** Architectural: the ONLY skill you invoke after brainstorming is writing-plans. Bounded: after approval, implementation proceeds directly; no plan document. Spike: the terminal state is a reported recommendation.
@@ -89,10 +89,10 @@ The subsections below serve the bounded and architectural paths (a spike stops a
 
 - Check out the current project state first (files, docs, recent commits)
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
-- If the project is too large for a single spec, help Court decompose it into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
+- If the project is too large for a single spec, help the user decompose it into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
 - Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message. Ask only the forks you can't settle from Court's earlier answers or a standard; decide the rest and list them as reversible. Say up front how many questions to expect, and ask fewer once Court keeps taking your recommendations.
+- Only one question per message. Ask only the forks you can't settle from the user's earlier answers or a standard; decide the rest and list them as reversible. Say up front how many questions to expect, and ask fewer once the user keeps taking your recommendations.
 - Focus on understanding: purpose, constraints, success criteria
 
 **Exploring approaches (apply AGENTS.md's "Scope"):**
@@ -105,7 +105,7 @@ The subsections below serve the bounded and architectural paths (a spike stops a
 **What the spec covers:**
 
 - Architecture, components, data flow, error handling, testing
-- **Risk and Cost**, before any guard: what a mistake would destroy and how it's undone, and how many Go steps and walkthrough steps the work will ask of Court, with any new program it writes. Every guard, gate or check names that risk or a time it happened in real use; anything else is a follow-up line. Gates follow writing-plans' "Sizing to the Risk".
+- **Risk and Cost**, before any guard: what a mistake would destroy and how it's undone, and how many Go steps and walkthrough steps the work will ask of the user, with any new program it writes. Every guard, gate or check names that risk or a time it happened in real use; anything else is a follow-up line. Gates follow writing-plans' "Sizing to the Risk".
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 
 **Design for isolation and clarity:**
@@ -137,10 +137,10 @@ After writing `spec.md` and before printing it, look at it with fresh eyes:
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
 5. **Proportion check:** Does every guard name the Risk line or a real case? Does the spec ask for a program, a pilot stage or a snapshot comparison for work a move back or a revert undoes? Cut them (writing-plans, "Sizing to the Risk").
 
-Fix any issues inline. No need to re-review: just fix and move on. No reviewer subagent for the spec; Court is its reviewer.
+Fix any issues inline. No need to re-review: just fix and move on. No reviewer subagent for the spec; the user is its reviewer.
 
-**Court's review:**
-Court reviews the printed spec on diazo's page, where a change is a reopened decision, settled and printed again (the diazo skill says how). Only proceed once Court approves it there. Don't use galley for specs: it is for prose meant for people.
+**The user's review:**
+The user reviews the printed spec on diazo's page, where a change is a reopened decision, settled and printed again (the diazo skill says how). Only proceed once the user approves it there. Don't use galley for specs: it is for prose meant for people.
 
 **Implementation:**
 
@@ -151,13 +151,13 @@ Court reviews the printed spec on diazo's page, where a change is a reopened dec
 
 A browser-based companion for showing mockups, diagrams, and visual options during a bounded design (the architectural path shows them on diazo's cards). Available as a tool, not a mode: it doesn't mean every question goes through the browser.
 
-**Using the companion:** Court wants mockups built without asking first. When a question would be clearer shown than told (a real mockup, layout or diagram question, not merely a UI topic), start the server with `--open` and show it; say in one line that it's up.
+**Using the companion:** The user wants mockups built without asking first. When a question would be clearer shown than told (a real mockup, layout or diagram question, not merely a UI topic), start the server with `--open` and show it; say in one line that it's up.
 
-**Per-question decision:** Decide FOR EACH QUESTION whether to use the browser or the terminal. The test: **would Court understand this better by seeing it than reading it?**
+**Per-question decision:** Decide FOR EACH QUESTION whether to use the browser or the terminal. The test: **would the user understand this better by seeing it than reading it?**
 
 - **Use the browser** for content that IS visual: mockups, wireframes, layout comparisons, architecture diagrams, side-by-side visual designs
 - **Use the terminal** for content that is text: requirements questions, conceptual choices, tradeoff lists, A/B/C/D text options, scope decisions
 
 A question about a UI topic is not automatically a visual question. "What does personality mean in this context?" is a conceptual question: use the terminal. "Which wizard layout works better?" is a visual question: use the browser.
 
-If Court agrees to the companion, read the detailed guide before proceeding: `visual-companion.md` in this skill's directory.
+If the user agrees to the companion, read the detailed guide before proceeding: `visual-companion.md` in this skill's directory.

@@ -107,4 +107,4 @@ Before finishing, mentally mutate the production code for each behavior the spec
 - An assertion checks a `*-mock` test ID, or fails if you remove the mock.
 - A method is called only from test files.
 - Mock setup is more than half the test, or mocking is "just to be safe".
-- The test file is larger than the feature it tests (that needs Court's yes).
+- The test file is larger than the feature it tests (that needs the user's yes).

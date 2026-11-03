@@ -1,6 +1,6 @@
 ---
 name: executing-plans
-description: Executes an approved implementation plan by dispatching one worker subagent for the whole plan, a fresh worker per task for a large plan, or working inline when the plan is small, then ends with a final review by a reviewer from the other provider family whose findings are handled per receiving-code-review. Use when Court has approved a plan from writing-plans, or any written plan, and it is time to implement it.
+description: Executes an approved implementation plan by dispatching one worker subagent for the whole plan, a fresh worker per task for a large plan, or working inline when the plan is small, then ends with a final review by a reviewer from the other provider family whose findings are handled per receiving-code-review. Use when the user has approved a plan from writing-plans, or any written plan, and it is time to implement it.
 ---
 
 # Executing Plans
@@ -11,15 +11,15 @@ Execute the whole plan without a reviewer per task. At the end, a reviewer from 
 
 **Core principle:** The plan already did the thinking. Execute it exactly, prove each step with a test you watched fail and then pass, and leave a record that survives forgetting.
 
-**Continuous execution:** Do not pause to check in with Court between tasks. Execute all tasks from the plan without stopping.
+**Continuous execution:** Do not pause to check in with the user between tasks. Execute all tasks from the plan without stopping.
 
 **Rulings, not stalls.** Ordinary conflicts, ambiguities and small plan defects: decide them. The spec is the binding authority, the plan is its argument, and judgment settles what neither answers. Record every decision in the report as `Ruling: <what was decided> — <why> — <what it costs if wrong>`, and keep going. Deviating from the plan without a recorded ruling is a decision made in secret.
 
-Stop and bring it to Court for: deleting something that exists only on this machine (one list, one Go, per writing-plans' "Sizing to the Risk"); a security-sensitive action; a side effect outside the worktree that AGENTS.md says to ask about first (a merge, a publish); a genuine design choice between correct approaches that is Court's to make; a finding that makes the accepted plan wrong; and the work going past the plan's scope (see "Stop when it grows"). For those, stop and bring it to Court.
+Stop and bring it to the user for: deleting something that exists only on this machine (one list, one Go, per writing-plans' "Sizing to the Risk"); a security-sensitive action; a side effect outside the worktree that AGENTS.md says to ask about first (a merge, a publish); a genuine design choice between correct approaches that is the user's to make; a finding that makes the accepted plan wrong; and the work going past the plan's scope (see "Stop when it grows"). For those, stop and bring it to the user.
 
 ## Choose who implements
 
-- **One `worker` subagent for the whole plan (default).** The main session coordinates: it holds the plan, the diazo page and the conversation with Court, and runs no task commands itself beyond small reads and each task's check commands, so a long run rarely compacts. The worker returns a short result: what changed, and each check with its exit code. Pick the model with the `pi-subagent-dispatch` skill (`worker` inherits the session model; routine work may run on Sonnet on the same provider).
+- **One `worker` subagent for the whole plan (default).** The main session coordinates: it holds the plan, the diazo page and the conversation with the user, and runs no task commands itself beyond small reads and each task's check commands, so a long run rarely compacts. The worker returns a short result: what changed, and each check with its exit code. Pick the model with the `pi-subagent-dispatch` skill (`worker` inherits the session model; routine work may run on Sonnet on the same provider).
 - **Inline, in this session,** only when the plan is a single small task.
 - **Large-plan mode: a fresh `worker` per task,** when the plan has many independent tasks and one worker would carry too much context through them. Each task starts clean; the main session runs each task's own checks between tasks.
 
@@ -27,7 +27,7 @@ Tasks build their tests per the test-driven-development skill: one failing test 
 
 ## Setup
 
-1. Resolve the canonical clone and workspace from its workspace instructions, then create and confirm the worktree and branch under AGENTS.md's Git rules before naming a worker's worktree. Never implement on `main` without Court's explicit consent.
+1. Resolve the canonical clone and workspace from its workspace instructions, then create and confirm the worktree and branch under AGENTS.md's Git rules before naming a worker's worktree. Never implement on `main` without the user's explicit consent.
 2. Read the plan once, note its Scope line, Global Constraints and Review Focus. If the plan names a Spec, read that too: conflicts inside the plan resolve against it. A plan with no reachable spec gets a report note saying so; rulings made without one are provisional.
 3. Record the base commit: `BASE=$(git -C <wt> rev-parse HEAD)`; the commands below use `$BASE`.
 4. Pick a run directory outside the repo: `${XDG_STATE_HOME:-$HOME/.local/state}/plans/<plan-basename>/`. The report (`report.md`) and the review package live there, never in the repo.
@@ -43,7 +43,7 @@ Dispatch one `worker` with a short prompt naming: the plan file as its brief, th
 
 While it runs, don't commit in that worktree. When it returns, read the report, and check that the diff (`git -C <wt> diff "$BASE"...HEAD`) stays within the plan's scope.
 
-A `NEEDS_CONTEXT` return is a ruling for you to make with the spec as the authority (record it in the report and re-dispatch with the answer), unless it is a scope question: that goes to Court.
+A `NEEDS_CONTEXT` return is a ruling for you to make with the spec as the authority (record it in the report and re-dispatch with the answer), unless it is a scope question: that goes to the user.
 
 ## Run it: large-plan mode
 
@@ -52,7 +52,7 @@ Dispatch one fresh `worker` per task, in order, never in parallel (they share th
 1. **Brief.** Copy the task's full text into `<run-dir>/task-<N>-brief.md`, with the plan's Global Constraints and the Interfaces it consumes from earlier tasks. The worker reads that file, not the whole plan. Don't paste earlier tasks' history into the dispatch.
 2. **Dispatch** with the brief path, the spec path, the worktree, the report path `<run-dir>/task-<N>-report.md`, and the worker instructions above (the scope stop applies to the task's share of the plan).
 3. **Check it yourself.** When the worker returns, run the task's own check commands from the plan in the worktree and read their exit codes (AGENTS.md "Verifying"); a worker's "tests pass" is not the check. Only when every check passes, append the task line to `<run-dir>/report.md`: `Task <N>: complete (commits <base7>..<head7>, checks: <command> → exit <code>)`. A task with a failing check gets no line, so a resume picks it up again.
-4. **A check fails:** re-dispatch a worker on that task with the failing command and its output. When fixes keep surfacing new failures, stop and bring it to Court (AGENTS.md "Stop when it grows").
+4. **A check fails:** re-dispatch a worker on that task with the failing command and its output. When fixes keep surfacing new failures, stop and bring it to the user (AGENTS.md "Stop when it grows").
 
 After compaction, trust `report.md` and `git log`: resume at the first task without a line.
 
@@ -61,7 +61,7 @@ After compaction, trust `report.md` and `git log`: resume at the first task with
 Work the plan's steps in order under the test-driven-development skill, as above. Every step that runs a command has an `Expected:` line: run it, read the output, compare. Three outcomes:
 
 - **Matches.** Next step.
-- **The code is wrong.** Find the cause; never patch the symptom to make the step's output match. If two or three fixes in a row each surface a new error, the model of the problem is wrong: stop and bring it to Court.
+- **The code is wrong.** Find the cause; never patch the symptom to make the step's output match. If two or three fixes in a row each surface a new error, the model of the problem is wrong: stop and bring it to the user.
 - **The plan is wrong** (a step contradicts the spec, an interface from an earlier task doesn't match, a command that cannot work). Rule on the change that correctly satisfies the spec, keeping it small, record the ruling in the report, and continue.
 
 After each task, append one line to the report: `Task <N>: complete (commits <base7>..<head7>, tests: <command> → <result>)`, in the same tool call as the commit. Conversation memory does not survive compaction: after compaction, trust the report and `git log` over recollection, and resume at the first task without a line.
@@ -70,20 +70,20 @@ Redirect long test output to a file in the run directory and read its tail.
 
 ## Stop when it grows
 
-When fixes keep surfacing new problems, or a worker went past its brief (files or features the plan doesn't name), stop (AGENTS.md "Stop when it grows"). Bring Court what was added beyond the plan, and why. A scope change is never your call.
+When fixes keep surfacing new problems, or a worker went past its brief (files or features the plan doesn't name), stop (AGENTS.md "Stop when it grows"). Bring the user what was added beyond the plan, and why. A scope change is never your call.
 
 ## The tripwire
 
-Stop adding checks and bring Court the simplest plan that finishes the job, before any other work, when:
+Stop adding checks and bring the user the simplest plan that finishes the job, before any other work, when:
 
-- Court questions the value of a check or a wait ("tedious", "phantom", "why are we doing this", "why are we parked"), or
-- a plan reaches its third step asking Court to Go on the same kind of action: another Go to move, clean or verify the same set of things. Different gates in one plan, such as a merge then a deploy, don't count.
+- the user questions the value of a check or a wait ("tedious", "phantom", "why are we doing this", "why are we parked"), or
+- a plan reaches its third step asking the user to Go on the same kind of action: another Go to move, clean or verify the same set of things. Different gates in one plan, such as a merge then a deploy, don't count.
 
-The simplest plan names what is left, the risk size it falls in (writing-plans, "Sizing to the Risk") and what it drops; Court picks it or keeps the current one. Never answer it with another gate.
+The simplest plan names what is left, the risk size it falls in (writing-plans, "Sizing to the Risk") and what it drops; the user picks it or keeps the current one. Never answer it with another gate.
 
 ## Other live sessions
 
-When a run changes paths other sessions use, send one muster notice saying what moves and when, and proceed unless one objects (AGENTS.md: silence means go). A session whose own folder moves is listed in the same Go; stop it, move the folder and reopen it yourself. Never pause sessions one by one and wait on their replies, and never hand Court a click you can do yourself.
+When a run changes paths other sessions use, send one muster notice saying what moves and when, and proceed unless one objects (AGENTS.md: silence means go). A session whose own folder moves is listed in the same Go; stop it, move the folder and reopen it yourself. Never pause sessions one by one and wait on their replies, and never hand the user a click you can do yourself.
 
 ## Final Review
 
@@ -105,9 +105,9 @@ The review is finished when the approved behavior works and nothing regressed. A
 
 ## Finish
 
-Push the branch and open a PR against its base with `gh pr create --body-file`, per AGENTS.md's Git rules (in visual/UX rounds, wait for Court to say the round is done). Don't merge.
+Push the branch and open a PR against its base with `gh pr create --body-file`, per AGENTS.md's Git rules (in visual/UX rounds, wait for the user to say the round is done). Don't merge.
 
-Your final message to Court carries, from the report: anything built beyond the plan's scope, every `Ruling:` line in order with its cost if wrong under "Rulings I made", and every follow-up under "Follow-ups". Both lists are exhaustive: your final message is the only place the decisions made on Court's behalf reach Court.
+Your final message to the user carries, from the report: anything built beyond the plan's scope, every `Ruling:` line in order with its cost if wrong under "Rulings I made", and every follow-up under "Follow-ups". Both lists are exhaustive: your final message is the only place the decisions made on the user's behalf reach the user.
 
 ## Common Rationalizations
 
@@ -117,13 +117,13 @@ Your final message to Court carries, from the report: anything built beyond the 
 | "The plan is wrong here, I'll just do the right thing" | Do the right thing and record the ruling. Unrecorded deviation is a decision made in secret. |
 | "Let me check in before the next task" | Only the five stops stop you. |
 | "The worker said the task's tests pass" | In large-plan mode you run the task's check commands and read the exit code yourself. |
-| "It's only a bit past the plan, I'll finish it" | Files or features the plan doesn't name are the stop. Bring Court what was added. |
+| "It's only a bit past the plan, I'll finish it" | Files or features the plan doesn't name are the stop. Bring the user what was added. |
 | "I read the diff carefully; the final reviewer is redundant" | Same author, same blind spots. The reviewer is the only fresh context this run buys. |
 | "Tests should pass, the change was trivial" | "Should" is not evidence. The report needs the command and its output. |
 | "The reviewer said Minor, so it's Minor" | Grade what the person gets. Re-grade, then sort. |
 | "The reviewer found more, so review again" | The review is finished when the approved behavior works and nothing regressed. New findings get sorted like the rest. |
 | "The fix is obvious, no need for a failing test first" | The failing test is the only proof the finding was real and is now gone. |
-| "I'll fix the follow-ups too while I'm in there" | Every follow-up fixed is work Court did not ask for. Record them; Court decides. |
+| "I'll fix the follow-ups too while I'm in there" | Every follow-up fixed is work the user did not ask for. Record them; the user decides. |
 
 ## Example Workflow
 
@@ -133,12 +133,12 @@ You: I'm using the executing-plans skill. The plan is 3 tasks, so I'm dispatchin
 [Canonical workspace resolved; worktree per AGENTS.md on feat/x, confirmed; BASE a1b2c3d]
 [Run dir ~/.local/state/plans/2026-10-05-feat-x/]
 [Dispatch worker (session model) with plan, spec, worktree, report path]
-[Keep talking with Court while it runs]
+[Keep talking with the user while it runs]
 [Worker returns DONE: commits d4e5f6a, b7c8d9e, c0d1e2f; 14/14 tests pass; one Ruling: install_hook → installHook (matches Task 1 Produces; cost if wrong: one rename)]
 [git diff: only the files and features the plan names: within scope]
 [Build review package; dispatch reviewer on openai-codex/gpt-6-astra]
 Reviewer: One Important finding (progress interval hardcoded). Two Minor.
-[Verify each: the hardcoded interval breaks the configured value Court approved → fix; the two minors → follow-ups]
+[Verify each: the hardcoded interval breaks the configured value the user approved → fix; the two minors → follow-ups]
 [Fix inline: test_progress_interval_configurable RED → GREEN; suite 15/15; commit. Approved behavior works: review finished]
 [Push; gh pr create --body-file]
 
