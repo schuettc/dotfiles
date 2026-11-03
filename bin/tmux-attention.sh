@@ -10,7 +10,7 @@
 # starts a pi session per plan that is worked on its page, not in tmux, and
 # proj lists those under "not opened" instead.
 #
-# Output: "⚠ 2: now-playing, mlb-dk " on a peach background, or nothing
+# Output: "⚠ 2: my-app-2, my-app " on a peach background, or nothing
 # when no session needs attention.
 
 set -u

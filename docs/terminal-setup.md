@@ -119,8 +119,8 @@ proj --edit
 A typical `~/.config/proj/roots`:
 
 ```
-~/GitHub/schuettc
-~/learning-with-court
+~/GitHub/<account>
+~/notes
 project:~/dotfiles
 ```
 
@@ -128,7 +128,7 @@ Each line is one of two kinds:
 
 | Line | Meaning |
 | --- | --- |
-| `~/GitHub/schuettc` | A **root** — its immediate children are projects. |
+| `~/GitHub/<account>` | A **root** — its immediate children are projects. |
 | `project:~/dotfiles` | A **project** — this directory itself is the project. |
 
 Use `project:` for a repo that lives directly in `$HOME` and so has no root
@@ -137,7 +137,7 @@ folder in your home directory a project, and opening a shell in `~/Downloads`
 then gets ambushed by the `proj` picker instead of giving you a shell.
 
 `project:` also fits a directory whose children are data rather than code —
-list `~/bettor-help` as a root and every dated slate directory inside it
+list `~/my-data` as a root and every dated directory inside it
 becomes a separate project in the picker.
 
 The bottom of the `proj` picker carries `[+ add new project root…]` and

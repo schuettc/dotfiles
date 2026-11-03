@@ -170,8 +170,8 @@ ok "still never calls muster"       ""               "$(cat "$MUSTER_ARGS_LOG" 2
 # fails — e.g. a tombstoned row already holds the name ("already has
 # history"). Before the fix, both stdout and stderr of `become` went to
 # /dev/null and its exit status was discarded: #S and the bus alias
-# silently diverged with nothing reported anywhere (the "bettor-help-
-# workspace/debug-alarms" incident). Pin: the failure text reaches
+# silently diverged with nothing reported anywhere (the "my-workspace/debug-alarms"
+# incident). Pin: the failure text reaches
 # display-message, stdout (the rendered status line) stays byte-clean,
 # and the marker is still stamped so this doesn't re-fire every tick.
 #

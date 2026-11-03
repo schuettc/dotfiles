@@ -99,8 +99,8 @@ Added two functions to `~/dotfiles/config/zsh/04-aliases.zsh` (which is
 already symlinked from `~/.config/zsh/`):
 
 - **`proj`** — fzf picker. Lists active tmux sessions (prefixed `[session]`)
-  plus every direct subdirectory of `~/GitHub/schuettc/` and
-  `~/learning-with-court/`. Selecting a session attaches/switches; selecting
+  plus every direct subdirectory of `~/GitHub/<account>/` and
+  `~/notes/`. Selecting a session attaches/switches; selecting
   a directory spawns a new session named after the directory, with the
   shell+yazi layout, then attaches.
 - **`tat`** — quick attach-or-create. `tat foo` attaches to session `foo`,
@@ -237,8 +237,8 @@ revealed why:
 ```
 slay-the-spire:1.1  title=[✳ Claude Code]
 slay-the-spire:1.2  title=[Yazi: slay-the-spire]
-mlb-dk:1.1          title=[Courts-MacBook-Pro-2.local]
-mlb-dk:1.2          title=[Yazi: mlb-dk]
+my-app:1.1          title=[my-mac.local]
+my-app:1.2          title=[Yazi: my-app]
 ```
 
 Both Claude Code and yazi emit OSC 2 escapes (`\e]2;...\007`) on every
@@ -298,8 +298,8 @@ A new modular zsh file, loaded last (alphabetically). On startup it:
 
 1. Returns immediately if non-interactive, if `$TMUX` is set, if
    `$NO_AUTO_TMUX` is set, or if `~/.no-auto-tmux` exists.
-2. Walks the configured project roots (`~/GitHub/schuettc/`,
-   `~/learning-with-court/`) to see if `$PWD` is inside one and extracts
+2. Walks the configured project roots (`~/GitHub/<account>/`,
+   `~/notes/`) to see if `$PWD` is inside one and extracts
    the project name.
 3. Returns if the *main* project session (no suffix) doesn't exist —
    spawning a workspace is `proj`'s job, not the hook's.
@@ -330,16 +330,16 @@ untrusted binary files. Acceptable for a single-user dev machine.
 ```text
 # First time opening the workspace
 ⌘N (or ⌘T in an empty Ghostty window)
-proj         → fzf picker → pick "mlb-dk"
-             → spawns tmux session "mlb-dk" with shell+yazi layout
+proj         → fzf picker → pick "my-app"
+             → spawns tmux session "my-app" with shell+yazi layout
              → current shell becomes the tmux client for the main tab
 
 # Adding a terminal to the active workspace
 ⌘T           → new Ghostty tab inherits project cwd
-             → auto-join hook creates tmux session "mlb-dk-2"
+             → auto-join hook creates tmux session "my-app-2"
              → current shell becomes the tmux client for that tab
              → run `claude` for an independent conversation
-⌘T           → spawns "mlb-dk-3"; etc.
+⌘T           → spawns "my-app-3"; etc.
 
 # Switching workspaces
 ⌘`           → cycle Ghostty windows
@@ -350,7 +350,7 @@ proj         → fzf to jump to any project/workspace
 prefix → d   → detach; tmux session keeps running (continuum saves it)
 exit         → kills the shell; Ghostty tab closes; tmux session keeps
                running (since we `exec`'d into tmux, not the other way)
-tmux kill-session -t mlb-dk-3  → fully kill a tab's session
+tmux kill-session -t my-app-3  → fully kill a tab's session
 ```
 
 ### Task #9 — Move configs into dotfiles + update install.sh + Brewfile ✓ 2026-05-24
@@ -432,7 +432,7 @@ set -g set-titles-string '#S'
 This makes tmux emit OSC 0 / OSC 2 with the current session name on
 every pane focus change. Ghostty consumes those escapes and uses them
 for tab title, window title, and the app-switcher list. Since our
-sessions are named after projects (`mlb-dk`, `mlb-dk-2`, etc.),
+sessions are named after projects (`my-app`, `my-app-2`, etc.),
 windows now identify themselves correctly.
 
 ### Status-right: claude counter → git branch + dirty indicator (2026-05-24)
@@ -451,7 +451,7 @@ directives (Catppuccin: green when clean, yellow+peach when dirty).
 Outputs nothing for non-git directories so the clock floats by itself.
 
 Performance: a single `git status --porcelain` runs every 5 s
-(`status-interval 5`). On the repos in `~/GitHub/schuettc` this is
+(`status-interval 5`). On the repos in `~/GitHub/<account>` this is
 sub-10ms. If a huge repo ever shows lag we can add a 30-s mtime cache.
 
 Side benefit: the bug in the old counter (`grep -cF 'Claude Code'`
@@ -481,7 +481,7 @@ calling out in the blog post since older guides still show `-p`.
 ### yazi ratio `[1, 3, 4]` is wrong for a project session
 
 Default ratio shows three columns: parent, current, preview. With a
-project root like `~/GitHub/schuettc/mlb-dk`, the parent column lists ~96
+project root like `~/GitHub/<account>/my-app`, the parent column lists ~96
 sibling repos that you never navigate to from inside a project. Changed
 to `[0, 4, 3]` (parent hidden) so the project's own files dominate the
 pane and the preview column remains useful. Yazi's `h` / `Backspace`

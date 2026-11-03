@@ -67,7 +67,7 @@ So `prefix → f` means: press `Ctrl-A`, release both keys, then press `f`.
    **Screen 1 — pick a project (or jump to a live session).** The fzf list
    shows every live tmux session (prefixed `[session]`) plus every project
    directory under your configured roots (`~/.config/proj/roots`; e.g.
-   `~/GitHub/schuettc/`, `~/learning-with-court/`), and a
+   `~/GitHub/<account>/`, `~/notes/`), and a
    `[+ add new project root…]` entry. Pick a `[session]` row to jump straight
    back to a running session; pick a project directory to continue to Screen 2.
    `proj <project>` skips straight to Screen 2 (flags come first: `proj
@@ -143,7 +143,7 @@ Each session can be restored after a reboot from `proj`'s saved tab.
 
 ```bash
 # Auto-launch claude in the left pane instead of leaving it empty:
-pt --claude now-playing       # one-shot, for a pt tab
+pt --claude my-app-2          # one-shot, for a pt tab
 proj --claude                 # one-shot, for the workspace proj creates
 AUTO_CLAUDE=1 zsh             # makes ⌘T auto-join also launch claude
 
@@ -274,7 +274,7 @@ detached on purpose, so most people run it manually.)
 To kill one specific session by hand:
 
 ```bash
-tmux kill-session -t now-playing/notes
+tmux kill-session -t my-app-2/notes
 ```
 
 ## Which command, when
@@ -299,7 +299,7 @@ use another.
 proj                                 # picker → switch session, or name new work
 prefix → d                           # detach completely
 tmux ls                              # list every alive session
-tmux kill-session -t now-playing     # tear down a specific session
+tmux kill-session -t my-app-2        # tear down a specific session
 ```
 
 While inside any session, `prefix → s` opens an interactive picker of all
