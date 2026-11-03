@@ -1,7 +1,6 @@
 #!/bin/bash
 # Claude Code hook dispatcher — rings the tmux bell for the exact Claude
-# pane so the status-left attention banner (bin/tmux-attention.sh), the
-# tmux window indicator, and Ghostty's tab 🔔 / border light up.
+# pane so the tmux window indicator and Ghostty's tab 🔔 / border light up.
 #
 # Hooks wired (see ~/.claude/settings.json), run SYNCHRONOUSLY:
 #   Notification → Claude is waiting for input

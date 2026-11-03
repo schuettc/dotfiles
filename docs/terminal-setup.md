@@ -219,7 +219,6 @@ Run through this checklist:
 | `pt --claude <work>` | Same, with claude |
 | `tat <name>` | Attach-or-create a named session |
 | `proj-clean` | Reap idle sessions (shell/yazi only) — `-n` for dry run |
-| `bell-clear` | Dismiss the attention banner — `-k` to kill flagged sessions |
 | `claude-attn raise` | Flag the current session for attention (🔔 + menu-bar badge); `clear` / `list` / `focus <s>` round it out. Any script/hook/skill can call it. |
 
 Key bindings (prefix is `Ctrl-A`): `prefix f` toggle yazi, `prefix d` detach,
