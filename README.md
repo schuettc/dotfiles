@@ -207,9 +207,9 @@ is *horizontal*: a local coordination bus that lets standing agent sessions in
 separate terminals (Claude Code, Codex and pi) message and hand tasks to each
 other — no copy/paste, subscription-only. The `muster` package installs the
 checksummed binary from muster.tools to `~/.local/bin/muster`, and its release
-setup adds a **LaunchAgent** (`tools.muster.serve` — `muster serve` runs at
-login, restarts on crash, logs to `~/.local/share/muster/serve.log`), the
-Claude Code plugin and session hooks, and the Codex hooks and MCP server. This
+setup adds the Claude Code plugin and session hooks, and the Codex hooks and
+MCP server. No service is installed: `muster serve` starts when the first agent
+needs it, or from proj, and serves a page listing the agents. This
 repo adds the pi side: the MCP server in `~/.config/mcp/mcp.json` and, with
 `pi-channels`, the mail channel. Don't want muster? Leave it out of your
 selection (the install-wizard skill walks through each package).
