@@ -1,6 +1,15 @@
 # kempt.toml — declarative description of this machine's dotfiles + tools.
 # Scope: core, terminal, nvim, markedit, claude, codex, swiftbar, muster,
 # galley, muda, sift, imprint, diazo, hail, pi, pi-channels, pi-llama.
+#
+# Linux (a billet workspace, Ubuntu 24.04 arm64): the `workspace` profile.
+# Every family tool ships linux/arm64, so packages are not gated by OS; only
+# steps that exist on a Mac alone (casks, Homebrew-only tools, Ghostty,
+# ~/Library paths, launchd) carry `only = { os = "darwin" }`. An install step
+# with an `apt` list installs it on Linux and its brew lists (casks included)
+# on a Mac. What only Linux needs is in [packages.workspace-linux], so a
+# Mac's plan has no Linux steps in it. Node 24, the AWS CLI and uv come from
+# the workspace's first boot, not from here; workspace-linux checks for them.
 # (cursor dropped — the cursor-agent CLI was never set up; see the cursor note
 # below. pi-llama is optional and NOT in the developer profile — adopt it only
 # on a box with local GGUF weights.)
@@ -28,6 +37,14 @@ description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt
     "yq", "gh", "git", "git-lfs", "pipx", "uv", "awscli",
   ]
   brew.casks = ["1password-cli", "visual-studio-code", "docker-desktop"]
+  # Ubuntu 24.04 names. bat and fd install as batcat and fdfind
+  # (linked in workspace-linux).
+  # Not in Ubuntu, so Mac-only: starship, atuin, lazygit, tlrc, yq (Ubuntu's
+  # yq is a different tool). uv and awscli come from the first boot.
+  apt = [
+    "zsh", "eza", "bat", "zoxide", "fzf", "fd-find", "ripgrep", "git-delta",
+    "htop", "tree", "jq", "gh", "git", "git-lfs", "pipx", "curl", "unzip",
+  ]
 
   [[packages.core.symlink]]
   from = ".zshrc"
@@ -60,9 +77,11 @@ description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt
 
   [[packages.core.verify]]
   command-exists = "starship"
+  only = { os = "darwin" }
 
   [[packages.core.verify]]
   command-exists = "atuin"
+  only = { os = "darwin" }
 
   [[packages.core.verify]]
   symlink-target = { link = "~/.zshrc", target = ".zshrc" }
@@ -84,11 +103,15 @@ needs = ["core"]
     "ghostty", "font-fira-code-nerd-font", "font-meslo-lg-nerd-font",
     "font-jetbrains-mono-nerd-font", "font-monaspice-nerd-font",
   ]
+  # Linux: the terminal's non-GUI parts. yazi and lefthook stay Mac-only (not
+  # in Ubuntu); Ubuntu's own bash is 5.2.
+  apt = ["tmux", "golang-go", "just"]
 
   [[packages.terminal.symlink]]
   from = "config/ghostty/config"
   to = "~/.config/ghostty/config"
   backup = true
+  only = { os = "darwin" }
 
   [[packages.terminal.symlink]]
   from = ".tmux.conf"
@@ -187,6 +210,7 @@ needs = ["core"]
 
   [[packages.nvim.install]]
   brew.formulas = ["neovim"]
+  apt = ["neovim"]
 
   [[packages.nvim.symlink]]
   from = "config/nvim"
@@ -205,6 +229,7 @@ needs = ["core"]
 [packages.markedit]
 description = "MarkEdit markdown-editor styles"
 needs = ["core"]
+only = { os = "darwin" }
 
   [[packages.markedit.install]]
   brew.casks = ["markedit"]
@@ -227,6 +252,7 @@ needs = ["core"]
   # The native `claude` binary (Homebrew cask claude-code).
   [[packages.claude.install]]
   brew.casks = ["claude-code"]
+  only = { os = "darwin" }
 
   [[packages.claude.symlink]]
   from = "config/claude"
@@ -287,6 +313,7 @@ notes = ["run `codex login` to authenticate"]
 
   [[packages.codex.install]]
   brew.casks = ["codex"]
+  only = { os = "darwin" }
 
   # session-stamp hook. codex hooks.json does not expand ~, so kempt expands the
   # ${HOME} token at write time into an absolute, per-machine path.
@@ -312,6 +339,7 @@ notes = ["run `codex login` to authenticate"]
 [packages.swiftbar]
 description = "SwiftBar menu-bar attention indicator for Claude/pi sessions"
 needs = ["claude"]
+only = { os = "darwin" }
 notes = [
   "point SwiftBar at the linked plugins: defaults write com.ameba.SwiftBar PluginDirectory ~/.config/swiftbar/plugins",
   "add SwiftBar to Login Items (System Settings) to auto-start it",
@@ -337,7 +365,6 @@ notes = [
 [packages.muster]
 description = "Cross-terminal agent coordination bus (daemon, MCP + session hooks in Claude, Codex, and pi)"
 needs = ["terminal"]
-only = { os = "darwin" }
 
   # muster installs from muster.tools/dl (the family download contract). Its
   # release setup supplies the daemon service, the Claude plugin, hooks and MCP
@@ -371,7 +398,6 @@ only = { os = "darwin" }
 [packages.galley]
 description = "Markdown/HTML review page shared with Claude Code (galley.tools)"
 needs = ["core"]
-only = { os = "darwin" }
 
   [[packages.galley.download]]
   site = "galley.tools"
@@ -389,7 +415,6 @@ only = { os = "darwin" }
 [packages.muda]
 description = "muda: find and fix delivery waste in your pipelines (muda.tools)"
 needs = ["core"]
-only = { os = "darwin" }
 
   [[packages.muda.download]]
   site = "muda.tools"
@@ -416,7 +441,6 @@ only = { os = "darwin" }
 [packages.pi]
 description = "Pi coding agent (claude-bridge provider) + public extensions"
 needs = ["core"]
-only = { os = "darwin" }
 notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json (your private kempt layer links it); absent = no-op"]
 
   # node@24: pi runs on the Node LTS line (config/zsh/01-paths.zsh puts it first
@@ -424,6 +448,9 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # major and ships breakage to pi first.
   [[packages.pi.install]]
   brew.formulas = ["ddgr", "pandoc", "trafilatura", "node@24"]
+  # Linux: trafilatura is not in Ubuntu (Mac-only); Node 24 comes from the
+  # workspace's first boot (Ubuntu's nodejs is 18).
+  apt = ["ddgr", "pandoc"]
 
   [[packages.pi.install]]
   npm = ["@earendil-works/pi-coding-agent"]
@@ -601,7 +628,6 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
 [packages.sift]
 description = "sift: instruction-file audits reviewed per file, with an agent channel (tackle.tools)"
 needs = ["core"]
-only = { os = "darwin" }
 
   [[packages.sift.download]]
   site = "tackle.tools"
@@ -628,7 +654,6 @@ only = { os = "darwin" }
 [packages.imprint]
 description = "imprint: an npm guide for agents, with an agent channel (tackle.tools)"
 needs = ["core"]
-only = { os = "darwin" }
 
   [[packages.imprint.download]]
   site = "tackle.tools"
@@ -653,7 +678,6 @@ only = { os = "darwin" }
 [packages.diazo]
 description = "diazo: plan a change with an agent on a shared page (diazo.tools)"
 needs = ["core"]
-only = { os = "darwin" }
 notes = ["diazo.tools downloads need this machine signed in to a subaud.tools account entitled to diazo"]
 
   [[packages.diazo.download]]
@@ -678,7 +702,6 @@ notes = ["diazo.tools downloads need this machine signed in to a subaud.tools ac
 [packages.hail]
 description = "hail: answer agent prompts from your phone (hail.tools)"
 needs = ["pi"]
-only = { os = "darwin" }
 notes = [
   "hail.tools downloads need this machine signed in to a subaud.tools account entitled to hail",
   "pair your phone with the hail daemon once it is running",
@@ -711,7 +734,6 @@ notes = [
 [packages.pi-channels]
 description = "Wire the muster channel into pi sessions (channels.tools → channels.json); the other tools bring their own"
 needs = ["pi", "muster", "galley", "sift", "imprint", "muda"]
-only = { os = "darwin" }
 
   [[packages.pi-channels.json-merge]]
   file = "~/.pi/agent/channels.json"
@@ -767,12 +789,57 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
   http-ok = "http://127.0.0.1:42137/health"
 
 # ---------------------------------------------------------------------------
+# workspace-linux — what a Linux workspace adds to the packages above: claude
+# and codex from npm (casks on a Mac), Ubuntu's bat and fd under the names the
+# zsh config and FZF_DEFAULT_COMMAND use, and checks for what billet's first
+# boot installs (Node 24, the AWS CLI, uv). Linux only; in the workspace
+# profile alone.
+# ---------------------------------------------------------------------------
+[packages.workspace-linux]
+description = "Linux workspace additions: claude and codex from npm, bat/fd names, first-boot checks"
+needs = ["core", "claude", "codex", "pi"]
+only = { os = "linux" }
+
+  [[packages.workspace-linux.verify]]
+  command-exists = "node"
+
+  [[packages.workspace-linux.verify]]
+  command-exists = "aws"
+
+  [[packages.workspace-linux.verify]]
+  command-exists = "uv"
+
+  [[packages.workspace-linux.install]]
+  npm = ["@anthropic-ai/claude-code", "@openai/codex"]
+
+  [[packages.workspace-linux.symlink]]
+  from = "/usr/bin/batcat"
+  to = "~/.local/bin/bat"
+  backup = false
+
+  [[packages.workspace-linux.symlink]]
+  from = "/usr/bin/fdfind"
+  to = "~/.local/bin/fd"
+  backup = false
+
+  [[packages.workspace-linux.verify]]
+  command-exists = "claude"
+
+  [[packages.workspace-linux.verify]]
+  command-exists = "codex"
+
+# ---------------------------------------------------------------------------
 # Profiles. casebook and cull are personal-machine tools: they live in the home
 # layer (layers/home/kempt.toml), added per machine, not here.
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
 packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "sift", "imprint", "muda", "diazo", "hail", "pi", "pi-channels"]
+
+# A billet workspace (Ubuntu 24.04 arm64): developer without the Mac apps.
+[profiles.workspace]
+description = "A remote workspace: shell, tmux, nvim, agents and the family tools; no desktop apps"
+packages = ["core", "terminal", "nvim", "claude", "codex", "muster", "galley", "sift", "imprint", "muda", "diazo", "hail", "pi", "pi-channels", "workspace-linux"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"

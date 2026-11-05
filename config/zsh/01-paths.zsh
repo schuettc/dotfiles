@@ -1,5 +1,6 @@
 # Homebrew
-eval "$(/opt/homebrew/bin/brew shellenv)"
+# (absent on Linux: a workspace has no Homebrew)
+[[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # pnpm
 export PNPM_HOME="$HOME/Library/pnpm"
