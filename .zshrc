@@ -23,7 +23,7 @@ for config in "$XDG_CONFIG_HOME/zsh"/*.zsh(N); do
 done
 
 # Starship prompt (must be last, only in interactive shells)
-[[ $- == *i* ]] && eval "$(starship init zsh)"
+[[ $- == *i* ]] && command -v starship &> /dev/null && eval "$(starship init zsh)"
 
 # opencode
 export PATH="$HOME/.opencode/bin:$PATH"

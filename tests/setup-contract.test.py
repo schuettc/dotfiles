@@ -129,7 +129,26 @@ class SetupContract(unittest.TestCase):
     def test_claude_installs_its_cli(self):
         pkg = packages(BASE)["claude"]
         self.assertIn("claude-code", [c for i in pkg.get("install", []) for c in i.get("brew", {}).get("casks", [])])
-        self.assertIn({"command-exists": "claude"}, pkg["verify"])
+        self.assertIn({"command-exists": "claude", "only": {"os": "darwin"}}, pkg["verify"])
+
+    def test_linux_checks_each_npm_cli_after_installing_it(self):
+        # kempt re-checks a verify after apply only in a package that changed
+        # something, and runs steps in written order. So on Linux, where claude
+        # and codex come from npm, each is checked in workspace-linux after its
+        # npm step, and the shared claude and codex packages check only on a Mac.
+        pkgs = packages(BASE)
+        for name, cli in (("claude", "claude"), ("codex", "codex")):
+            self.assertIn({"command-exists": cli, "only": {"os": "darwin"}}, pkgs[name]["verify"], name)
+            self.assertNotIn({"command-exists": cli}, pkgs[name]["verify"], name)
+        ws = pkgs["workspace-linux"]
+        self.assertEqual(ws["only"], {"os": "linux"})
+        self.assertNotIn("pi", ws["needs"])  # a first apply's blocked pi extensions must not hold it back
+        text = (REPO / "kempt.toml").read_text()
+        block = text[text.index("\n[packages.workspace-linux]\n"):]
+        block = block[: block.index("\n[", 1)]
+        npm_at = block.index('npm = ["@anthropic-ai/claude-code", "@openai/codex"]')
+        for cli in ("claude", "codex"):
+            self.assertGreater(block.index(f'command-exists = "{cli}"'), npm_at, cli)
 
     def test_pi_lists_are_paired(self):
         for name, pkg in all_packages().items():
