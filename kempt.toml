@@ -300,8 +300,11 @@ needs = ["core"]
   [[packages.claude.verify]]
   symlink-target = { link = "~/.config/claude", target = "config/claude" }
 
+  # Linux installs claude from npm in workspace-linux, after this package, and
+  # checks it there.
   [[packages.claude.verify]]
   command-exists = "claude"
+  only = { os = "darwin" }
 
 # ---------------------------------------------------------------------------
 # codex — OpenAI Codex CLI + MCP bridge into Claude Code
@@ -328,6 +331,7 @@ notes = ["run `codex login` to authenticate"]
 
   [[packages.codex.verify]]
   command-exists = "codex"
+  only = { os = "darwin" }
 
 # ---------------------------------------------------------------------------
 # swiftbar — menu-bar attention indicator (🔔 turn-done / 🔐 waiting-on-you per
@@ -797,7 +801,7 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # ---------------------------------------------------------------------------
 [packages.workspace-linux]
 description = "Linux workspace additions: claude and codex from npm, bat/fd names, first-boot checks"
-needs = ["core", "claude", "codex", "pi"]
+needs = ["core", "claude", "codex"]
 only = { os = "linux" }
 
   [[packages.workspace-linux.verify]]
@@ -809,6 +813,10 @@ only = { os = "linux" }
   [[packages.workspace-linux.verify]]
   command-exists = "uv"
 
+  # Each check comes after the step that installs what it checks: kempt
+  # re-checks a verify after apply only in a package that changed something.
+  # Not needing pi keeps a first apply's blocked pi extensions (pi is not on
+  # PATH until its own npm step ran) from holding these back.
   [[packages.workspace-linux.install]]
   npm = ["@anthropic-ai/claude-code", "@openai/codex"]
 
