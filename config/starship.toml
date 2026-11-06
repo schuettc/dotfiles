@@ -1,7 +1,7 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
 # Performance settings
-scan_timeout = 10
+scan_timeout = 30
 command_timeout = 500
 
 # Two-line prompt with p10k-style frame
