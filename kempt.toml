@@ -1,6 +1,6 @@
 # kempt.toml — declarative description of this machine's dotfiles + tools.
 # Scope: core, terminal, nvim, markedit, claude, codex, swiftbar, muster,
-# galley, muda, sift, imprint, diazo, hail, pi, pi-channels, pi-llama.
+# galley, muda, sift, imprint, diazo, hail, pi-skills, pi, pi-channels, pi-llama.
 #
 # Linux (a billet workspace, Ubuntu 24.04 arm64): the `workspace` profile.
 # Every family tool ships linux/arm64, so packages are not gated by OS; only
@@ -401,7 +401,7 @@ needs = ["terminal"]
 # ---------------------------------------------------------------------------
 [packages.galley]
 description = "Markdown/HTML review page shared with Claude Code (galley.tools)"
-needs = ["core"]
+needs = ["core", "pi-skills"]
 
   [[packages.galley.download]]
   site = "galley.tools"
@@ -418,7 +418,7 @@ needs = ["core"]
 # ---------------------------------------------------------------------------
 [packages.muda]
 description = "muda: find and fix delivery waste in your pipelines (muda.tools)"
-needs = ["core"]
+needs = ["core", "pi-skills"]
 
   [[packages.muda.download]]
   site = "muda.tools"
@@ -428,6 +428,33 @@ needs = ["core"]
 
   [[packages.muda.verify]]
   command-exists = "muda"
+
+# ---------------------------------------------------------------------------
+# pi-skills — our pi skills (config/pi/skills: remembering, pi-subagent-
+# dispatch, the family build/release/onboarding skills, cleaning-up-branches,
+# and brainstorming/writing-plans/executing-plans adapted from superpowers,
+# whose LICENSE and pinned SHA are in config/pi/superpowers). Whole-dir link
+# into pi's auto-discovered skills dir, so an edit here is live at once. pi
+# only: Claude Code's ~/.claude/skills is not managed here.
+#
+# A package of its own so it comes first: galley, muda, sift, imprint and
+# diazo write their release skills into ~/.pi/agent/skills, and need this link
+# there before they do, or the link step moves their files aside. It needs
+# only core, because pi is incomplete after a fresh machine's first apply (its
+# extensions step plans blocked until pi is installed) and kempt holds back
+# whatever needs an incomplete package.
+# ---------------------------------------------------------------------------
+[packages.pi-skills]
+description = "Our pi skills, linked into ~/.pi/agent/skills before any tool writes there"
+needs = ["core"]
+
+  [[packages.pi-skills.symlink]]
+  from = "config/pi/skills"
+  to = "~/.pi/agent/skills"
+  backup = true
+
+  [[packages.pi-skills.verify]]
+  symlink-target = { link = "~/.pi/agent/skills", target = "config/pi/skills" }
 
 # ---------------------------------------------------------------------------
 # pi — Pi coding agent (portable). Runs on the claude-bridge provider out of the
@@ -444,7 +471,7 @@ needs = ["core"]
 #    it (that config is your private overlay, not part of this manifest).
 [packages.pi]
 description = "Pi coding agent (claude-bridge provider) + public extensions"
-needs = ["core"]
+needs = ["core", "pi-skills"]
 notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json (your private kempt layer links it); absent = no-op"]
 
   # node@24: pi runs on the Node LTS line (config/zsh/01-paths.zsh puts it first
@@ -600,22 +627,9 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.verify]]
   symlink-target = { link = "~/.pi/agent/subagents.json", target = "config/pi/subagents.json" }
 
-  # Our pi skills (config/pi/skills: remembering, pi-subagent-dispatch, the
-  # family build/release/onboarding skills, cleaning-up-branches, and
-  # brainstorming/writing-plans/executing-plans adapted from superpowers, whose
-  # LICENSE and pinned SHA are in config/pi/superpowers). Whole-dir link
-  # into pi's auto-discovered skills dir, so an edit here is live at once. pi
-  # only: Claude Code's ~/.claude/skills is not managed here.
-  [[packages.pi.symlink]]
-  from = "config/pi/skills"
-  to = "~/.pi/agent/skills"
-  backup = true
-
-  [[packages.pi.verify]]
-  symlink-target = { link = "~/.pi/agent/skills", target = "config/pi/skills" }
-
   # pi skills path — none beyond pi's own auto-discovered ~/.pi/agent/skills
-  # (the kempt-managed symlink above) and the skills packages ship.
+  # (the kempt-managed symlink in [packages.pi-skills]) and the skills packages
+  # ship.
   # arrays=replace keeps it authoritatively empty so retired paths do not
   # linger; a layer that needs more (a work layer's plugin skills) adds them,
   # and kempt composes the union.
@@ -631,7 +645,7 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
 # ---------------------------------------------------------------------------
 [packages.sift]
 description = "sift: instruction-file audits reviewed per file, with an agent channel (tackle.tools)"
-needs = ["core"]
+needs = ["core", "pi-skills"]
 
   [[packages.sift.download]]
   site = "tackle.tools"
@@ -657,7 +671,7 @@ needs = ["core"]
 # ---------------------------------------------------------------------------
 [packages.imprint]
 description = "imprint: an npm guide for agents, with an agent channel (tackle.tools)"
-needs = ["core"]
+needs = ["core", "pi-skills"]
 
   [[packages.imprint.download]]
   site = "tackle.tools"
@@ -681,7 +695,7 @@ needs = ["core"]
 # ---------------------------------------------------------------------------
 [packages.diazo]
 description = "diazo: plan a change with an agent on a shared page (diazo.tools)"
-needs = ["core"]
+needs = ["core", "pi-skills"]
 notes = ["diazo.tools downloads need this machine signed in to a subaud.tools account entitled to diazo"]
 
   [[packages.diazo.download]]
@@ -700,12 +714,15 @@ notes = ["diazo.tools downloads need this machine signed in to a subaud.tools ac
 
 # ---------------------------------------------------------------------------
 # hail — approve agent prompts from your phone (hail.tools). Its release setup
-# supplies the daemon service; the pi end is pi-hail in [packages.pi], so hail
-# needs pi.
+# supplies the daemon service; the pi end is pi-hail in [packages.pi], which
+# every profile with hail also selects. hail does not need pi: pi is incomplete
+# after a fresh machine's first apply (its extensions step plans blocked until
+# pi is installed), and kempt would hold hail's release setup back, failing
+# that apply.
 # ---------------------------------------------------------------------------
 [packages.hail]
 description = "hail: answer agent prompts from your phone (hail.tools)"
-needs = ["pi"]
+needs = ["core"]
 notes = [
   "hail.tools downloads need this machine signed in to a subaud.tools account entitled to hail",
   "pair your phone with the hail daemon once it is running",
@@ -842,12 +859,12 @@ only = { os = "linux" }
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "sift", "imprint", "muda", "diazo", "hail", "pi", "pi-channels"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "pi-skills", "galley", "sift", "imprint", "muda", "diazo", "hail", "pi", "pi-channels"]
 
 # A billet workspace (Ubuntu 24.04 arm64): developer without the Mac apps.
 [profiles.workspace]
 description = "A remote workspace: shell, tmux, nvim, agents and the family tools; no desktop apps"
-packages = ["core", "terminal", "nvim", "claude", "codex", "muster", "galley", "sift", "imprint", "muda", "diazo", "hail", "pi", "pi-channels", "workspace-linux"]
+packages = ["core", "terminal", "nvim", "claude", "codex", "muster", "pi-skills", "galley", "sift", "imprint", "muda", "diazo", "hail", "pi", "pi-channels", "workspace-linux"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"

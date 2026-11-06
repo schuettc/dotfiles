@@ -165,8 +165,35 @@ class SetupContract(unittest.TestCase):
             removed = [r for m in merges(pkgs[name], file) for r in m.get("remove", [])]
             self.assertIn(path, removed, name)
 
-    def test_hail_brings_its_pi_end(self):
-        self.assertIn("pi", needs_closure(["hail"], packages(BASE)))
+    def test_hail_does_not_wait_for_pi(self):
+        # On a fresh machine pi is incomplete after its first apply (its
+        # extensions step plans blocked until pi is installed), and kempt holds
+        # back whatever needs an incomplete package. hail's release setup would
+        # then fail the first apply. Its pi end comes with pi, which every
+        # profile that has hail selects.
+        pkgs, profiles = packages(BASE), BASE["profiles"]
+        self.assertNotIn("pi", needs_closure(["hail"], pkgs))
+        for name, profile in profiles.items():
+            if "hail" in profile["packages"]:
+                self.assertIn("pi", profile["packages"], name)
+
+    def test_skills_link_comes_before_the_skills_written_into_it(self):
+        # Releases write their skills into ~/.pi/agent/skills; that path must
+        # already be the link to config/pi/skills, or the link step moves their
+        # files aside. The link is in pi-skills, which needs nothing that can be
+        # incomplete on a first apply, and every tool that writes there needs it.
+        pkgs = packages(BASE)
+        link = {"link": "~/.pi/agent/skills", "target": "config/pi/skills"}
+        owners = [n for n, p in pkgs.items() for v in p.get("verify", []) if v.get("symlink-target") == link]
+        self.assertEqual(owners, ["pi-skills"])
+        self.assertEqual(pkgs["pi-skills"]["needs"], ["core"])
+        self.assertIn("pi-skills", pkgs["pi"]["needs"])
+        for name in ("galley", "muda", "sift", "imprint", "diazo"):
+            self.assertIn("pi-skills", pkgs[name]["needs"], name)
+            self.assertNotIn("pi", needs_closure([name], pkgs), name)
+        for name, profile in BASE["profiles"].items():
+            if "pi" in profile["packages"]:
+                self.assertIn("pi-skills", profile["packages"], name)
 
     def test_home_casebook_needs_pi(self):
         self.assertIn("pi", packages(HOME)["casebook"].get("needs", []))
@@ -209,8 +236,9 @@ class SetupContract(unittest.TestCase):
             needs_closure([name], pkgs)
 
     def test_saved_selection_gains_nothing_implicitly(self):
+        # pi-skills is pi's skills link, moved into a package of its own.
         closure = needs_closure(SAVED_DEVELOPER, packages(BASE))
-        self.assertEqual(closure, set(SAVED_DEVELOPER) | {"imprint"})
+        self.assertEqual(closure, set(SAVED_DEVELOPER) | {"imprint", "pi-skills"})
 
 
 if __name__ == "__main__":
