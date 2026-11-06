@@ -22,8 +22,8 @@ shipping is `releasing-a-tools-family-tool`. The why:
   and the literal `curl … | sh`. The agent verifies equivalently (fetch + run, or
   manual download+checksum) and hands the human the exact commands.
 - **tools-ops is a shared clone.** `git fetch && rebase` before any push, and
-  coordinate on muster (broadcast a HOLD) before an infra/site push during
-  someone else's launch.
+  message the session running a launch directly before an infra/site push
+  during it; don't broadcast.
 
 ## A. Add a new site (StaticSite)
 1. Register the domain; create/import the zone. In `tools-ops/infra/bin/app.ts` add a

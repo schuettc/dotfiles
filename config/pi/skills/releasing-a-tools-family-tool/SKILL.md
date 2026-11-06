@@ -19,7 +19,7 @@ Find the change: the merged PR or commit (`gh pr view N --json state,mergeCommit
 | galley, muster | **dev → main** | features merge into `dev`; then (1) a "release prep" PR into `dev` setting `VERSION` and turning `## Unreleased` into `## X.Y.Z`, (2) a PR `dev` → `main` titled `<tool> X.Y.Z`; merging (2) releases |
 | tackle (scratch, proj, creel, casebook) | **tags** | no `VERSION` file: a `CHANGELOG.md` entry merged to `main` first, then an annotated tag `<tool>/vX.Y.Z` on that commit, pushed **one tag per push** (GitHub drops tag events when more than 3 arrive in one push). tackle's single `CHANGELOG.md` covers only scratch today; per-tool entries are part of tackle's move onto the standard |
 
-The next version comes from the newest release tag, not from memory. A PR into a release branch that changes no shipped binary carries the `no-release` label; otherwise the version guard fails it until `VERSION` is raised to a newer plain `X.Y.Z`.
+The next version comes from the newest release tag and any open PR that already raises `VERSION` (another session's claim), not from memory or muster; that check is enough, so don't announce the version you take. A PR into a release branch that changes no shipped binary carries the `no-release` label; otherwise the version guard fails it until `VERSION` is raised to a newer plain `X.Y.Z`.
 
 **`dev` → `main` shows conflicts (DIRTY)?** Something landed on `main` directly and never came back. Check what (`git log origin/dev..origin/main`); if `dev` already supersedes it, merge `origin/main` into a branch off `dev` keeping `dev`'s side, confirm the tree equals `dev` (`git diff --cached --quiet origin/dev`), PR that into `dev`. Then the promotion is clean and its checks (including the version guard) run.
 
