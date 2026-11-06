@@ -196,10 +196,13 @@ needs = ["core"]
 description = "Optional persistent terminal session themes"
 needs = ["terminal"]
 
+  # A Mac's only: a workspace links config/proj/config.workspace.toml to the
+  # same path, from workspace-linux.
   [[packages.session-themes.symlink]]
   from = "config/proj/config.toml"
   to = "~/.config/proj/config.toml"
   backup = true
+  only = { os = "darwin" }
 
 # ---------------------------------------------------------------------------
 # nvim — Neovim ($EDITOR) with LazyVim config
@@ -813,8 +816,8 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 # workspace-linux — what a Linux workspace adds to the packages above: claude
 # and codex from npm (casks on a Mac), Ubuntu's bat and fd under the names the
 # zsh config and FZF_DEFAULT_COMMAND use, and checks for what billet's first
-# boot installs (Node 24, the AWS CLI, uv). Linux only; in the workspace
-# profile alone.
+# boot installs (Node 24, the AWS CLI, uv), and proj's config without the
+# sidebar. Linux only; in the workspace profile alone.
 # ---------------------------------------------------------------------------
 [packages.workspace-linux]
 description = "Linux workspace additions: claude and codex from npm, bat/fd names, first-boot checks"
@@ -846,6 +849,12 @@ only = { os = "linux" }
   from = "/usr/bin/fdfind"
   to = "~/.local/bin/fd"
   backup = false
+
+  # proj without the sidebar: a workspace session is the agent's pane alone.
+  [[packages.workspace-linux.symlink]]
+  from = "config/proj/config.workspace.toml"
+  to = "~/.config/proj/config.toml"
+  backup = true
 
   [[packages.workspace-linux.verify]]
   command-exists = "claude"
