@@ -1,0 +1,4 @@
+# proj on a billet workspace: config.toml without the sidebar. A session there
+# is the agent's pane alone, no scratch, yazi or shell beside it.
+session_themes = true
+sidebar = false
