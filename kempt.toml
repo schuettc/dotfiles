@@ -1,6 +1,6 @@
 # kempt.toml — declarative description of this machine's dotfiles + tools.
 # Scope: core, terminal, nvim, markedit, claude, codex, swiftbar, muster,
-# galley, muda, sift, imprint, diazo, hail, pi-skills, pi, pi-channels, pi-llama.
+# galley, muda, sift, imprint, diazo, pi-skills, pi, pi-channels, pi-llama.
 #
 # Linux (a billet workspace, Ubuntu 24.04 arm64): the `workspace` profile.
 # Every family tool ships linux/arm64, so packages are not gated by OS; only
@@ -551,8 +551,9 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # sessions never run a mix of old and new code and channel servers restart
     # on the new binary. Our own, from the pi-extensions monorepo.
     "npm:pi-auto-reload@0.2.1",
-    # pi-hail: the pane end of hail (hail.tools); pinned to the release the hail
-    # daemon was accepted with. It stays here rather than in [packages.hail]:
+    # pi-hail: the pane end of hail (hail.tools, whose package is in the private
+    # layer); pinned to the release the hail daemon was accepted with. It stays
+    # here rather than in that package:
     # kempt folds a replace and an append list into one file only across
     # layers, so a second list in this file would never converge.
     "npm:pi-hail@0.8.0",
@@ -716,31 +717,6 @@ notes = ["diazo.tools downloads need this machine signed in to a subaud.tools ac
   command-exists = "diazo"
 
 # ---------------------------------------------------------------------------
-# hail — approve agent prompts from your phone (hail.tools). Its release setup
-# supplies the daemon service; the pi end is pi-hail in [packages.pi], which
-# every profile with hail also selects. hail does not need pi: pi is incomplete
-# after a fresh machine's first apply (its extensions step plans blocked until
-# pi is installed), and kempt would hold hail's release setup back, failing
-# that apply.
-# ---------------------------------------------------------------------------
-[packages.hail]
-description = "hail: answer agent prompts from your phone (hail.tools)"
-needs = ["core"]
-notes = [
-  "hail.tools downloads need this machine signed in to a subaud.tools account entitled to hail",
-  "pair your phone with the hail daemon once it is running",
-]
-
-  [[packages.hail.download]]
-  site = "hail.tools"
-  tool = "hail"
-  bin = "hail"
-  setup = true
-
-  [[packages.hail.verify]]
-  command-exists = "hail"
-
-# ---------------------------------------------------------------------------
 # pi-channels — wire the muster channel into pi sessions.
 #
 # channels.tools (installed by [packages.pi]) is the bridge, but it spawns
@@ -868,12 +844,12 @@ only = { os = "linux" }
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "pi-skills", "galley", "sift", "imprint", "muda", "diazo", "hail", "pi", "pi-channels"]
+packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "pi-skills", "galley", "sift", "imprint", "muda", "diazo", "pi", "pi-channels"]
 
 # A billet workspace (Ubuntu 24.04 arm64): developer without the Mac apps.
 [profiles.workspace]
 description = "A remote workspace: shell, tmux, nvim, agents and the family tools; no desktop apps"
-packages = ["core", "terminal", "nvim", "claude", "codex", "muster", "pi-skills", "galley", "sift", "imprint", "muda", "diazo", "hail", "pi", "pi-channels", "workspace-linux"]
+packages = ["core", "terminal", "nvim", "claude", "codex", "muster", "pi-skills", "galley", "sift", "imprint", "muda", "diazo", "pi", "pi-channels", "workspace-linux"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
