@@ -25,6 +25,13 @@ Stop and bring it to the user for: deleting something that exists only on this m
 
 Tasks build their tests per the test-driven-development skill: one failing test per behavior the plan asks for, watched failing, then passing.
 
+## Several approved plans
+
+- When more than one plan is approved and ready to build, and their builds don't share a worktree, start them at the same time. Each plan gets its own worktree, its own worker (or large-plan mode), its own run directory, its own report and its own final review from the other model family, and ends with its own PR and release.
+- Two plans that would change the same worktree or branch build one after the other, the earlier first.
+- In diazo, post each plan's tasks `building` as they start: several plans may show as building at once.
+- The main session keeps coordinating and runs no task commands itself, as with one plan. When a plan's worker returns, check it and start that plan's review without waiting for the other plans.
+
 ## Setup
 
 1. Resolve the canonical clone and workspace from its workspace instructions, then create and confirm the worktree and branch under AGENTS.md's Git rules before naming a worker's worktree. Never implement on `main` without the user's explicit consent.
@@ -47,7 +54,7 @@ A `NEEDS_CONTEXT` return is a ruling for you to make with the spec as the author
 
 ## Run it: large-plan mode
 
-Dispatch one fresh `worker` per task, in order, never in parallel (they share the worktree). No context builds up across tasks, and there is no reviewer model per task.
+Dispatch one fresh `worker` per task, in order, never in parallel within one plan (its tasks share the worktree). No context builds up across tasks, and there is no reviewer model per task.
 
 1. **Brief.** Copy the task's full text into `<run-dir>/task-<N>-brief.md`, with the plan's Global Constraints and the Interfaces it consumes from earlier tasks. The worker reads that file, not the whole plan. Don't paste earlier tasks' history into the dispatch.
 2. **Dispatch** with the brief path, the spec path, the worktree, the report path `<run-dir>/task-<N>-report.md`, and the worker instructions above (the scope stop applies to the task's share of the plan).
