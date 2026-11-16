@@ -73,7 +73,7 @@ Classify first, announce the path, then create a task for each item on your path
 
 **Architectural:**
 1. **Explore project context**: check files, docs, recent commits
-2. **Open diazo**: load the diazo skill and open the planning folder with `diazo_open` (see "Where the spec goes" below)
+2. **Open diazo**: load the diazo skill and open the planning folder with `diazo_open` (see "Where the spec goes" below). A diazo folder has a kind, set as the folder opens: a bug or a failure to explain is an `investigation` (diazo's `investigation.md`), anything else a `feature`
 3. **Understanding and decisions on the page**: follow the diazo skill; each decision's options follow "Exploring approaches" below
 4. **Write and print the spec**: `spec.md` in the folder, self-reviewed (see below) before `diazo_print_spec`
 5. **The user approves the spec on the page**: this is the written-spec approval
