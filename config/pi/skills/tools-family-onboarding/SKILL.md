@@ -43,6 +43,7 @@ shipping is `releasing-a-tools-family-tool`. The why:
 3. Content: `tools-ops/sites/<domain>/` (index.html on the standard header, style.css with a
    distinct accent, site.js, favicon/mark, llms.txt). Add the tool to
    `sites/subaud.tools/` (nav, family card, footer, `icons/<tool>.svg`, meta count).
+4. First-time path: the front page gets a Your first time section ("Show me around <tool>." if it has a walk, else its Guide button) linking to subaud.tools/start/; its llms.txt points to subaud.tools/llms.txt's After install, and the tool gets its line there (skills, plugin).
 
 ## B. Wire the binary download pipeline (/dl)
 Only for tools that ship a binary (npm tools use trusted-publisher instead).
