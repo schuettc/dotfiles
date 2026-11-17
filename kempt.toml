@@ -529,7 +529,8 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
     # pi-mcp-adapter is the MCP bridge: reads .mcp.json / ~/.config/mcp/mcp.json
     # and exposes one lazy mcp() proxy tool (search/describe/execute) instead of
     # dumping every server's tools into context. Remote URL servers + OAuth
-    # (keychain-stored) work. Individual MCP servers are configured out of band.
+    # work; OAuth tokens are encrypted files, not Keychain (the mcp-adapter.json
+    # merge below). Individual MCP servers are configured out of band.
     "npm:pi-mcp-adapter",
     "npm:pi-provider-guard@0.1.0",
     "npm:pi-tmux-bridge@0.1.5",
@@ -598,6 +599,16 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   [[packages.pi.json-merge]]
   file = "~/.pi/agent/claude-bridge.json"
   merge = { askClaude = { enabled = true, defaultMode = "read", defaultIsolated = true, allowFullMode = false }, provider = { strictMcpConfig = true, autoMemoryEnabled = false, longContextExtraUsage = false } }
+
+  # pi-mcp-adapter stores MCP OAuth tokens as AES-256-GCM files under
+  # ~/.pi/agent/mcp-oauth-encrypted/ instead of the macOS Keychain, so pi never
+  # raises Keychain prompts. The key comes from PI_MCP_ADAPTER_OAUTH_FILE_KEY,
+  # which config/zsh/07-mcp-oauth.zsh creates per machine and exports. Without
+  # it the adapter fails closed (no plaintext fallback). Hand-added servers and
+  # settings in this file survive: the merge is additive.
+  [[packages.pi.json-merge]]
+  file = "~/.pi/agent/mcp-adapter.json"
+  merge = { settings = { oauthCredentialStore = "encrypted-file" } }
 
   # subagent definitions — global custom agents (worker/reviewer) discovered by
   # pi at ~/.pi/agent/agents from any cwd. These are the LEAN-prompt agents (no
