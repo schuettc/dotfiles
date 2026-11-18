@@ -28,6 +28,7 @@
 [kempt]
 spec = 2
 layer = "user"
+on = "https://github.com/subaud-tools/starter"
 
 # ---------------------------------------------------------------------------
 # core — shell foundation: brew CLI tools, zsh, starship, atuin
