@@ -93,13 +93,13 @@ description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt
   symlink-target = { link = "~/.zshrc", target = ".zshrc" }
 
 # ---------------------------------------------------------------------------
-# terminal — tmux config and helpers, build tools, extra nerd fonts, and the
+# terminal — tmux config and helpers, build tools, and the
 # personal Ghostty font and yazi config on top of the starter's. tmux itself,
 # Ghostty, yazi, FiraCode Nerd Font and proj/scratch/creel come from the
 # starter.
 # ---------------------------------------------------------------------------
 [packages.terminal]
-description = "tmux config and helpers, go/just/lefthook/bash, extra nerd fonts, personal Ghostty font and yazi config"
+description = "tmux config and helpers, go/just/lefthook/bash, personal Ghostty font and yazi config"
 needs = ["core"]
 
   # just + lefthook: every .tools family repo's `just verify` and pre-push hook
@@ -108,10 +108,6 @@ needs = ["core"]
   # fork-sync suite refuses macOS's /bin/bash 3.2). /bin/bash is untouched.
   [[packages.terminal.install]]
   brew.formulas = ["go", "just", "lefthook", "bash"]
-  brew.casks = [
-    "font-meslo-lg-nerd-font", "font-jetbrains-mono-nerd-font",
-    "font-monaspice-nerd-font",
-  ]
   # Linux: lefthook stays Mac-only (not in Ubuntu); Ubuntu's own bash is 5.2.
   apt = ["golang-go", "just"]
 
