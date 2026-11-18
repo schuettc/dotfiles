@@ -40,7 +40,7 @@ description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt
   brew.formulas = [
     "starship", "atuin", "zsh-completions", "eza", "bat", "zoxide", "fzf",
     "fd", "ripgrep", "git-delta", "tree", "jq",
-    "yq", "gh", "git", "git-lfs", "pipx", "uv", "awscli",
+    "yq", "gh", "git", "pipx", "uv", "awscli",
   ]
   brew.casks = ["1password-cli", "visual-studio-code", "docker-desktop"]
   # Ubuntu 24.04 names. bat and fd install as batcat and fdfind
@@ -49,7 +49,7 @@ description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt
   # yq is a different tool). uv and awscli come from the first boot.
   apt = [
     "zsh", "eza", "bat", "zoxide", "fzf", "fd-find", "ripgrep", "git-delta",
-    "tree", "jq", "gh", "git", "git-lfs", "pipx", "curl", "unzip",
+    "tree", "jq", "gh", "git", "pipx", "curl", "unzip",
   ]
 
   [[packages.core.symlink]]
