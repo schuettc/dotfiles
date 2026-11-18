@@ -127,8 +127,7 @@ any project. Project roots are configured per-machine in `~/.config/proj/roots`
 
 pi itself, its base extensions, the worker and reviewer subagents and the
 process skills come from the starter's `pi` and `way-of-working` packages.
-`pi-personal` adds the user's own extensions (pi-artifacts,
-pi-provider-guard, pi-typesafe-ai, pi-hail, pi-casebook), the default model,
+`pi-personal` adds the user's own extensions (pi-provider-guard, pi-typesafe-ai, pi-hail, pi-casebook), the default model,
 yolo mode with pi-hail answering prompts, and the encrypted MCP token store;
 kempt folds its package list into the starter's.
 

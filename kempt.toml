@@ -303,7 +303,7 @@ notes = [
 # links it); absent, the extension is a no-op.
 # ---------------------------------------------------------------------------
 [packages.pi-personal]
-description = "Personal pi extensions and settings on top of the starter's pi: artifacts, provider guard, TypeSafe, hail, casebook, yolo mode"
+description = "Personal pi extensions and settings on top of the starter's pi: provider guard, TypeSafe, hail, casebook, yolo mode"
 needs = ["pi"]
 
   # Version policy: an unversioned entry rolls to the newest release on
@@ -311,7 +311,6 @@ needs = ["pi"]
   # match the settings.json `packages` list below string for string.
   [[packages.pi-personal.install]]
   pi = [
-    "npm:@nicknisi/pi-artifacts",
     # Our own, from the pi-extensions monorepo.
     "npm:pi-provider-guard@0.1.0",
     # TypeSafe Jev credential UX (bare `/typesafe` panel, or setup|status|
@@ -330,7 +329,7 @@ needs = ["pi"]
   [[packages.pi-personal.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultModel = "claude-opus-5-5", packages = [ "npm:@nicknisi/pi-artifacts", "npm:pi-provider-guard@0.1.0", "npm:pi-typesafe-ai@0.2.0", "npm:pi-hail@0.8.0", "npm:pi-casebook" ], skills = [] }
+  merge = { defaultModel = "claude-opus-5-5", packages = [ "npm:pi-provider-guard@0.1.0", "npm:pi-typesafe-ai@0.2.0", "npm:pi-hail@0.8.0", "npm:pi-casebook" ], skills = [] }
 
   # The permission policy on top of the starter's: yolo mode on (tool calls run
   # without asking; the starter's denies still hold), pi-hail as the prompt
