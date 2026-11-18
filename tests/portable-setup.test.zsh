@@ -16,7 +16,7 @@
 #   * a shell without the wrapper starts cleanly; with it, the release proj()
 #     is the one defined, runs the binary's $PROJ_EXEC line once, and the
 #     auto-join fires once, with its opt-outs
-#   * the skills family tools install through the pi skills link stay ignored
+#   * each family skill is linked as its own folder into the copy
 #
 # Real shells run with a temporary HOME and a stub `proj`; nothing touches the
 # machine's own HOME, tmux server or proj.
@@ -39,7 +39,7 @@ rsync -a --exclude .git "$REPO/" "$FIX/"
 H="${TMP:A}/home"; mkdir -p "$H/.config"
 LOG="$TMP/log"
 
-# The base manifest's symlinks, download binaries and notes, one per line.
+# The layer manifest's symlinks, download binaries and notes, one per line.
 manifest() {
   python3 - "$FIX/kempt.toml" "$1" <<'EOF'
 import sys, tomllib
@@ -67,7 +67,8 @@ done
 echo "── helpers resolve through manifest links ──"
 refs=$(grep -ohE '(~|\$HOME)/\.local/bin/[A-Za-z0-9._-]+' "$FIX/.tmux.conf" "$FIX/config/claude/claude-notify.sh" | sed -E 's|.*/||' | sort -u)
 ok "tmux-hook-pane.sh is among the helpers" "1" "$(print -r -- $refs | grep -cx 'tmux-hook-pane.sh')"
-downloads=(${(f)"$(manifest bin)"})
+# Binaries the starter (the base this layer sits on) installs.
+downloads=(${(f)"$(manifest bin)"} muster proj scratch creel)
 for name in ${(f)refs}; do
   (( ${downloads[(Ie)$name]} )) && continue
   target="$H/.local/bin/$name"
@@ -177,12 +178,12 @@ rm -f "$H/.no-auto-tmux"
 
 ok "the copy's tracked files are unchanged" "" "$(rsync -anc --exclude .git --out-format='%n' "$FIX/" "$REPO/" | grep -v '/$')"
 
-echo "── skills family tools install stay out of git ──"
-for skill in reviewing-a-document sift imprint diazo muda muda-design; do
-  ok "$skill is ignored" "0" "$(git -C "$REPO" check-ignore -q "config/pi/skills/$skill/SKILL.md"; echo $?)"
+echo "── family skills are linked one folder each ──"
+for skill in building-a-tools-family-tool releasing-a-tools-family-tool tools-family-onboarding; do
+  ok "$skill links into the copy" "$FIX/config/pi/skills/$skill" \
+     "$([[ -L "$H/.pi/agent/skills/$skill" ]] && print -r -- "${H}/.pi/agent/skills/$skill"(:A))"
 done
-ok "tracked shared skills are not ignored" "" "$(git -C "$REPO" ls-files -ci --exclude-standard config/pi/skills)"
-ok "a new skill of your own shows up" "1" "$(git -C "$REPO" check-ignore -q config/pi/skills/my-own/SKILL.md; echo $?)"
+ok "the skills folder itself is not a link" "no" "$([[ -L "$H/.pi/agent/skills" ]] && echo yes || echo no)"
 
 print
 print "PASS=$PASS FAIL=$FAIL"

@@ -1,0 +1,20 @@
+# Ghostty: the personal font on top of the starter's config.
+#
+# Linked to ~/Library/Application Support/com.mitchellh.ghostty/config, which
+# Ghostty loads after ~/.config/ghostty/config (the starter's), so these
+# values win. The empty font-family clears the starter's font list first.
+# Ghostty has no inline comments: keep notes on their own lines.
+
+# MonoLisa 3.000 renamed the family MonoLisa -> MonoLisaCode (the v2.x
+# "MonoLisa" name now belongs to the legacy statics). The 3.000 download is a
+# variable font with the full weight axis baked in, so all four faces resolve
+# to one family and Ghostty picks the weight per face.
+font-family =
+font-family = MonoLisaCode
+font-family-bold = MonoLisaCode
+font-family-italic = MonoLisaCode
+font-family-bold-italic = MonoLisaCode
+
+# Nerd Font icons (fallback for glyphs)
+font-codepoint-map = U+E000-U+F8FF=FiraCode Nerd Font
+font-codepoint-map = U+F0000-U+FFFFF=FiraCode Nerd Font

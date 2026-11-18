@@ -1,53 +1,38 @@
 #!/usr/bin/env python3
-"""Contract between the dotfiles manifests and the family's release-owned setup.
+"""Contract between this layer and the subaud starter it sits on.
 
 Run directly:  python3 tests/setup-contract.test.py
+With the starter:  STARTER_TOML=<starter>/kempt.toml python3 tests/setup-contract.test.py
 
-Family tools publish their own hooks, plugins, channels, services and skills in
-a setup bundle beside each binary; kempt binds it to the download that says
-`setup = true`. This guards the dotfiles side of that contract offline: which
-downloads opt in, that nothing the bundles own is copied here as well, and that
-the pi package lists each package declares stay paired. It reads only the
-manifests in this checkout; release identities are checked during acceptance.
+This repo's kempt.toml is a user layer on subaud-tools/starter, which owns the
+suite tools (with their release setup: hooks, plugins, channels, services and
+skills), pi and its base extensions, nvim, and the base Ghostty and yazi
+configs. kempt refuses two layers linking one path, installing one binary or
+running one service with different definitions, so the layer declares none of
+what the starter does. Offline, this checks the layer's own shape; with
+STARTER_TOML set it also checks the layer against that starter manifest.
 """
 
+import os
 import pathlib
 import subprocess
 import tomllib
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-BASE = tomllib.loads((REPO / "kempt.toml").read_text())
-HOME = tomllib.loads((REPO / "layers/home/kempt.toml").read_text())
+LAYER = tomllib.loads((REPO / "kempt.toml").read_text())
+STARTER_TOML = os.environ.get("STARTER_TOML")
+STARTER = tomllib.loads(pathlib.Path(STARTER_TOML).expanduser().read_text()) if STARTER_TOML else None
 
-# Downloads whose release publishes a setup bundle.
-SETUP_TOOLS = {"proj", "muster", "galley", "muda", "sift", "imprint", "casebook", "cull", "diazo", "hail"}
-# Ordinary binary-only downloads.
-PLAIN_TOOLS = {"scratch", "creel"}
-# Retired registrations whose cleanup the releases do not carry, so the
-# packages that select those tools keep removing them here.
-RETAINED_CLEANUP = {
-    "sift": ("~/.claude/settings.json", "extraKnownMarketplaces.tackle"),
-    "imprint": ("~/.claude/settings.json", "extraKnownMarketplaces.tackle"),
-    "home/cull": ("~/.claude/settings.json", "extraKnownMarketplaces.tackle"),
-    "diazo": ("~/.claude.json", "mcpServers.diazo"),
-}
-# The developer selection as it was saved before this change.
-SAVED_DEVELOPER = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "galley", "sift", "muda", "pi", "pi-channels"]
+# Starter packages this layer's packages need by their unqualified name.
+FROM_STARTER = {"pi", "muster"}
+# The family-internal skills, each linked as its own folder for pi.
+FAMILY_SKILLS = ["building-a-tools-family-tool", "releasing-a-tools-family-tool", "tools-family-onboarding"]
+PI_PERMISSIONS = "~/.pi/agent/extensions/pi-permission-system/config.json"
 
 
 def packages(doc):
     return doc.get("packages", {})
-
-
-def all_packages():
-    return {**packages(BASE), **{f"home/{k}": v for k, v in packages(HOME).items()}}
-
-
-def downloads():
-    for name, pkg in all_packages().items():
-        for d in pkg.get("download", []):
-            yield name, d
 
 
 def needs_closure(names, pkgs):
@@ -57,7 +42,8 @@ def needs_closure(names, pkgs):
         if n in seen:
             continue
         seen.add(n)
-        todo.extend(pkgs[n].get("needs", []))
+        if n in pkgs:
+            todo.extend(pkgs[n].get("needs", []))
     return seen
 
 
@@ -77,168 +63,153 @@ def walk(value):
         yield value
 
 
-class SetupContract(unittest.TestCase):
-    def test_manifests_use_spec_2(self):
-        self.assertEqual(BASE["kempt"]["spec"], 2)
-        self.assertEqual(HOME["kempt"]["spec"], 2)
+def exclusive(doc):
+    """The targets kempt lets only one layer declare: link destinations,
+    binaries and services."""
+    out = set()
+    for pkg in packages(doc).values():
+        for s in pkg.get("symlink", []):
+            out.add(("symlink", os.path.normpath(s["to"])))
+        for d in pkg.get("download", []):
+            out.add(("binary", d.get("bin", d["tool"])))
+        for s in pkg.get("service", []):
+            out.add(("service", s["label"]))
+    return out
 
-    def test_one_download_per_binary(self):
-        bins = [d["bin"] for _, d in downloads()]
-        self.assertEqual(sorted(bins), sorted(set(bins)))
-        self.assertEqual(set(bins), SETUP_TOOLS | PLAIN_TOOLS)
 
-    def test_setup_opt_in(self):
-        for name, d in downloads():
-            if d["tool"] in SETUP_TOOLS:
-                self.assertIs(d.get("setup"), True, f"{name}: {d['tool']} must take its release setup")
-            else:
-                self.assertNotIn("setup", d, f"{name}: {d['tool']} is an ordinary download")
+class LayerContract(unittest.TestCase):
+    def test_is_a_user_layer_on_spec_2(self):
+        self.assertEqual(LAYER["kempt"]["spec"], 2)
+        self.assertEqual(LAYER["kempt"].get("layer"), "user")
 
-    def test_tackle_downloads_name_the_product(self):
-        for name, d in downloads():
-            if d["site"] == "tackle.tools":
-                self.assertEqual(d.get("product"), "tackle", f"{name}: {d['tool']}")
+    def test_no_layer_package_shadows_a_starter_one_it_needs(self):
+        # An unqualified need names the layer's own package first, so a layer
+        # package named pi or muster would take the place of the starter's.
+        for name in FROM_STARTER:
+            self.assertNotIn(name, packages(LAYER))
 
-    def test_no_copied_release_setup(self):
-        channels = {}
-        for name, pkg in all_packages().items():
+    def test_needs_resolve(self):
+        pkgs = packages(LAYER)
+        for name, pkg in pkgs.items():
+            for need in pkg.get("needs", []):
+                self.assertTrue(need in pkgs or need in FROM_STARTER, f"{name} needs {need}")
+
+    def test_suite_tools_come_from_the_starter(self):
+        for name, pkg in packages(LAYER).items():
+            self.assertFalse(pkg.get("download"), f"{name}: downloads are the starter's")
             self.assertNotIn("managed-file", pkg, name)
-            if any(d.get("setup") for d in pkg.get("download", [])):
-                self.assertNotIn("service", pkg, f"{name}: its release owns the service")
             for line in pkg.get("line-in-file", []):
                 self.assertNotIn(line["file"], ("~/.tmux.conf", "~/.zshrc"), f"{name}: {line['line']}")
             for m in pkg.get("json-merge", []):
                 tokens = [t for t in walk(m.get("merge", {})) if isinstance(t, str)]
                 self.assertFalse([t for t in tokens if t.endswith("@subaud-tools")], f"{name}: release-owned plugin")
                 self.assertFalse([t for t in tokens if " hook " in t or "casebook " in t], f"{name}: release-owned hook")
-                retained = {RETAINED_CLEANUP[name][1]} if name in RETAINED_CLEANUP else set()
-                self.assertFalse([r for r in m.get("remove", []) if r.startswith(("enabledPlugins.", "mcpServers.")) and r not in retained], f"{name}: release-owned removal")
-                for server in m.get("merge", {}).get("channelServers", {}):
-                    channels.setdefault(server, []).append(name)
+                self.assertFalse([r for r in m.get("remove", []) if r.startswith(("enabledPlugins.", "mcpServers."))], f"{name}: release-owned removal")
             for m in pkg.get("toml-merge", []):
                 self.assertNotEqual(m["file"], "~/.codex/config.toml", f"{name}: release-owned Codex MCP")
-        # Muster's release does not register its pi channel; that one stays here.
-        self.assertEqual(channels, {"muster-channel": ["pi-channels"]})
 
-    def test_muster_pi_registration_stays_with_dotfiles(self):
-        pkgs = packages(BASE)
-        mcp = merges(pkgs["muster"], "~/.config/mcp/mcp.json")
+    def test_muster_in_pi_stays_here(self):
+        # muster's release declares neither its pi channel nor its pi MCP server.
+        channels = {}
+        for name, pkg in packages(LAYER).items():
+            for m in pkg.get("json-merge", []):
+                for server in m.get("merge", {}).get("channelServers", {}):
+                    channels.setdefault(server, []).append(name)
+        self.assertEqual(channels, {"muster-channel": ["pi-channels"]})
+        pkg = packages(LAYER)["pi-channels"]
+        self.assertEqual(pkg["needs"], ["pi", "muster"])
+        mcp = merges(pkg, "~/.config/mcp/mcp.json")
         self.assertEqual([m["merge"] for m in mcp], [{"mcpServers": {"muster": {"command": "muster", "args": ["mcp"]}}}])
-        self.assertEqual(pkgs["pi-channels"]["needs"], ["pi", "muster", "galley", "sift", "imprint", "muda"])
+
+    def test_pi_personal_lists_are_paired(self):
+        pkg = packages(LAYER)["pi-personal"]
+        self.assertEqual(pkg["needs"], ["pi"])
+        installed = [e for i in pkg.get("install", []) for e in i.get("pi", [])]
+        settings = merges(pkg, "~/.pi/agent/settings.json")
+        listed = [e for m in settings for e in m.get("merge", {}).get("packages", [])]
+        self.assertEqual(installed, listed)
+        self.assertEqual(len(listed), len(set(listed)))
+        self.assertEqual([m.get("arrays") for m in settings], ["replace"])
+        self.assertEqual(settings[0]["merge"]["skills"], [])
+        for name, other in packages(LAYER).items():
+            if name != "pi-personal":
+                self.assertFalse([i for i in other.get("install", []) if "pi" in i], name)
+                self.assertFalse(merges(other, "~/.pi/agent/settings.json"), name)
+
+    def test_pi_personal_permissions(self):
+        perms = merges(packages(LAYER)["pi-personal"], PI_PERMISSIONS)
+        self.assertEqual(len(perms), 1)
+        self.assertEqual(perms[0].get("arrays"), "replace")
+        self.assertIs(perms[0]["merge"]["yoloMode"], True)
+        self.assertEqual(perms[0]["merge"]["promptAnswerers"], ["pi-hail"])
+
+    def test_family_skills_link_each_folder(self):
+        pkg = packages(LAYER)["family-skills"]
+        links = [(s["from"], s["to"]) for s in pkg["symlink"]]
+        self.assertEqual(links, [(f"config/pi/skills/{n}", f"~/.pi/agent/skills/{n}") for n in FAMILY_SKILLS])
+        tracked = subprocess.run(["git", "ls-files", "config/pi/skills"], cwd=REPO, capture_output=True, text=True, check=True).stdout.split()
+        self.assertEqual(sorted({p.split("/")[3] for p in tracked}), FAMILY_SKILLS)
 
     def test_claude_installs_its_cli(self):
-        pkg = packages(BASE)["claude"]
+        pkg = packages(LAYER)["claude"]
         self.assertIn("claude-code", [c for i in pkg.get("install", []) for c in i.get("brew", {}).get("casks", [])])
         self.assertIn({"command-exists": "claude", "only": {"os": "darwin"}}, pkg["verify"])
 
     def test_linux_checks_each_npm_cli_after_installing_it(self):
         # kempt re-checks a verify after apply only in a package that changed
         # something, and runs steps in written order. So on Linux, where claude
-        # and codex come from npm, each is checked in workspace-linux after its
-        # npm step, and the shared claude and codex packages check only on a Mac.
-        pkgs = packages(BASE)
-        for name, cli in (("claude", "claude"), ("codex", "codex")):
+        # comes from npm, it is checked in workspace-linux after its npm step,
+        # and the shared claude package checks only on a Mac.
+        pkgs = packages(LAYER)
+        for name, cli in (("claude", "claude"),):
             self.assertIn({"command-exists": cli, "only": {"os": "darwin"}}, pkgs[name]["verify"], name)
             self.assertNotIn({"command-exists": cli}, pkgs[name]["verify"], name)
         ws = pkgs["workspace-linux"]
         self.assertEqual(ws["only"], {"os": "linux"})
-        self.assertNotIn("pi", ws["needs"])  # a first apply's blocked pi extensions must not hold it back
+        self.assertNotIn("pi", needs_closure(["workspace-linux"], pkgs))  # a first apply's blocked pi extensions must not hold it back
         text = (REPO / "kempt.toml").read_text()
         block = text[text.index("\n[packages.workspace-linux]\n"):]
         block = block[: block.index("\n[", 1)]
-        npm_at = block.index('npm = ["@anthropic-ai/claude-code", "@openai/codex"]')
-        for cli in ("claude", "codex"):
+        npm_at = block.index('npm = ["@anthropic-ai/claude-code"]')
+        for cli in ("claude",):
             self.assertGreater(block.index(f'command-exists = "{cli}"'), npm_at, cli)
 
-    def test_pi_lists_are_paired(self):
-        for name, pkg in all_packages().items():
-            installed = [e for i in pkg.get("install", []) for e in i.get("pi", [])]
-            listed = [e for m in merges(pkg, "~/.pi/agent/settings.json") for e in m.get("merge", {}).get("packages", [])]
-            self.assertEqual(installed, listed, name)
-            self.assertEqual(len(listed), len(set(listed)), name)
-        composed = [e for p in all_packages().values() for m in merges(p, "~/.pi/agent/settings.json") for e in m.get("merge", {}).get("packages", [])]
-        self.assertEqual(len(composed), len(set(composed)))
-
-    def test_retired_registrations_still_removed(self):
-        pkgs = all_packages()
-        for name, (file, path) in RETAINED_CLEANUP.items():
-            removed = [r for m in merges(pkgs[name], file) for r in m.get("remove", [])]
-            self.assertIn(path, removed, name)
-
-    def test_hail_does_not_wait_for_pi(self):
-        # On a fresh machine pi is incomplete after its first apply (its
-        # extensions step plans blocked until pi is installed), and kempt holds
-        # back whatever needs an incomplete package. hail's release setup would
-        # then fail the first apply. Its pi end comes with pi, which every
-        # profile that has hail selects.
-        pkgs, profiles = packages(BASE), BASE["profiles"]
-        self.assertNotIn("pi", needs_closure(["hail"], pkgs))
-        for name, profile in profiles.items():
-            if "hail" in profile["packages"]:
-                self.assertIn("pi", profile["packages"], name)
-
-    def test_skills_link_comes_before_the_skills_written_into_it(self):
-        # Releases write their skills into ~/.pi/agent/skills; that path must
-        # already be the link to config/pi/skills, or the link step moves their
-        # files aside. The link is in pi-skills, which needs nothing that can be
-        # incomplete on a first apply, and every tool that writes there needs it.
-        pkgs = packages(BASE)
-        link = {"link": "~/.pi/agent/skills", "target": "config/pi/skills"}
-        owners = [n for n, p in pkgs.items() for v in p.get("verify", []) if v.get("symlink-target") == link]
-        self.assertEqual(owners, ["pi-skills"])
-        self.assertEqual(pkgs["pi-skills"]["needs"], ["core"])
-        self.assertIn("pi-skills", pkgs["pi"]["needs"])
-        for name in ("galley", "muda", "sift", "imprint", "diazo"):
-            self.assertIn("pi-skills", pkgs[name]["needs"], name)
-            self.assertNotIn("pi", needs_closure([name], pkgs), name)
-        for name, profile in BASE["profiles"].items():
-            if "pi" in profile["packages"]:
-                self.assertIn("pi-skills", profile["packages"], name)
-
-    def test_home_casebook_needs_pi(self):
-        self.assertIn("pi", packages(HOME)["casebook"].get("needs", []))
-
-    def test_new_public_packages_note_their_access(self):
-        for name in ("diazo", "hail"):
-            pkg = packages(BASE)[name]
-            self.assertTrue(any("entitle" in n for n in pkg.get("notes", [])), name)
-
-    def test_anonymous_base_needs_no_identity(self):
-        for path in ("kempt.toml", "layers/home/kempt.toml"):
-            text = (REPO / path).read_text()
-            for needle in ("/Users/", "Fundamental-Technologies", "~/GitHub/", "~/dotfiles/"):
-                self.assertFalse(needle in text, f"{path} names {needle}")
+    def test_anonymous_layer_needs_no_identity(self):
+        text = (REPO / "kempt.toml").read_text()
+        for needle in ("/Users/", "Fundamental-Technologies", "~/GitHub/", "~/dotfiles/"):
+            self.assertFalse(needle in text, f"kempt.toml names {needle}")
         tracked = subprocess.run(
-            ["git", "ls-files", "config/pi/skills", "config/pi/agents", "docs", "README.md", "CLAUDE.md"],
+            ["git", "ls-files", "config/pi/skills", "docs", "README.md", "CLAUDE.md"],
             cwd=REPO, capture_output=True, text=True, check=True,
         ).stdout.split()
         name = "C" "ourt"  # split so this file doesn't name it either
         named = [path for path in tracked if name in (REPO / path).read_text()]
         self.assertFalse(named, f"these tracked files name a person: {named}")
 
-    def test_base_skills_list_is_explicitly_empty(self):
-        skills = [m for m in merges(packages(BASE)["pi"], "~/.pi/agent/settings.json") if "skills" in m["merge"]]
-        self.assertEqual([(m["merge"]["skills"], m.get("arrays")) for m in skills], [([], "replace")])
-
     def test_profiles(self):
-        profiles = BASE["profiles"]
-        developer = profiles["developer"]["packages"]
-        for name in ("diazo", "imprint", "hail"):
-            self.assertIn(name, developer)
-        for name in ("pi-llama", "session-themes"):
-            self.assertNotIn(name, developer)
+        profiles = LAYER["profiles"]
+        self.assertEqual(profiles["developer"]["packages"], ["core", "terminal", "markedit", "claude", "swiftbar", "family-skills", "pi-personal", "pi-channels"])
+        self.assertEqual(profiles["workspace"]["packages"], ["core", "terminal", "claude", "family-skills", "pi-personal", "pi-channels", "workspace-linux"])
         self.assertEqual(profiles["minimal"]["packages"], ["core"])
-        self.assertEqual(HOME["profiles"]["home"]["packages"], ["casebook", "cull"])
+        for profile in profiles.values():
+            for name in profile["packages"]:
+                self.assertIn(name, packages(LAYER))
+                self.assertNotIn(name, ("pi-llama", "session-themes"))
 
-    def test_every_package_selects_alone(self):
-        pkgs = packages(BASE)
-        for name in pkgs:
-            needs_closure([name], pkgs)
+    @unittest.skipUnless(STARTER, "STARTER_TOML not set")
+    def test_nothing_the_starter_declares(self):
+        self.assertEqual(exclusive(LAYER) & exclusive(STARTER), set())
 
-    def test_saved_selection_gains_nothing_implicitly(self):
-        # pi-skills is pi's skills link, moved into a package of its own.
-        closure = needs_closure(SAVED_DEVELOPER, packages(BASE))
-        self.assertEqual(closure, set(SAVED_DEVELOPER) | {"imprint", "pi-skills"})
+    @unittest.skipUnless(STARTER, "STARTER_TOML not set")
+    def test_needs_from_the_starter_exist_there(self):
+        for name in FROM_STARTER:
+            self.assertIn(name, packages(STARTER))
+
+    @unittest.skipUnless(STARTER, "STARTER_TOML not set")
+    def test_pi_personal_adds_to_the_starters_pi(self):
+        base = [e for i in packages(STARTER)["pi"].get("install", []) for e in i.get("pi", [])]
+        mine = [e for i in packages(LAYER)["pi-personal"].get("install", []) for e in i.get("pi", [])]
+        self.assertEqual(set(base) & set(mine), set())
 
 
 if __name__ == "__main__":

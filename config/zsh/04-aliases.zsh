@@ -24,7 +24,6 @@ alias gco='git checkout'
 alias gcb='git checkout -b'
 alias gp='git push'
 alias gl='git pull'
-command -v lazygit &> /dev/null && alias lg='lazygit'
 
 # AWS
 export AWS_PAGER=""
