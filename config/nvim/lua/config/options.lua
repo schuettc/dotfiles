@@ -1,3 +1,0 @@
--- Options are automatically loaded before lazy.nvim startup.
--- LazyVim defaults: https://www.lazyvim.org/configuration/general
--- Add overrides here only after real usage demands them.

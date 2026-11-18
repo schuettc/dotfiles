@@ -1,27 +1,33 @@
-# kempt.toml — declarative description of this machine's dotfiles + tools.
-# Scope: core, terminal, nvim, markedit, claude, codex, swiftbar, muster,
-# galley, muda, sift, imprint, diazo, pi-skills, pi, pi-channels, pi-llama.
+# kempt.toml — a user layer on the subaud starter (subaud-tools/starter).
+#
+# The starter is the base: tmux, Ghostty and yazi, every suite tool with its
+# release setup, the way of working (shared rules and process skills), and
+# the adoptable pi and neovim packages. This layer adds only what is this
+# repo's own: the shell, tmux and its helpers, editors' styles, Claude Code
+# and Codex integration, the pi extensions and settings on top of the
+# starter's, the muster channel in pi, and the family-internal skills. What
+# the starter carries is changed there, never copied here: kempt refuses two
+# layers linking one path from different sources.
+#
+# Add it on a machine set up from the starter:
+#   kempt layer add dotfiles <checkout> -profile developer
+#
+# Layer packages are namespaced dotfiles/<pkg>, and an unqualified need names
+# this layer's own package first, then the starter's: no package here is
+# named pi, so `needs = ["pi"]` is the starter's pi.
 #
 # Linux (a billet workspace, Ubuntu 24.04 arm64): the `workspace` profile.
-# Every family tool ships linux/arm64, so packages are not gated by OS; only
-# steps that exist on a Mac alone (casks, Homebrew-only tools, Ghostty,
-# ~/Library paths, launchd) carry `only = { os = "darwin" }`. An install step
-# with an `apt` list installs it on Linux and its brew lists (casks included)
-# on a Mac. What only Linux needs is in [packages.workspace-linux], so a
-# Mac's plan has no Linux steps in it. Node 24, the AWS CLI and uv come from
-# the workspace's first boot, not from here; workspace-linux checks for them.
-# (cursor dropped — the cursor-agent CLI was never set up; see the cursor note
-# below. pi-llama is optional and NOT in the developer profile — adopt it only
-# on a box with local GGUF weights.)
-#
-# Family tools own their integration: a download with `setup = true` takes the
-# hooks, plugins, channels, services and skills its release publishes beside
-# the binary (kempt 0.13.0+ resolves both before showing the plan). This file
-# keeps what is dotfiles' own: which tools a machine selects, shared
-# preferences, and the pi package lists.
+# Only steps that exist on a Mac alone (casks, Homebrew-only tools, ~/Library
+# paths, launchd) carry `only = { os = "darwin" }`. An install step with an
+# `apt` list installs it on Linux and its brew lists (casks included) on a
+# Mac. What only Linux needs is in [packages.workspace-linux]. Node 24, the
+# AWS CLI and uv come from the workspace's first boot, not from here;
+# workspace-linux checks for them. pi-llama is optional and NOT in the
+# developer profile; adopt it only on a box with local GGUF weights.
 
 [kempt]
 spec = 2
+layer = "user"
 
 # ---------------------------------------------------------------------------
 # core — shell foundation: brew CLI tools, zsh, starship, atuin
@@ -87,10 +93,13 @@ description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt
   symlink-target = { link = "~/.zshrc", target = ".zshrc" }
 
 # ---------------------------------------------------------------------------
-# terminal — Ghostty, tmux (+plugins), yazi, nerd fonts, scratch
+# terminal — tmux config and helpers, build tools, extra nerd fonts, and the
+# personal Ghostty font and yazi config on top of the starter's. tmux itself,
+# Ghostty, yazi, FiraCode Nerd Font and proj/scratch/creel come from the
+# starter.
 # ---------------------------------------------------------------------------
 [packages.terminal]
-description = "Terminal workspace: Ghostty, tmux (+plugins), yazi file explorer, nerd fonts"
+description = "tmux config and helpers, go/just/lefthook/bash, extra nerd fonts, personal Ghostty font and yazi config"
 needs = ["core"]
 
   # just + lefthook: every .tools family repo's `just verify` and pre-push hook
@@ -98,18 +107,20 @@ needs = ["core"]
   # for scripts and test suites that CI runs under bash 5 (tools-actions'
   # fork-sync suite refuses macOS's /bin/bash 3.2). /bin/bash is untouched.
   [[packages.terminal.install]]
-  brew.formulas = ["tmux", "yazi", "go", "just", "lefthook", "bash"]
+  brew.formulas = ["go", "just", "lefthook", "bash"]
   brew.casks = [
-    "ghostty", "font-fira-code-nerd-font", "font-meslo-lg-nerd-font",
-    "font-jetbrains-mono-nerd-font", "font-monaspice-nerd-font",
+    "font-meslo-lg-nerd-font", "font-jetbrains-mono-nerd-font",
+    "font-monaspice-nerd-font",
   ]
-  # Linux: the terminal's non-GUI parts. yazi and lefthook stay Mac-only (not
-  # in Ubuntu); Ubuntu's own bash is 5.2.
-  apt = ["tmux", "golang-go", "just"]
+  # Linux: lefthook stays Mac-only (not in Ubuntu); Ubuntu's own bash is 5.2.
+  apt = ["golang-go", "just"]
 
+  # The personal Ghostty font. The starter links ~/.config/ghostty/config;
+  # Ghostty loads this macOS file after it, so its values win
+  # (ghostty.org/docs/config).
   [[packages.terminal.symlink]]
-  from = "config/ghostty/config"
-  to = "~/.config/ghostty/config"
+  from = "config/ghostty/config.mac"
+  to = "~/Library/Application Support/com.mitchellh.ghostty/config"
   backup = true
   only = { os = "darwin" }
 
@@ -118,9 +129,12 @@ needs = ["core"]
   to = "~/.tmux.conf"
   backup = true
 
+  # yazi with the MarkEdit opener. The starter links ~/.config/yazi, so this
+  # one lives beside it and config/zsh/01-paths.zsh points YAZI_CONFIG_HOME
+  # here.
   [[packages.terminal.symlink]]
   from = "config/yazi"
-  to = "~/.config/yazi"
+  to = "~/.config/yazi-user"
   backup = true
 
   # tmux helpers .tmux.conf runs, at a stable path wherever this repo is
@@ -155,41 +169,8 @@ needs = ["core"]
   to = "~/.local/bin/tmux-teammate-gc.sh"
   backup = false
 
-  # scratch + proj — installed from tackle.tools/dl (the family download
-  # contract), each verified against its .sha256 sidecar. proj's release also
-  # installs its shell wrapper at ~/.local/share/proj/proj.zsh.
-  [[packages.terminal.download]]
-  site = "tackle.tools"
-  product = "tackle"
-  tool = "scratch"
-  bin = "scratch"
-
-  [[packages.terminal.download]]
-  site = "tackle.tools"
-  product = "tackle"
-  tool = "proj"
-  bin = "proj"
-  setup = true
-
-  # creel — masked secret capture into a local .env (prefix S, and the pi
-  # request_secret tool). Same family download contract as scratch/proj.
-  [[packages.terminal.download]]
-  site = "tackle.tools"
-  product = "tackle"
-  tool = "creel"
-  bin = "creel"
-
   [[packages.terminal.verify]]
-  command-exists = "tmux"
-
-  [[packages.terminal.verify]]
-  command-exists = "scratch"
-
-  [[packages.terminal.verify]]
-  command-exists = "proj"
-
-  [[packages.terminal.verify]]
-  command-exists = "creel"
+  symlink-target = { link = "~/.tmux.conf", target = ".tmux.conf" }
 
 # Optional; adopt explicitly, never through a default profile.
 [packages.session-themes]
@@ -203,28 +184,6 @@ needs = ["terminal"]
   to = "~/.config/proj/config.toml"
   backup = true
   only = { os = "darwin" }
-
-# ---------------------------------------------------------------------------
-# nvim — Neovim ($EDITOR) with LazyVim config
-# ---------------------------------------------------------------------------
-[packages.nvim]
-description = "Neovim ($EDITOR) with LazyVim config"
-needs = ["core"]
-
-  [[packages.nvim.install]]
-  brew.formulas = ["neovim"]
-  apt = ["neovim"]
-
-  [[packages.nvim.symlink]]
-  from = "config/nvim"
-  to = "~/.config/nvim"
-  backup = true
-
-  [[packages.nvim.verify]]
-  command-exists = "nvim"
-
-  [[packages.nvim.verify]]
-  symlink-target = { link = "~/.config/nvim", target = "config/nvim" }
 
 # ---------------------------------------------------------------------------
 # markedit — MarkEdit markdown-editor styles
@@ -362,243 +321,57 @@ notes = [
   backup = true
 
 # ---------------------------------------------------------------------------
-# cursor — DROPPED: cursor-agent CLI is not installed on this machine (the
-# Cursor editor app is present but the CLI/hooks were never set up). Like
-# swiftbar, it's out of the managed set. Re-add a [packages.cursor] block if the
-# cursor-agent CLI ever joins the setup.
-# ---------------------------------------------------------------------------
-# muster — cross-terminal agent coordination bus
-# ---------------------------------------------------------------------------
-[packages.muster]
-description = "Cross-terminal agent coordination bus (daemon, MCP + session hooks in Claude, Codex, and pi)"
-needs = ["terminal"]
-
-  # muster installs from muster.tools/dl (the family download contract). Its
-  # release setup supplies the daemon service, the Claude plugin, hooks and MCP
-  # registration, and the Codex hooks and MCP server. The optional tmux mailbox
-  # lines are not part of it: .tmux.conf here owns the title and status bar.
-  [[packages.muster.download]]
-  site = "muster.tools"
-  tool = "muster"
-  bin = "muster"
-  setup = true
-
-  # MCP registration into pi, which muster's release does not declare.
-  # pi-mcp-adapter reads ~/.config/mcp/mcp.json (the all-projects target) and
-  # exposes muster's get_inbox/get_thread/reply/... as tools through its lazy
-  # mcp() proxy, the same tool surface Claude and Codex have. Bare `muster` on
-  # $PATH matches pi's other mcp.json/channels.json entries (the login PATH
-  # includes ~/.local/bin). Deep-merge is additive: hand-added servers survive.
-  [[packages.muster.json-merge]]
-  file = "~/.config/mcp/mcp.json"
-  merge = { mcpServers = { muster = { command = "muster", args = ["mcp"] } } }
-
-  [[packages.muster.verify]]
-  command-exists = "muster"
-
-# ---------------------------------------------------------------------------
-# galley — Markdown/HTML review page shared with Claude Code (a browser review
-# loop; press Revise, Claude rewrites, changes land marked). The binary and its
-# release setup (the Claude plugin, the pi channel and the reviewing-a-document
-# skill) install from galley.tools/dl.
-# ---------------------------------------------------------------------------
-[packages.galley]
-description = "Markdown/HTML review page shared with Claude Code (galley.tools)"
-needs = ["core", "pi-skills"]
-
-  [[packages.galley.download]]
-  site = "galley.tools"
-  tool = "galley"
-  bin = "galley"
-  setup = true
-
-  [[packages.galley.verify]]
-  command-exists = "galley"
-
-# ---------------------------------------------------------------------------
-# muda — find and fix delivery waste in a repository's pipelines (muda.tools).
-# Its release setup supplies the Claude plugin, the pi channel and the skills.
-# ---------------------------------------------------------------------------
-[packages.muda]
-description = "muda: find and fix delivery waste in your pipelines (muda.tools)"
-needs = ["core", "pi-skills"]
-
-  [[packages.muda.download]]
-  site = "muda.tools"
-  tool = "muda"
-  bin = "muda"
-  setup = true
-
-  [[packages.muda.verify]]
-  command-exists = "muda"
-
-# ---------------------------------------------------------------------------
-# pi-skills — our pi skills (config/pi/skills: remembering, pi-subagent-
-# dispatch, the family build/release/onboarding skills, cleaning-up-branches,
-# and brainstorming/writing-plans/executing-plans adapted from superpowers,
-# whose LICENSE and pinned SHA are in config/pi/superpowers). Whole-dir link
-# into pi's auto-discovered skills dir, so an edit here is live at once. pi
-# only: Claude Code's ~/.claude/skills is not managed here.
+# pi-personal — the user's own pi extensions and settings on top of the
+# starter's pi package (which owns the base extension list, the fork pins,
+# claude-bridge.json, the worker/reviewer agents and subagents.json).
 #
-# A package of its own so it comes first: galley, muda, sift, imprint and
-# diazo write their release skills into ~/.pi/agent/skills, and need this link
-# there before they do, or the link step moves their files aside. It needs
-# only core, because pi is incomplete after a fresh machine's first apply (its
-# extensions step plans blocked until pi is installed) and kempt holds back
-# whatever needs an incomplete package.
-# ---------------------------------------------------------------------------
-[packages.pi-skills]
-description = "Our pi skills, linked into ~/.pi/agent/skills before any tool writes there"
-needs = ["core"]
-
-  [[packages.pi-skills.symlink]]
-  from = "config/pi/skills"
-  to = "~/.pi/agent/skills"
-  backup = true
-
-  [[packages.pi-skills.verify]]
-  symlink-target = { link = "~/.pi/agent/skills", target = "config/pi/skills" }
-
-# ---------------------------------------------------------------------------
-# pi — Pi coding agent (portable). Runs on the claude-bridge provider out of the
-# box; no machine-specific inference required. The optional local llama.cpp rig
-# lives in the separate `pi-llama` package below.
-# ---------------------------------------------------------------------------
+# kempt folds a replace array declared by several layers into the ordered
+# union of what each declares, so the packages list below adds to the
+# starter's and the permission config's promptAnswerers replaces its empty
+# list. Scalars set here (defaultModel, yoloMode) win over the base.
 #
-# AUTHORING NOTES (not user-facing; kept as comments, not `notes`):
-#  - pi-provider-guard / pi-tmux-bridge / pi-wakeup / pi-bang are published npm
-#    packages in the pi-extensions monorepo, declared in install.pi below. pi-provider-
-#    guard reads optional private policy prose from
-#    ~/.pi/agent/extensions/pi-provider-guard/config.json; when that file is
-#    absent the extension is a no-op, so this package converges cleanly without
-#    it (that config is your private overlay, not part of this manifest).
-[packages.pi]
-description = "Pi coding agent (claude-bridge provider) + public extensions"
-needs = ["core", "pi-skills"]
-notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent/extensions/pi-provider-guard/config.json (your private kempt layer links it); absent = no-op"]
+# pi-provider-guard reads optional private policy prose from
+# ~/.pi/agent/extensions/pi-provider-guard/config.json (the private layer
+# links it); absent, the extension is a no-op.
+# ---------------------------------------------------------------------------
+[packages.pi-personal]
+description = "Personal pi extensions and settings on top of the starter's pi: artifacts, provider guard, TypeSafe, hail, casebook, yolo mode"
+needs = ["pi"]
 
-  # node@24: pi runs on the Node LTS line (config/zsh/01-paths.zsh puts it first
-  # on PATH; it is keg-only). Not Homebrew's `node`, which tracks the newest
-  # major and ships breakage to pi first.
-  [[packages.pi.install]]
-  brew.formulas = ["ddgr", "pandoc", "trafilatura", "node@24"]
-  # Linux: trafilatura is not in Ubuntu (Mac-only); Node 24 comes from the
-  # workspace's first boot (Ubuntu's nodejs is 18).
-  apt = ["ddgr", "pandoc"]
-
-  [[packages.pi.install]]
-  npm = ["@earendil-works/pi-coding-agent"]
-
-  # pi extensions — npm: identifiers as displayed by `pi list`. Complete set:
-  # every live extension is published to npm (no local-path packages remain —
-  # the retired schuettc/pi repo's private local packages are now the
-  # pi-provider-guard / pi-tmux-bridge / pi-wakeup / pi-bang npm packages below).
-  # Matches the settings.json `packages` list below string-for-string.
-  [[packages.pi.install]]
-  # Version policy (kempt >= 0.3.0): an unversioned entry ROLLS to the newest
-  # published version (kempt update/upgrade roll it, outdated reports it); a
-  # pinned name@version converges to exactly that version. An unversioned git:
-  # entry rolls to its repo's default-branch head (kempt >= 0.5.4; older kempt
-  # installs it once and never updates it). pi-provider-guard /
-  # pi-tmux-bridge / pi-wakeup / pi-bang / pi-copy / pi-auto-reload / pi-hail are our own
-  # extensions, published to the pi-extensions monorepo (formerly the private local
-  # packages in the now-retired schuettc/pi repo).
+  # Version policy: an unversioned entry rolls to the newest release on
+  # `kempt update`; a pinned name@version stays on exactly that version. Must
+  # match the settings.json `packages` list below string for string.
+  [[packages.pi-personal.install]]
   pi = [
-    # pi-claude-bridge is THE harness (registers the pane with muster on
-    # session_start) and is the provider defaultProvider=claude-bridge points at.
-    # It MUST load before channels.tools, so keep it first. Our fork of the
-    # third-party project, published to npm from a maintained patch stack.
-    "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2",
-    # Account-wide provider usage meter. Keep immediately after the bridge so
-    # its optional Claude adapter is available when the meter starts.
-    "npm:@subaud-tools/pi-usage@0.14.2-subaud-tools.1",
-    # pi-permission-system: our fork (schuettc/pi-permission-system, fork-sync),
-    # installed UNDER THE UPSTREAM NAME with an npm alias so pi-hail, which
-    # imports "@gotgenes/pi-permission-system", resolves to it and the upstream
-    # package can never also load (same path). Carries the
-    # prompt-answerer seam (pi-hail phone approvals). Bump the version at the END
-    # of the string. Retire by pinning plain npm:@gotgenes/pi-permission-system@<v>.
-    "npm:@gotgenes/pi-permission-system@npm:@subaud-tools/pi-permission-system@40.3.0-subaud-tools.1",
-    "npm:@tintinweb/pi-subagents",
-    "npm:@bitcraft-apps/pi-web-tools",
-    "npm:pi-quiet@0.2.1",
-    "npm:@hank-warren/pi-plan-mode",
-    "npm:@subaud-tools/pi-schedule@0.6.1-subaud-tools.2",
     "npm:@nicknisi/pi-artifacts",
-    "npm:channels.tools",
-    # pi-mcp-adapter is the MCP bridge: reads .mcp.json / ~/.config/mcp/mcp.json
-    # and exposes one lazy mcp() proxy tool (search/describe/execute) instead of
-    # dumping every server's tools into context. Remote URL servers + OAuth
-    # work; OAuth tokens are encrypted files, not Keychain (the mcp-adapter.json
-    # merge below). Individual MCP servers are configured out of band.
-    "npm:pi-mcp-adapter",
+    # Our own, from the pi-extensions monorepo.
     "npm:pi-provider-guard@0.1.0",
-    "npm:pi-tmux-bridge@0.1.5",
-    "npm:pi-wakeup@0.3.0",
-    "npm:pi-creel",
-    # pi-bang — `!` completions trigger a model turn; auto-space after `!`.
-    "npm:pi-bang",
-    # pi-copy: /copy-part and alt+c copy one code block or the prose of the last
-    # answer cleanly (no wraps, no borders, no markdown marks). Our own.
-    # Unpinned: kempt update rolls it to the newest release, like pi-bang.
-    "npm:pi-copy",
-    # pi-typesafe-ai — TypeSafe Jev credential UX (bare `/typesafe` panel, or setup|status|
-    # logout`, key stored at ~/.pi/agent/typesafe/config.json 0600). Also the
-    # client library Jev-backed extensions use (subagent model routing, MCP
-    # semantic tool search). No network or credential access at load.
+    # TypeSafe Jev credential UX (bare `/typesafe` panel, or setup|status|
+    # logout, key stored at ~/.pi/agent/typesafe/config.json 0600). Also the
+    # client library Jev-backed extensions use.
     "npm:pi-typesafe-ai@0.2.0",
-    # pi-auto-reload — reloads an idle session after installed pi packages or
-    # channel server binaries change on disk (e.g. after `kempt update`), so
-    # sessions never run a mix of old and new code and channel servers restart
-    # on the new binary. Our own, from the pi-extensions monorepo.
-    "npm:pi-auto-reload@0.2.1",
-    # pi-hail: the pane end of hail (hail.tools, whose package is in the private
-    # layer); pinned to the release the hail daemon was accepted with. It stays
-    # here rather than in that package:
-    # kempt folds a replace and an append list into one file only across
-    # layers, so a second list in this file would never converge.
+    # The pane end of hail (hail.tools, whose package is in the private
+    # layer); pinned to the release the hail daemon was accepted with.
     "npm:pi-hail@0.8.0",
+    # Journals git/gh bash calls with the pi session and briefs the first
+    # turn. Unpinned: casebook publishes the binary before the extension, so a
+    # new pi-casebook never arrives ahead of it.
+    "npm:pi-casebook",
   ]
 
-  # settings — kempt is AUTHORITATIVE over the live packages/extensions arrays
-  # (`arrays = replace`). Every converge resets settings.json `packages` to
-  # EXACTLY this list, so it MUST match the install `pi = [...]` above STRING FOR
-  # STRING. Why replace, not append: `pi install` is a SECOND writer — it stamps
-  # the resolved version of each spec into settings.json packages — so an append
-  # merge accumulated both the bare manifest string and pi's version-stamped
-  # form, drifting to duplicate entries (pi-quiet + pi-quiet@0.2.0, ...) that
-  # append never removed. Replace makes this manifest the single source of truth
-  # and is self-healing: any out-of-band or stale entry is dropped on the next
-  # `kempt update`. Consequence: every package you want MUST live in this list.
-  # extensions holds only "-builtin:mcp": pi-mcp-adapter replaces pi's built-in
-  # MCP support, so the built-in stays off; pi loads every other extension from
-  # packages. theme / defaultThinkingLevel / hideThinkingBlock are our
-  # session defaults.
-  [[packages.pi.json-merge]]
+  [[packages.pi-personal.json-merge]]
   file = "~/.pi/agent/settings.json"
   arrays = "replace"
-  merge = { defaultProvider = "claude-bridge", defaultModel = "claude-opus-5-5", defaultThinkingLevel = "medium", hideThinkingBlock = true, theme = "dark", compaction = { enabled = true, reserveTokens = 16384, keepRecentTokens = 24000 }, extensions = ["-builtin:mcp"], packages = [ "npm:@subaud-tools/pi-claude-bridge@0.9.3-subaud-tools.2", "npm:@subaud-tools/pi-usage@0.14.2-subaud-tools.1", "npm:@gotgenes/pi-permission-system@npm:@subaud-tools/pi-permission-system@40.3.0-subaud-tools.1", "npm:@tintinweb/pi-subagents", "npm:@bitcraft-apps/pi-web-tools", "npm:pi-quiet@0.2.1", "npm:@hank-warren/pi-plan-mode", "npm:@subaud-tools/pi-schedule@0.6.1-subaud-tools.2", "npm:@nicknisi/pi-artifacts", "npm:channels.tools", "npm:pi-mcp-adapter", "npm:pi-provider-guard@0.1.0", "npm:pi-tmux-bridge@0.1.5", "npm:pi-wakeup@0.3.0", "npm:pi-creel", "npm:pi-bang", "npm:pi-copy", "npm:pi-typesafe-ai@0.2.0", "npm:pi-auto-reload@0.2.1", "npm:pi-hail@0.8.0" ] }
+  merge = { defaultModel = "claude-opus-5-5", packages = [ "npm:@nicknisi/pi-artifacts", "npm:pi-provider-guard@0.1.0", "npm:pi-typesafe-ai@0.2.0", "npm:pi-hail@0.8.0", "npm:pi-casebook" ], skills = [] }
 
-  # pi-permission-system policy. yoloMode is on: tool calls run without asking,
-  # and the static policy below still applies its denies (secrets, SSH keys,
-  # git stash). No authorizer chain runs (pi-auto-review is removed for now);
-  # pi-hail stays the prompt answerer for phone approvals. arrays = "replace"
-  # keeps authorizerChain / promptAnswerers exactly as declared here. Deep-merge
-  # is additive for the permission rules, so hand-added rules on a machine
-  # survive; this block is the authoritative baseline. The allow rules record
-  # surfaces that never need a prompt if yolo is ever turned off.
-  [[packages.pi.json-merge]]
+  # The permission policy on top of the starter's: yolo mode on (tool calls run
+  # without asking; the starter's denies still hold), pi-hail as the prompt
+  # answerer for phone approvals, and the allow entries the starter leaves
+  # out, which record surfaces that never need a prompt if yolo is turned off.
+  [[packages.pi-personal.json-merge]]
   file = "~/.pi/agent/extensions/pi-permission-system/config.json"
   arrays = "replace"
-  merge = { "$schema" = "https://raw.githubusercontent.com/gotgenes/pi-packages/main/packages/pi-permission-system/schemas/permissions.schema.json", "permission" = { "*" = "ask", "path" = { "*" = "allow", "*.env" = { "action" = "deny", "reason" = "environment files hold secrets; read the .env.example instead" }, "*.env.*" = { "action" = "deny", "reason" = "environment files hold secrets; read the .env.example instead" }, "*.env.example" = "allow", "~/.ssh/*" = { "action" = "deny", "reason" = "SSH keys and config are off limits to the agent" } }, "read" = "allow", "write" = "allow", "edit" = "allow", "WebSearch" = "allow", "WebFetch" = { "*" = "ask", "https://github.com/*" = "allow" }, "bash" = { "*" = "ask", "git stash" = { "action" = "deny", "reason" = "git stash hides work; commit or use a worktree" }, "git stash *" = { "action" = "deny", "reason" = "git stash hides work; commit or use a worktree" }, "git add *" = "allow", "git commit *" = "allow", "git pull *" = "allow", "git fetch *" = "allow", "git ls-tree *" = "allow", "git push --dry-run*" = "allow", "gh pr list *" = "allow", "gh pr view *" = "allow", "gh pr diff *" = "allow", "gh pr checks *" = "allow", "gh repo view *" = "allow", "gh run list *" = "allow", "gh run view *" = "allow", "cd *" = "allow", "grep *" = "allow", "ls *" = "allow", "sleep *" = "allow", "npx --version" = "allow", "npx --help" = "allow", "npm --version" = "allow", "pip --version" = "allow", "pip3 --version" = "allow", "git push *" = "allow", "gh api *" = "allow", "gh auth *" = "allow", "gh pr *" = "allow", "gh repo *" = "allow", "muster" = "allow", "muster *" = "allow", "galley" = "allow", "galley *" = "allow", "aws sso login *" = "allow", "head *" = "allow", "cat *" = "allow", "tail *" = "allow", "sed -n *" = "allow", "sort *" = "allow", "wc *" = "allow", "which *" = "allow", "pwd" = "allow", "git log *" = "allow", "git status" = "allow", "git status *" = "allow", "git diff *" = "allow", "git show *" = "allow", "gh -R *" = "allow", "tmux capture-pane *" = "allow", "git -C * status" = "allow", "git -C * status *" = "allow", "git rev-parse *" = "allow", "go build *" = "allow", "aws s3 ls *" = "allow" }, "mcp" = { "*" = "ask" }, "Agent" = "allow", "get_subagent_result" = "allow", "steer_subagent" = "allow", "grep" = "allow", "find" = "allow", "ls" = "allow", "schedule" = "allow", "pi_codex_usage" = "allow", "request_secret" = "allow", "websearch" = "allow", "webfetch" = { "*" = "ask", "https://github.com/*" = "allow" }, "file_channel_status" = "allow", "skill" = { "*" = "ask", "update-config" = "allow" }, "external_directory" = { "*" = "ask", "~/.nvm/versions/*" = "allow", "/tmp/*" = "allow", "/private/var/folders/*" = "allow" }, "muster_channel_status" = "allow", "galley_channel_status" = "allow", "galley_ack" = "allow", "galley_review" = "allow", "cancel_wakeup" = "allow", "schedule_wakeup" = "allow", "artifact" = "allow" }, "yoloMode" = true, "authorizerChain" = [], "promptAnswerers" = [ "pi-hail" ] }
-
-  # pi-claude-bridge settings: askClaude stays read-only and isolated by
-  # default; the provider uses only the MCP servers pi passes it, keeps Claude
-  # Code's own auto-memory off (rules live in AGENTS.md / CLAUDE.md files), and
-  # never opts into long-context extra usage.
-  [[packages.pi.json-merge]]
-  file = "~/.pi/agent/claude-bridge.json"
-  merge = { askClaude = { enabled = true, defaultMode = "read", defaultIsolated = true, allowFullMode = false }, provider = { strictMcpConfig = true, autoMemoryEnabled = false, longContextExtraUsage = false } }
+  merge = { "permission" = { "bash" = { "git push *" = "allow", "gh api *" = "allow", "gh auth *" = "allow", "gh pr *" = "allow", "gh repo *" = "allow", "aws sso login *" = "allow", "aws s3 ls *" = "allow" }, "pi_codex_usage" = "allow" }, "yoloMode" = true, "promptAnswerers" = [ "pi-hail" ] }
 
   # pi-mcp-adapter stores MCP OAuth tokens as AES-256-GCM files under
   # ~/.pi/agent/mcp-oauth-encrypted/ instead of the macOS Keychain, so pi never
@@ -606,152 +379,61 @@ notes = ["pi-provider-guard reads optional private policy prose from ~/.pi/agent
   # which config/zsh/07-mcp-oauth.zsh creates per machine and exports. Without
   # it the adapter fails closed (no plaintext fallback). Hand-added servers and
   # settings in this file survive: the merge is additive.
-  [[packages.pi.json-merge]]
+  [[packages.pi-personal.json-merge]]
   file = "~/.pi/agent/mcp-adapter.json"
   merge = { settings = { oauthCredentialStore = "encrypted-file" } }
 
-  # subagent definitions — global custom agents (worker/reviewer) discovered by
-  # pi at ~/.pi/agent/agents from any cwd. These are the LEAN-prompt agents (no
-  # model pin; the dispatch picks the model, see pi-subagent-dispatch); the built-in
-  # general-purpose agent inherits the parent's full system prompt and trips the
-  # server-side extra-usage classifier, so a child dispatch has nothing safe to
-  # target unless these files are present. Whole-dir symlink: editing the .md in
-  # this repo is live immediately here, and `kempt update` propagates it to every
-  # machine through the same link.
-  [[packages.pi.symlink]]
-  from = "config/pi/agents"
-  to = "~/.pi/agent/agents"
-  backup = true
-
-  [[packages.pi.verify]]
-  command-exists = "pi"
-
-  [[packages.pi.verify]]
-  symlink-target = { link = "~/.pi/agent/agents", target = "config/pi/agents" }
-
-  # subagent defaults — global subagents.json. fallbackSubagent="none" makes an
-  # unknown/misspelled subagent_type fail loudly instead of silently spawning
-  # general-purpose (which carries pi's harness block and trips the server-side
-  # extra-usage classifier, worst in background/scheduled runs). strictAgentFiles
-  # surfaces a broken agent file at startup instead of silently falling through.
-  [[packages.pi.symlink]]
-  from = "config/pi/subagents.json"
-  to = "~/.pi/agent/subagents.json"
-  backup = true
-
-  [[packages.pi.verify]]
-  symlink-target = { link = "~/.pi/agent/subagents.json", target = "config/pi/subagents.json" }
-
-  # pi skills path — none beyond pi's own auto-discovered ~/.pi/agent/skills
-  # (the kempt-managed symlink in [packages.pi-skills]) and the skills packages
-  # ship.
-  # arrays=replace keeps it authoritatively empty so retired paths do not
-  # linger; a layer that needs more (a work layer's plugin skills) adds them,
-  # and kempt composes the union.
-  [[packages.pi.json-merge]]
-  file = "~/.pi/agent/settings.json"
-  arrays = "replace"
-  merge = { skills = [] }
-
 # ---------------------------------------------------------------------------
-# sift — audits agent instruction files and puts one recommendation per file in
-# front of you on a review page (tackle.tools). Its release setup supplies the
-# Claude plugin, the pi channel and the skill.
-# ---------------------------------------------------------------------------
-[packages.sift]
-description = "sift: instruction-file audits reviewed per file, with an agent channel (tackle.tools)"
-needs = ["core", "pi-skills"]
-
-  [[packages.sift.download]]
-  site = "tackle.tools"
-  product = "tackle"
-  tool = "sift"
-  bin = "sift"
-  setup = true
-
-  # The retired tackle marketplace: its release removes the old plugin
-  # enablement but not the marketplace entry itself.
-  [[packages.sift.json-merge]]
-  file = "~/.claude/settings.json"
-  remove = ["extraKnownMarketplaces.tackle"]
-
-  [[packages.sift.verify]]
-  command-exists = "sift"
-
-# ---------------------------------------------------------------------------
-# imprint — guides an agent through npm: login, publish, trusted publishers,
-# deprecation, and confirming a CI release landed signed by the right repo
-# (tackle.tools). Its release setup supplies the Claude plugin, the pi channel
-# and the skill.
-# ---------------------------------------------------------------------------
-[packages.imprint]
-description = "imprint: an npm guide for agents, with an agent channel (tackle.tools)"
-needs = ["core", "pi-skills"]
-
-  [[packages.imprint.download]]
-  site = "tackle.tools"
-  product = "tackle"
-  tool = "imprint"
-  bin = "imprint"
-  setup = true
-
-  # The retired tackle marketplace: its release removes the old plugin
-  # enablement but not the marketplace entry itself.
-  [[packages.imprint.json-merge]]
-  file = "~/.claude/settings.json"
-  remove = ["extraKnownMarketplaces.tackle"]
-
-  [[packages.imprint.verify]]
-  command-exists = "imprint"
-
-# ---------------------------------------------------------------------------
-# diazo — planning sessions on a page shared with the agent (diazo.tools). Its
-# release setup supplies the Claude plugin, the pi channel and the skill.
-# ---------------------------------------------------------------------------
-[packages.diazo]
-description = "diazo: plan a change with an agent on a shared page (diazo.tools)"
-needs = ["core", "pi-skills"]
-notes = ["diazo.tools downloads need this machine signed in to a subaud.tools account entitled to diazo"]
-
-  [[packages.diazo.download]]
-  site = "diazo.tools"
-  tool = "diazo"
-  bin = "diazo"
-  setup = true
-
-  # The bare MCP server the diazo plugin replaced; its release does not remove it.
-  [[packages.diazo.json-merge]]
-  file = "~/.claude.json"
-  remove = ["mcpServers.diazo"]
-
-  [[packages.diazo.verify]]
-  command-exists = "diazo"
-
-# ---------------------------------------------------------------------------
-# pi-channels — wire the muster channel into pi sessions.
-#
-# channels.tools (installed by [packages.pi]) is the bridge, but it spawns
-# nothing until ~/.pi/agent/channels.json names the channel servers. galley,
-# sift, imprint, muda and diazo add their own entries through their release
-# setup; muster's release does not, so this package adds its mail push
-# (wake-on-event). muster REGISTRATION already happens in the harness
-# (pi-claude-bridge session_start); this adds the live channel bridge on top.
-# The dependency list is kept so an existing selection of this package keeps
-# the same set of tools.
-#
-# Bare command name (resolved via $PATH): pi spawns channel servers with the
-# session's login PATH, which includes ~/.local/bin.
+# pi-channels — wire muster into pi sessions. channels.tools (the starter's pi)
+# spawns nothing until ~/.pi/agent/channels.json names the channel servers;
+# the other suite tools add their own entries through their release setup, but
+# muster's release declares neither its pi channel nor its pi MCP server, so
+# both are here. Bare `muster` (resolved via $PATH): pi spawns channel and MCP
+# servers with the session's login PATH, which includes ~/.local/bin.
 # ---------------------------------------------------------------------------
 [packages.pi-channels]
-description = "Wire the muster channel into pi sessions (channels.tools → channels.json); the other tools bring their own"
-needs = ["pi", "muster", "galley", "sift", "imprint", "muda"]
+description = "Wire muster into pi sessions: its channel (channels.json) and MCP server (mcp.json)"
+needs = ["pi", "muster"]
 
   [[packages.pi-channels.json-merge]]
   file = "~/.pi/agent/channels.json"
   merge = { channelServers = { "muster-channel" = { command = "muster", args = ["channel"] } } }
 
+  # pi-mcp-adapter reads ~/.config/mcp/mcp.json (the all-projects target) and
+  # exposes muster's get_inbox/get_thread/reply/... through its lazy mcp()
+  # proxy, the same tool surface Claude and Codex have. Deep-merge is
+  # additive: hand-added servers survive.
+  [[packages.pi-channels.json-merge]]
+  file = "~/.config/mcp/mcp.json"
+  merge = { mcpServers = { muster = { command = "muster", args = ["mcp"] } } }
+
+# ---------------------------------------------------------------------------
+# family-skills — the skills for building and releasing .tools family tools,
+# for pi. Each is linked as its own folder, since the starter and the tool
+# releases write their own skills beside them; an edit here is live at once.
+# ---------------------------------------------------------------------------
+[packages.family-skills]
+description = "The .tools family build, release and onboarding skills, for pi"
+needs = ["core"]
+
+  [[packages.family-skills.symlink]]
+  from = "config/pi/skills/building-a-tools-family-tool"
+  to = "~/.pi/agent/skills/building-a-tools-family-tool"
+  backup = true
+
+  [[packages.family-skills.symlink]]
+  from = "config/pi/skills/releasing-a-tools-family-tool"
+  to = "~/.pi/agent/skills/releasing-a-tools-family-tool"
+  backup = true
+
+  [[packages.family-skills.symlink]]
+  from = "config/pi/skills/tools-family-onboarding"
+  to = "~/.pi/agent/skills/tools-family-onboarding"
+  backup = true
+
 # ---------------------------------------------------------------------------
 # pi-llama — OPTIONAL local llama.cpp inference rig for pi (our own setup).
+# Needs the starter's pi.
 # Not in the developer profile: it needs GGUF model weights this manifest does
 # not fetch, so a fresh machine converges clean WITHOUT it. Add it deliberately
 # on a box that has the models with `kempt adopt pi-llama`.
@@ -850,17 +532,16 @@ only = { os = "linux" }
   command-exists = "codex"
 
 # ---------------------------------------------------------------------------
-# Profiles. casebook and cull are personal-machine tools: they live in the home
-# layer (layers/home/kempt.toml), added per machine, not here.
+# Profiles. session-themes and pi-llama are adopt-only.
 # ---------------------------------------------------------------------------
 [profiles.developer]
-description = "Everything: shell, terminal, editors, agents"
-packages = ["core", "terminal", "nvim", "markedit", "claude", "swiftbar", "codex", "muster", "pi-skills", "galley", "sift", "imprint", "muda", "diazo", "pi", "pi-channels"]
+description = "Everything this layer adds on a Mac: shell, terminal, editors' styles, agents"
+packages = ["core", "terminal", "markedit", "claude", "swiftbar", "codex", "family-skills", "pi-personal", "pi-channels"]
 
 # A billet workspace (Ubuntu 24.04 arm64): developer without the Mac apps.
 [profiles.workspace]
-description = "A remote workspace: shell, tmux, nvim, agents and the family tools; no desktop apps"
-packages = ["core", "terminal", "nvim", "claude", "codex", "muster", "pi-skills", "galley", "sift", "imprint", "muda", "diazo", "pi", "pi-channels", "workspace-linux"]
+description = "A remote workspace: shell, tmux, agents; no desktop apps"
+packages = ["core", "terminal", "claude", "codex", "family-skills", "pi-personal", "pi-channels", "workspace-linux"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"

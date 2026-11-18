@@ -20,9 +20,9 @@ docs/superpowers/
 docs/specs/
 docs/plans/
 
-# pi skills that a family tool installs and updates itself (`<tool> skills install`
-# writes through the ~/.pi/agent/skills link into config/pi/skills). The tool owns
-# them; a copy here would go stale with each release.
+# pi skills family tools wrote here while ~/.pi/agent/skills was a link into
+# config/pi/skills (before this repo became a layer on the starter). Kept
+# ignored until the checkouts that still hold them are cleaned up.
 config/pi/skills/sift/
 config/pi/skills/muda/
 config/pi/skills/muda-*/

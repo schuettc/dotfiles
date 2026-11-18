@@ -117,7 +117,7 @@ the CLI: `claude-attn clear [session]`, `claude-attn list`, `claude-attn focus
 ## Adding terminals to a workspace
 
 First, the window-vs-tab distinction — they behave differently on purpose
-(set in `config/ghostty/config`):
+(set in the starter's Ghostty config, `~/.config/ghostty/config`):
 
 * **⌘N (new *window*)** opens fresh at `$HOME`, *outside* any project
   (`window-inherit-working-directory = false`, `working-directory = home`).
@@ -209,7 +209,7 @@ Top of the window: tmux status bar showing the session name and time.
 | Submit the prompt | `Enter` |
 | **Insert a newline without submitting** | `Ctrl+Enter` or `Shift+Enter` |
 
-These are Ghostty keybinds (`config/ghostty/config`) — Ghostty sends a
+These are Ghostty keybinds (the starter's `~/.config/ghostty/config`) — Ghostty sends a
 literal newline instead of the carriage return Claude treats as submit.
 
 ### yazi — keys (no prefix needed)

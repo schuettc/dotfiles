@@ -24,55 +24,39 @@ the design rationale see [`setup-notes.md`](setup-notes.md).
 - [kempt](https://kempt.tools) 0.13.0 or later:
   `curl -fsSL https://kempt.tools/install.sh | sh`
 
-## Choose an installation path
+## Install
 
-| Installation | Use when | Command |
-|---|---|---|
-| Standard | You want the normal terminal and coding-agent setup | `kempt init https://github.com/schuettc/dotfiles.git`, profile `developer` |
-| Guided selective | You want to review and approve packages individually | Open `claude` in the repo and ask for the install wizard |
-| Explicit selective | You already know which packages you want | `kempt init <repo>` and pick the packages, or `kempt adopt <pkg>` later |
-| Local Pi models | You want the opt-in Pi + llama.cpp stack | `kempt adopt pi-llama`, on a machine with the GGUF weights |
-
-`developer` selects `core`, `terminal`, `nvim`, `markedit`, `claude`,
-`swiftbar`, `codex`, `muster`, `galley`, `sift`, `imprint`, `muda`, `diazo`,
-`hail`, `pi` and `pi-channels`; `minimal` selects `core`. Pi runs on the
-`claude-bridge` provider and needs no local models; `pi-llama` and
-`session-themes` are opt-in only. Personal machines can add the home layer
-(casebook and cull): `kempt layer add home <checkout>/layers/home`.
-
-## Standard install
+This repo is a user layer on the
+[subaud starter](https://github.com/subaud-tools/starter). The starter is the
+base (tmux, Ghostty and yazi, the subaud suite tools, the shared rules and
+process skills, and the adoptable `pi` and `neovim` packages); this layer adds
+the shell, the tmux config and helpers, the personal Ghostty font and yazi
+opener, Claude Code and Codex integration, and the pi extensions on top.
 
 ```bash
-kempt init https://github.com/schuettc/dotfiles.git
+kempt init -profile suite https://github.com/subaud-tools/starter.git
+kempt adopt pi && kempt adopt neovim
+git clone https://github.com/schuettc/dotfiles.git <checkout>
+kempt layer add dotfiles <checkout> -profile developer
 ```
 
-kempt clones the repo (to `~/.config/kempt/repo` unless you choose another
-path; nothing depends on where it lives), asks for a profile, then prepares
-the selected tools' releases online, each binary together with the setup its
-release publishes: hooks, the Claude Code plugin, agent channels, services and
-skills. You see the whole plan before anything changes. It will:
+`kempt layer add` prepares the selected tools' releases online, each binary
+together with the setup its release publishes, and shows the combined plan
+(base and layer) before anything changes. Configs already at a linked path
+are backed up to `*.bak`. The suite downloads are gated: the machine signs in
+to subaud.tools first (`kempt login`). Then reload your shell (or open a fresh
+Ghostty window).
 
-1. Install the selected Homebrew formulas and casks: Ghostty, tmux, yazi,
-   neovim, fzf, fd, ripgrep, bat, eza, zoxide, atuin, starship, gh, jq,
-   Claude Code, Codex, VS Code, Nerd Font casks, …
-2. Link configs into place (backing up any existing file to `*.bak`):
-   `~/.zshrc`, `~/.tmux.conf`, `~/.config/zsh/`, `~/.config/ghostty/`,
-   `~/.config/yazi/`, `~/.config/starship.toml`, `~/.config/atuin/`,
-   `~/.config/claude/`, and the helpers tmux runs in `~/.local/bin`.
-3. Install the family tools' binaries into `~/.local/bin` and apply their
-   release setup, and merge this repo's own Claude Code, Codex and pi
-   settings additively, keeping your existing entries.
+The layer's profiles are `developer` (everything on a Mac), `workspace` (a
+Linux workspace) and `minimal` (`core` alone); `pi-llama` and
+`session-themes` are opt-in only. Open `claude` in the repo and ask for the
+install wizard to go through the packages one at a time.
 
-diazo and hail are gated downloads: run `kempt login` first, with an account
-entitled to them. Then reload your shell (or open a fresh Ghostty window).
+## Updating
 
-## Updating, and machines set up earlier
-
-`kempt update` pulls this repo, updates kempt and converges again; `kempt
-plan` shows what would change and works offline from what the last apply
-prepared. A selection saved by an earlier version never grows by itself:
-compare it with the `developer` profile and adopt what you want, for example
-`kempt adopt diazo && kempt apply`.
+`kempt update` pulls the starter and this layer, updates kempt and converges
+again; `kempt plan` shows what would change and works offline from what the
+last apply prepared.
 
 ## If the install fails partway
 
@@ -172,7 +156,7 @@ proj --claude
 ### 3. Add more terminals to the workspace
 
 Inside a project's Ghostty window, press **⌘T**. The new tab inherits the
-project cwd (`tab-inherit-working-directory = true` in `config/ghostty/config`)
+project cwd (`tab-inherit-working-directory = true` in the starter's `~/.config/ghostty/config`)
 and the zsh auto-join hook opens `proj <project>` — Screen 2 — so you pick a
 live session, the home base, or name new work; naming a tab is always an
 explicit gesture. Each tab is an independent tmux session — run `claude` (or

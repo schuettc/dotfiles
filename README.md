@@ -6,40 +6,30 @@ yazi** with Claude Code integration.
 
 ## Quick Start
 
-This machine is set up declaratively with **[kempt](https://github.com/schuettc/kempt)** —
-the config lives in [`kempt.toml`](kempt.toml), and kempt installs, verifies, and
-updates everything from it. You read the whole plan before anything runs.
+This repo is a **user layer** on the
+[subaud starter](https://github.com/subaud-tools/starter), set up with
+**[kempt](https://kempt.tools)**. The starter is the base: tmux, Ghostty and
+yazi, every subaud suite tool with its release setup, the shared rules and
+process skills, and the adoptable `pi` and `neovim` packages. This layer adds
+only what is its own (see [`kempt.toml`](kempt.toml)); what the starter
+carries is changed there, never copied here.
 
-**1. Install kempt (0.13.0 or later), then set up this machine:**
+**1. Set up the machine from the starter, then add this layer:**
 ```bash
-curl -fsSL https://kempt.tools/install.sh | sh      # install the kempt binary
-kempt init https://github.com/schuettc/dotfiles.git  # clone → pick packages → plan → apply
+curl -fsSL https://kempt.tools/install.sh | sh
+kempt init -profile suite https://github.com/subaud-tools/starter.git
+kempt adopt pi && kempt adopt neovim
+git clone https://github.com/schuettc/dotfiles.git <checkout>
+kempt layer add dotfiles <checkout> -profile developer
 ```
-`kempt init` walks a picker to choose a profile (`developer` = everything,
-`minimal` = just the shell) and package set, shows the full plan, and applies
-it on your confirmation. It clones this repo to `~/.config/kempt/repo` unless
-you say otherwise; nothing here depends on where the checkout lives.
+`kempt layer add` shows the combined plan (base and layer) and applies it on
+your confirmation. Packages here are namespaced `dotfiles/<pkg>`; profiles are
+`developer` (everything on a Mac), `workspace` (a Linux workspace) and
+`minimal` (just the shell).
 
-Family tools (muster, galley, proj, sift, imprint, muda, diazo, hail, and the
-home layer's casebook and cull) bring their own hooks, plugins, agent
-channels, services and skills: kempt fetches each tool's matching setup with
-its binary and shows both in the plan before anything is applied. That needs
-the network; `kempt plan` on its own works from what the last apply prepared,
-and says so when a tool has not been prepared yet. diazo and hail are gated:
-sign the machine in first with `kempt login`, to an account entitled to them.
-
-Personal machines can add the home layer from the checkout:
-`kempt layer add home <checkout>/layers/home`.
-
-Already have a selection from an earlier version? It never grows by itself.
-Compare it with the `developer` profile and adopt what you want deliberately,
-e.g. `kempt adopt diazo`; the install-wizard skill walks through it.
-
-No git? kempt can also `init` straight from a tarball of this repo — the tree is
-fetched and extracted, and `kempt update` re-fetches it:
-```bash
-kempt init https://github.com/schuettc/dotfiles/archive/refs/heads/main.tar.gz
-```
+Family tools bring their own hooks, plugins, agent channels, services and
+skills through the starter: kempt fetches each tool's setup with its binary
+and shows both in the plan before anything is applied.
 
 **2. Open Ghostty, then:**
 ```bash
@@ -61,19 +51,20 @@ design rationale behind the migration off cmux.
 | Add / drop a package from this machine's selection | `kempt adopt <pkg>` / `kempt drop <pkg>` |
 
 Every kempt run is idempotent and shows its plan first. `developer` selects
-`core`, `terminal`, `nvim`, `markedit`, `claude`, `swiftbar`, `codex`,
-`muster`, `galley`, `sift`, `imprint`, `muda`, `diazo`, `hail`, `pi` (Pi on
-the `claude-bridge` provider + published extensions) and `pi-channels`;
-`minimal` selects `core`. Two packages are opt-in only: `session-themes`, and
-the local llama.cpp inference rig `pi-llama` (it needs GGUF weights this repo
-doesn't ship) — add it on a machine that has them with `kempt adopt pi-llama`.
+`core`, `terminal`, `markedit`, `claude`, `swiftbar`, `codex`,
+`family-skills` (the .tools family build, release and onboarding skills),
+`pi-personal` (pi extensions and settings on top of the starter's pi: yolo
+mode, pi-hail, pi-casebook, the default model) and `pi-channels` (muster in
+pi); `minimal` selects `core`. Two packages are opt-in only:
+`session-themes`, and the local llama.cpp inference rig `pi-llama` (it needs
+GGUF weights this repo doesn't ship).
 
 **Follow-ups** only you can do, for what you selected (kempt prints package
 notes after `apply`): `kempt login` for diazo and hail; pair your phone with
 hail; `codex login`; sign in to Claude Code on first run; `sift init --root
-DIR`; SwiftBar's plugin folder, login item and Accessibility grant; with the
-home layer, `casebook init` (and, if you want it, `casebook hooks install`)
-and `cull init` per project; with `pi-llama`, the model weights. Restart any
+DIR`; SwiftBar's plugin folder, login item and Accessibility grant;
+`casebook init` (and, if you want it, `casebook hooks install`) and `cull
+init` per project; with `pi-llama`, the model weights. Restart any
 running pi session so it picks up new extensions.
 
 ## What's Included
@@ -81,15 +72,17 @@ running pi session so it picks up new extensions.
 ### Terminal stack: Ghostty + tmux + yazi
 
 - **[Ghostty](https://ghostty.org)** — native, GPU-accelerated terminal
-  emulator. Config in `config/ghostty/config` (MonoLisaCode font, Catppuccin
-  Mocha, keybinds, image-paste workaround, Ctrl+Enter newline).
+  emulator, configured by the starter. `config/ghostty/config.mac` adds the
+  MonoLisaCode font on top, from Ghostty's macOS config path, which loads
+  after the starter's.
 - **tmux**: multiplexer providing splits and detach/reattach (reboot
   recovery is `proj`'s saved tab). Config in `.tmux.conf`.
 - **[yazi](https://yazi-rs.github.io)** — TUI file explorer that lives in a
-  right-side pane. Config in `config/yazi/`.
+  right-side pane. Config in `config/yazi/` (with a MarkEdit opener for
+  Markdown), linked to `~/.config/yazi-user` beside the starter's and chosen
+  by `YAZI_CONFIG_HOME`.
 - **neovim** ([LazyVim](https://lazyvim.org)) — terminal editor and system-wide
-  `$EDITOR`. Config in `config/nvim/` (Catppuccin Mocha; TypeScript, Python,
-  and Go language servers via Mason).
+  `$EDITOR`, from the starter's `neovim` package.
 
 ### The workspace workflow
 
@@ -132,9 +125,12 @@ any project. Project roots are configured per-machine in `~/.config/proj/roots`
 
 ### Pi
 
-The macOS-only `pi` package (part of the `developer` profile) installs Pi on
-the `claude-bridge` provider with its published extensions; it needs no local
-models. To add it to an existing selection: `kempt adopt pi && kempt apply`.
+pi itself, its base extensions, the worker and reviewer subagents and the
+process skills come from the starter's `pi` and `way-of-working` packages.
+`pi-personal` adds the user's own extensions (pi-artifacts,
+pi-provider-guard, pi-typesafe-ai, pi-hail, pi-casebook), the default model,
+yolo mode with pi-hail answering prompts, and the encrypted MCP token store;
+kempt folds its package list into the starter's.
 
 Local models are the separate, opt-in `pi-llama` package: a launchd-managed
 llama.cpp router on the loopback-only port 42137, for a machine that has the
@@ -287,12 +283,12 @@ retired.
 │   ├── tmux-session-color.sh   # stable name-hashed session color
 │   └── claude-attn             # raise/clear the Claude attention flag
 ├── config/
-│   ├── ghostty/config     # Terminal config (fonts, theme, keybinds)
-│   ├── yazi/              # File-explorer config (Catppuccin Mocha)
-│   ├── nvim/              # neovim config (LazyVim, Catppuccin Mocha)
+│   ├── ghostty/config.mac # Ghostty font on top of the starter's config
+│   ├── yazi/              # File-explorer config (Catppuccin Mocha, MarkEdit)
+│   ├── pi/skills/         # the .tools family skills (family-skills)
 │   ├── zsh/
 │   │   ├── 00-terminal.zsh      # OSC 7 cwd reporting (Ghostty new-tab dir)
-│   │   ├── 01-paths.zsh        # PATH + EDITOR (nvim)
+│   │   ├── 01-paths.zsh        # PATH + EDITOR (nvim) + YAZI_CONFIG_HOME
 │   │   ├── 02-nvm-lazy.zsh     # Lazy NVM loading
 │   │   ├── 03-tools.zsh        # Atuin, zoxide, fzf init
 │   │   ├── 03-proj-roots.zsh   # project-roots loader (proj/pt)
@@ -320,7 +316,7 @@ retired.
 | Aliases / workspace commands | `config/zsh/04-aliases.zsh` |
 | Project root directories | `proj --add` / `--remove` / `--edit` (writes `~/.config/proj/roots`) |
 | The prompt | `config/starship.toml` ([starship.rs/config](https://starship.rs/config/)) |
-| Terminal settings / keybinds | `config/ghostty/config` |
+| Terminal font | `config/ghostty/config.mac` (the rest of Ghostty's config is the starter's) |
 | tmux behavior / status bar | `.tmux.conf` |
 | Homebrew packages | the package's `install` step in `kempt.toml`, then `kempt apply` |
 
