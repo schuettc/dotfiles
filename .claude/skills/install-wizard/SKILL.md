@@ -30,7 +30,7 @@ sign-ins only they can make.
    items). A download with `setup = true` also takes the hooks, plugins,
    channels, services and skills its release publishes; name them from the
    plan, not from memory. Call out access: the suite downloads need a
-   subaud.tools account, and Codex needs a paid ChatGPT plan. Then ask:
+   subaud.tools account. Then ask:
    include it? yes/no.
 3. **Dependency closure.** Expand picks with their `needs`, transitively. Say
    exactly what was added and why, show the final list, and get explicit
@@ -58,7 +58,7 @@ chat.
 
 - The suite: sign this machine in to the subaud.tools account (`kempt login`,
   once for every subaud tool).
-- codex: `codex login`. claude: sign in on first run.
+- claude: sign in on first run.
 - casebook (the starter's): `casebook init`, then decide whether to install its
   Git recorder (`casebook hooks install`).
 - cull (the starter's): `cull init` in each project, which asks for the TypeSafe

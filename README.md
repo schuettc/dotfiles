@@ -51,7 +51,7 @@ design rationale behind the migration off cmux.
 | Add / drop a package from this machine's selection | `kempt adopt <pkg>` / `kempt drop <pkg>` |
 
 Every kempt run is idempotent and shows its plan first. `developer` selects
-`core`, `terminal`, `markedit`, `claude`, `swiftbar`, `codex`,
+`core`, `terminal`, `markedit`, `claude`, `swiftbar`,
 `family-skills` (the .tools family build, release and onboarding skills),
 `pi-personal` (pi extensions and settings on top of the starter's pi: yolo
 mode, pi-hail, pi-casebook, the default model) and `pi-channels` (muster in
@@ -61,7 +61,7 @@ GGUF weights this repo doesn't ship).
 
 **Follow-ups** only you can do, for what you selected (kempt prints package
 notes after `apply`): `kempt login` for diazo and hail; pair your phone with
-hail; `codex login`; sign in to Claude Code on first run; `sift init --root
+hail; sign in to Claude Code on first run; `sift init --root
 DIR`; SwiftBar's plugin folder, login item and Accessibility grant;
 `casebook init` (and, if you want it, `casebook hooks install`) and `cull
 init` per project; with `pi-llama`, the model weights. Restart any
@@ -170,24 +170,6 @@ The `claude` package installs [Claude Code](https://claude.ai/code) (the `claude
   a 🔔 on the Ghostty tab. Purely
   in-terminal — no macOS notification, no Dock bounce.
 
-### Codex (GPT) bridge
-
-Claude Code stays the primary harness, with [OpenAI Codex](https://github.com/openai/codex)
-(`cask "codex"`) wired in two complementary ways so you get GPT for a second
-opinion without leaving Claude Code:
-
-- **MCP bridge** — the `codex` package registers Codex as a user-scope MCP server
-  (`claude mcp add codex -s user -- codex mcp-server`), so Claude Code can
-  delegate a discrete coding task or ask GPT for a second opinion mid-session
-  via the `codex` MCP tool. Verify with `claude mcp list` (look for
-  `codex … ✔ Connected`).
-- **Standalone** — `codex` in its own tab for an independent pass; run both
-  agents on the same tricky task and let agreement/divergence guide you.
-
-Both run on a **ChatGPT subscription** (`codex login` — browser OAuth), not a
-metered OpenAI API key. Check auth with `codex login status`. See
-[`docs/codex-bridge.md`](docs/codex-bridge.md) for the day-to-day workflow.
-
 ### Cursor Agent
 
 This repo does not select Cursor. If you use the
@@ -197,8 +179,8 @@ This repo does not select Cursor. If you use the
 
 ### muster — cross-terminal agent bus
 
-Where the Codex bridge is *vertical* (one terminal), **[muster](https://github.com/schuettc/muster)**
-is *horizontal*: a local coordination bus that lets standing agent sessions in
+**[muster](https://github.com/schuettc/muster)**
+is a local coordination bus that lets standing agent sessions in
 separate terminals (Claude Code, Codex and pi) message and hand tasks to each
 other — no copy/paste, subscription-only. The `muster` package installs the
 checksummed binary from muster.tools to `~/.local/bin/muster`, and its release
@@ -303,7 +285,6 @@ retired.
     ├── pi-local-models.md # Pi + local llama.cpp models
     ├── terminal-usage.md  # day-to-day cheat sheet
     ├── terminal-setup.md  # install tutorial
-    ├── codex-bridge.md    # Claude Code + Codex (GPT) workflow
     ├── cursor-bridge.md   # Cursor Agent + muster workflow
     └── setup-notes.md     # design rationale / running log
 ```

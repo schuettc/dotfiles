@@ -158,10 +158,10 @@ class LayerContract(unittest.TestCase):
     def test_linux_checks_each_npm_cli_after_installing_it(self):
         # kempt re-checks a verify after apply only in a package that changed
         # something, and runs steps in written order. So on Linux, where claude
-        # and codex come from npm, each is checked in workspace-linux after its
-        # npm step, and the shared claude and codex packages check only on a Mac.
+        # comes from npm, it is checked in workspace-linux after its npm step,
+        # and the shared claude package checks only on a Mac.
         pkgs = packages(LAYER)
-        for name, cli in (("claude", "claude"), ("codex", "codex")):
+        for name, cli in (("claude", "claude"),):
             self.assertIn({"command-exists": cli, "only": {"os": "darwin"}}, pkgs[name]["verify"], name)
             self.assertNotIn({"command-exists": cli}, pkgs[name]["verify"], name)
         ws = pkgs["workspace-linux"]
@@ -170,8 +170,8 @@ class LayerContract(unittest.TestCase):
         text = (REPO / "kempt.toml").read_text()
         block = text[text.index("\n[packages.workspace-linux]\n"):]
         block = block[: block.index("\n[", 1)]
-        npm_at = block.index('npm = ["@anthropic-ai/claude-code", "@openai/codex"]')
-        for cli in ("claude", "codex"):
+        npm_at = block.index('npm = ["@anthropic-ai/claude-code"]')
+        for cli in ("claude",):
             self.assertGreater(block.index(f'command-exists = "{cli}"'), npm_at, cli)
 
     def test_anonymous_layer_needs_no_identity(self):
@@ -188,8 +188,8 @@ class LayerContract(unittest.TestCase):
 
     def test_profiles(self):
         profiles = LAYER["profiles"]
-        self.assertEqual(profiles["developer"]["packages"], ["core", "terminal", "markedit", "claude", "swiftbar", "codex", "family-skills", "pi-personal", "pi-channels"])
-        self.assertEqual(profiles["workspace"]["packages"], ["core", "terminal", "claude", "codex", "family-skills", "pi-personal", "pi-channels", "workspace-linux"])
+        self.assertEqual(profiles["developer"]["packages"], ["core", "terminal", "markedit", "claude", "swiftbar", "family-skills", "pi-personal", "pi-channels"])
+        self.assertEqual(profiles["workspace"]["packages"], ["core", "terminal", "claude", "family-skills", "pi-personal", "pi-channels", "workspace-linux"])
         self.assertEqual(profiles["minimal"]["packages"], ["core"])
         for profile in profiles.values():
             for name in profile["packages"]:

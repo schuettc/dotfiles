@@ -31,7 +31,7 @@ This repo is a user layer on the
 base (tmux, Ghostty and yazi, the subaud suite tools, the shared rules and
 process skills, and the adoptable `pi` and `neovim` packages); this layer adds
 the shell, the tmux config and helpers, the personal Ghostty font and yazi
-opener, Claude Code and Codex integration, and the pi extensions on top.
+opener, Claude Code integration, and the pi extensions on top.
 
 ```bash
 kempt init -profile suite https://github.com/subaud-tools/starter.git

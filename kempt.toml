@@ -4,7 +4,7 @@
 # release setup, the way of working (shared rules and process skills), and
 # the adoptable pi and neovim packages. This layer adds only what is this
 # repo's own: the shell, tmux and its helpers, editors' styles, Claude Code
-# and Codex integration, the pi extensions and settings on top of the
+# integration, the pi extensions and settings on top of the
 # starter's, the muster channel in pi, and the family-internal skills. What
 # the starter carries is changed there, never copied here: kempt refuses two
 # layers linking one path from different sources.
@@ -71,10 +71,10 @@ description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt
   to = "~/.config/atuin"
   backup = true
 
-  # harness session-stamp — referenced by the claude + codex SessionStart hooks
+  # harness session-stamp — referenced by the claude SessionStart hook
   # through this stable ~/.local/bin path, so it resolves no matter where the
   # config repo is cloned (kempt init defaults to ~/.config/kempt/repo, not
-  # ~/dotfiles). Lives in core because both harnesses depend on core.
+  # ~/dotfiles). Lives in core because claude depends on core.
   [[packages.core.symlink]]
   from = "bin/harness-session-stamp.sh"
   to = "~/.local/bin/harness-session-stamp"
@@ -264,33 +264,6 @@ needs = ["core"]
   only = { os = "darwin" }
 
 # ---------------------------------------------------------------------------
-# codex — OpenAI Codex CLI + MCP bridge into Claude Code
-# ---------------------------------------------------------------------------
-[packages.codex]
-description = "OpenAI Codex CLI (GPT agent) + MCP bridge into Claude Code"
-needs = ["core"]
-notes = ["run `codex login` to authenticate"]
-
-  [[packages.codex.install]]
-  brew.casks = ["codex"]
-  only = { os = "darwin" }
-
-  # session-stamp hook. codex hooks.json does not expand ~, so kempt expands the
-  # ${HOME} token at write time into an absolute, per-machine path.
-  [[packages.codex.json-merge]]
-  file = "~/.codex/hooks.json"
-  merge = { hooks = { SessionStart = [ { hooks = [ { type = "command", command = "${HOME}/.local/bin/harness-session-stamp" } ] } ] } }
-
-  # `claude mcp add codex` writes into ~/.claude.json .mcpServers
-  [[packages.codex.json-merge]]
-  file = "~/.claude.json"
-  merge = { mcpServers = { codex = { type = "stdio", command = "codex", args = ["mcp-server"], env = {} } } }
-
-  [[packages.codex.verify]]
-  command-exists = "codex"
-  only = { os = "darwin" }
-
-# ---------------------------------------------------------------------------
 # swiftbar — menu-bar attention indicator (🔔 turn-done / 🔐 waiting-on-you per
 # Claude/pi session; the plugin at config/swiftbar/plugins/ is driven by
 # claude-attn + the pi harness). Actively used, so kempt installs the app and
@@ -396,7 +369,7 @@ needs = ["pi", "muster"]
 
   # pi-mcp-adapter reads ~/.config/mcp/mcp.json (the all-projects target) and
   # exposes muster's get_inbox/get_thread/reply/... through its lazy mcp()
-  # proxy, the same tool surface Claude and Codex have. Deep-merge is
+  # proxy, the same tool surface Claude has. Deep-merge is
   # additive: hand-added servers survive.
   [[packages.pi-channels.json-merge]]
   file = "~/.config/mcp/mcp.json"
@@ -478,14 +451,14 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
 
 # ---------------------------------------------------------------------------
 # workspace-linux — what a Linux workspace adds to the packages above: claude
-# and codex from npm (casks on a Mac), Ubuntu's bat and fd under the names the
+# from npm (a cask on a Mac), Ubuntu's bat and fd under the names the
 # zsh config and FZF_DEFAULT_COMMAND use, and checks for what billet's first
 # boot installs (Node 24, the AWS CLI, uv), and proj's config without the
 # sidebar. Linux only; in the workspace profile alone.
 # ---------------------------------------------------------------------------
 [packages.workspace-linux]
-description = "Linux workspace additions: claude and codex from npm, bat/fd names, first-boot checks"
-needs = ["core", "claude", "codex"]
+description = "Linux workspace additions: claude from npm, bat/fd names, first-boot checks"
+needs = ["core", "claude"]
 only = { os = "linux" }
 
   [[packages.workspace-linux.verify]]
@@ -502,7 +475,7 @@ only = { os = "linux" }
   # Not needing pi keeps a first apply's blocked pi extensions (pi is not on
   # PATH until its own npm step ran) from holding these back.
   [[packages.workspace-linux.install]]
-  npm = ["@anthropic-ai/claude-code", "@openai/codex"]
+  npm = ["@anthropic-ai/claude-code"]
 
   [[packages.workspace-linux.symlink]]
   from = "/usr/bin/batcat"
@@ -523,20 +496,17 @@ only = { os = "linux" }
   [[packages.workspace-linux.verify]]
   command-exists = "claude"
 
-  [[packages.workspace-linux.verify]]
-  command-exists = "codex"
-
 # ---------------------------------------------------------------------------
 # Profiles. session-themes and pi-llama are adopt-only.
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything this layer adds on a Mac: shell, terminal, editors' styles, agents"
-packages = ["core", "terminal", "markedit", "claude", "swiftbar", "codex", "family-skills", "pi-personal", "pi-channels"]
+packages = ["core", "terminal", "markedit", "claude", "swiftbar", "family-skills", "pi-personal", "pi-channels"]
 
 # A billet workspace (Ubuntu 24.04 arm64): developer without the Mac apps.
 [profiles.workspace]
 description = "A remote workspace: shell, tmux, agents; no desktop apps"
-packages = ["core", "terminal", "claude", "codex", "family-skills", "pi-personal", "pi-channels", "workspace-linux"]
+packages = ["core", "terminal", "claude", "family-skills", "pi-personal", "pi-channels", "workspace-linux"]
 
 [profiles.minimal]
 description = "Just the core command-line tools"
