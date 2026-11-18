@@ -38,7 +38,7 @@ In the justfile, after the `# ---- <tool> ----` line:
 
 1. Repo `schuettc/<tool>` (public), Go module `github.com/schuettc/<tool>` on the latest tools-common tag; `main` builds one `tools.New(...)`. Start `VERSION` at `0.1.0` with a `## 0.1.0` changelog entry: the first merge to `main` (with the release environment ready) is the first release.
 2. Files: `VERSION` (or `<tool>/vX.Y.Z` tags in tackle), `CHANGELOG.md`, `LICENSE`, `lefthook.yml`, `justfile`, `.github/workflows/{ci,release,version-guard}.yml`, `.github/dependabot.yml`, `.gitignore` with `.worktrees/`.
-3. `just hooks` once per clone (plain `lefthook install` refuses: git's global `core.hooksPath` is casebook's recorder, which forwards to `.git/hooks`).
+3. Nothing to install per clone: casebook's global hooks run the repo's `lefthook.yml`.
 4. Site, `/dl` bucket, OIDC, release secrets: the `tools-family-onboarding` skill.
 5. GitHub `release` environment: the 4 Apple secrets (`APPLE_DEVELOPER_ID_P12`, `APPLE_NOTARY_KEY`, `APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER_ID`; `_P12_PASSWORD` only if the p12 has one) and deployment refs limited to the release refs (main-model: `main`; dev-model: `dev` + `main`; tackle: tag `*/v*`).
 6. Add a row to `tools-ops/templates/family/tools.tsv`; add the tool's `download` step to `~/dotfiles/kempt.toml` so `kempt update` installs it.
