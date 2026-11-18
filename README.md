@@ -146,7 +146,6 @@ GGUF weights. See [`docs/pi-local-models.md`](docs/pi-local-models.md).
 | zoxide | cd | Smart directory jumping |
 | fzf | — | Fuzzy finder |
 | delta | diff | Syntax-highlighted git diffs |
-| lazygit | — | Git TUI |
 | atuin | history | Shell history with sync |
 
 ### tmux status bar
