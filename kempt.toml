@@ -36,7 +36,6 @@ layer = "user"
 description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt, Atuin history"
 
   [[packages.core.install]]
-  brew.taps = ["1password/tap"]
   brew.formulas = [
     "starship", "atuin", "zsh-completions", "eza", "bat", "zoxide", "fzf",
     "fd", "ripgrep", "git-delta", "tree", "jq",
