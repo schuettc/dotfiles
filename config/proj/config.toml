@@ -1,1 +1,4 @@
 session_themes = true
+open_in = "terminal"
+sidebar = false
+default_agent = "pi"
