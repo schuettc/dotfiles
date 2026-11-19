@@ -450,6 +450,31 @@ notes = ["download the Qwen3.8 27B + 9B GGUF weights the router serves; pi-llama
   http-ok = "http://127.0.0.1:42137/health"
 
 # ---------------------------------------------------------------------------
+# etr-capture — OPTIONAL media tools bettor-help's operator ETR capture runs
+# on the capture machine: yt-dlp downloads the shows' YouTube streams,
+# whisper.cpp transcribes the podcasts, and ffmpeg (with ffprobe) converts the
+# audio and reads its length. bettor-help-cli's internal/etr/config.json pins
+# each at /opt/homebrew/bin, so Mac only. Not in a profile: adopt it on the
+# machine that runs the capture with `kempt adopt etr-capture`.
+# ---------------------------------------------------------------------------
+[packages.etr-capture]
+description = "Optional yt-dlp, whisper.cpp and ffmpeg for bettor-help's ETR video and podcast capture"
+only = { os = "darwin" }
+notes = ["download whisper.cpp's ggml-small.en.bin model to ~/.cache/whisper-cpp/ (the sha256 is pinned in bettor-help-cli's internal/etr/config.json); etr-capture does not fetch it"]
+
+  [[packages.etr-capture.install]]
+  brew.formulas = ["yt-dlp", "whisper-cpp", "ffmpeg"]
+
+  [[packages.etr-capture.verify]]
+  command-exists = "yt-dlp"
+
+  [[packages.etr-capture.verify]]
+  command-exists = "whisper-cli"
+
+  [[packages.etr-capture.verify]]
+  command-exists = "ffprobe"
+
+# ---------------------------------------------------------------------------
 # workspace-linux — what a Linux workspace adds to the packages above: claude
 # from npm (a cask on a Mac), Ubuntu's bat and fd under the names the
 # zsh config and FZF_DEFAULT_COMMAND use, and checks for what billet's first
@@ -497,7 +522,7 @@ only = { os = "linux" }
   command-exists = "claude"
 
 # ---------------------------------------------------------------------------
-# Profiles. session-themes and pi-llama are adopt-only.
+# Profiles. session-themes, pi-llama and etr-capture are adopt-only.
 # ---------------------------------------------------------------------------
 [profiles.developer]
 description = "Everything this layer adds on a Mac: shell, terminal, editors' styles, agents"

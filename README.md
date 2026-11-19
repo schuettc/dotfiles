@@ -55,16 +55,18 @@ Every kempt run is idempotent and shows its plan first. `developer` selects
 `family-skills` (the .tools family build, release and onboarding skills),
 `pi-personal` (pi extensions and settings on top of the starter's pi: yolo
 mode, pi-hail, pi-casebook, the default model) and `pi-channels` (muster in
-pi); `minimal` selects `core`. Two packages are opt-in only:
-`session-themes`, and the local llama.cpp inference rig `pi-llama` (it needs
-GGUF weights this repo doesn't ship).
+pi); `minimal` selects `core`. Three packages are opt-in only:
+`session-themes`, the local llama.cpp inference rig `pi-llama` (it needs
+GGUF weights this repo doesn't ship), and `etr-capture` (yt-dlp, whisper.cpp
+and ffmpeg for bettor-help's ETR capture, on the machine that runs it).
 
 **Follow-ups** only you can do, for what you selected (kempt prints package
 notes after `apply`): `kempt login` for diazo and hail; pair your phone with
 hail; sign in to Claude Code on first run; `sift init --root
 DIR`; SwiftBar's plugin folder, login item and Accessibility grant;
 `casebook init` (and, if you want it, `casebook hooks install`) and `cull
-init` per project; with `pi-llama`, the model weights. Restart any
+init` per project; with `pi-llama`, the model weights; with `etr-capture`,
+the whisper.cpp model. Restart any
 running pi session so it picks up new extensions.
 
 ## What's Included
