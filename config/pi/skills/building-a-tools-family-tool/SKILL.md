@@ -40,7 +40,7 @@ In the justfile, after the `# ---- <tool> ----` line:
 2. Files: `VERSION` (or `<tool>/vX.Y.Z` tags in tackle), `CHANGELOG.md`, `LICENSE`, `lefthook.yml`, `justfile`, `.github/workflows/{ci,release,version-guard}.yml`, `.github/dependabot.yml`, `.gitignore` with `.worktrees/`.
 3. Nothing to install per clone: casebook's global hooks run the repo's `lefthook.yml`.
 4. Site, `/dl` bucket, OIDC, release secrets: the `tools-family-onboarding` skill.
-5. GitHub `release` environment: the 4 Apple secrets (`APPLE_DEVELOPER_ID_P12`, `APPLE_NOTARY_KEY`, `APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER_ID`; `_P12_PASSWORD` only if the p12 has one) and deployment refs limited to the release refs (main-model: `main`; dev-model: `dev` + `main`; tackle: tag `*/v*`).
+5. GitHub `release` environment: deployment refs limited to the release refs (main-model: `main`; dev-model: `dev` + `main`; tackle: tag `*/v*`). It holds no secrets: the Apple signing secrets (`APPLE_DEVELOPER_ID_P12`, `APPLE_NOTARY_KEY`, `APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER_ID`) are organisation secrets on `subaud-tools`, so a new tool repo needs none of its own; confirm it sees them with `gh api repos/subaud-tools/<tool>/actions/organization-secrets`.
 6. Add a row to `tools-ops/templates/family/tools.tsv`; add the tool's `download` step to `~/dotfiles/kempt.toml` so `kempt update` installs it.
 7. `check.sh` shows the tool with no FAIL rows.
 8. Its guide: a section in `tools-common/guide/tools/<tool>.md` (when to reach for it, when to skip it, its asks), so its page's Guide button, its empty page and the using-the-tools skill know it; a walk in `guide/walks/` if it has a page a first-time user lands on.
