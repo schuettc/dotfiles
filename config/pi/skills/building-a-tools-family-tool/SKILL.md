@@ -13,11 +13,11 @@ The user's rule (2026-09-29): **one system for every tool.** "There's no reason 
 
 | Piece | Source | Never |
 |---|---|---|
-| CLI framework: commands, help, `man`, `commands --json`, exit codes 0/1/2, `version`, `update` (self-update from `<site>/dl`) | `github.com/schuettc/tools-common`: `tools.New(tools.Config{...})`, `Register`, `Dispatch`, `tools.Version`, `SelfUpdate` (kempt's `internal/cli/cli.go` is the model). `internal/version` only holds the `-X`-stamped `version`/`commit`/`date` that feed `tools.Version` | cobra, a hand-rolled dispatcher, printing or parsing versions yourself |
+| CLI framework: commands, help, `man`, `commands --json`, exit codes 0/1/2, `version`, `update` (self-update from `<site>/dl`) | `github.com/subaud-tools/tools-common`: `tools.New(tools.Config{...})`, `Register`, `Dispatch`, `tools.Version`, `SelfUpdate` (kempt's `internal/cli/cli.go` is the model). `internal/version` only holds the `-X`-stamped `version`/`commit`/`date` that feed `tools.Version` | cobra, a hand-rolled dispatcher, printing or parsing versions yourself |
 | Session identity, channel MCP server, atomic writes, XDG dirs, local page, SQLite | tools-common `harness`, `channelmcp`, `WriteFileAtomic`/`PIDAlive`, `ConfigDir`/`StateDir`/..., `localweb/page`, `sqlitedb` (separate module) | a private copy |
 | A tool's server and page: what they must do, and the part that delivers each rule | tools-common `PAGE-STANDARD.md`; `pageserve.Run`, the `localweb/page` kit, and `conformance.Check` in the tool's own tests | its own idle exit, kept token, binary watch, tab list or version header |
 | Justfile first block, `lefthook.yml`, `version-guard.yml` | copy **verbatim** from `tools-ops/templates/family/` | editing them in one repo |
-| Go gate (gofmt, vet, golangci-lint, `go test -race`, 4 builds) | `schuettc/tools-actions/go-ci@vX.Y.Z` in CI; `just gate` runs the same version locally | installing golangci-lint by hand, CI steps that re-spell the gate |
+| Go gate (gofmt, vet, golangci-lint, `go test -race`, 4 builds) | `subaud-tools/tools-actions/go-ci@vX.Y.Z` in CI; `just gate` runs the same version locally | installing golangci-lint by hand, CI steps that re-spell the gate |
 | Lint config | ships inside tools-actions `go-ci` | a repo `.golangci.yml` |
 | Release | tools-actions `release-version` + `go-release` in `release.yml` (copy kempt's, rename) | hand-written build/sign/upload steps; skipping `prepare`'s files (below) |
 | Installer | generated: `tools-ops/templates/install/sites/<domain>.conf` + `render.sh` | a hand-written `install.sh` in the repo |
@@ -36,18 +36,18 @@ In the justfile, after the `# ---- <tool> ----` line:
 
 ## A new tool: the checklist
 
-1. Repo `schuettc/<tool>` (public), Go module `github.com/schuettc/<tool>` on the latest tools-common tag; `main` builds one `tools.New(...)`. Start `VERSION` at `0.1.0` with a `## 0.1.0` changelog entry: the first merge to `main` (with the release environment ready) is the first release.
+1. Repo `subaud-tools/<tool>`, Go module `github.com/subaud-tools/<tool>` on the latest tools-common tag; `main` builds one `tools.New(...)`. Start `VERSION` at `0.1.0` with a `## 0.1.0` changelog entry: the first merge to `main` (with the release environment ready) is the first release.
 2. Files: `VERSION` (or `<tool>/vX.Y.Z` tags in tackle), `CHANGELOG.md`, `LICENSE`, `lefthook.yml`, `justfile`, `.github/workflows/{ci,release,version-guard}.yml`, `.github/dependabot.yml`, `.gitignore` with `.worktrees/`.
 3. Nothing to install per clone: casebook's global hooks run the repo's `lefthook.yml`.
 4. Site, `/dl` bucket, OIDC, release secrets: the `tools-family-onboarding` skill.
-5. GitHub `release` environment: the 4 Apple secrets (`APPLE_DEVELOPER_ID_P12`, `APPLE_NOTARY_KEY`, `APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER_ID`; `_P12_PASSWORD` only if the p12 has one) and deployment refs limited to the release refs (main-model: `main`; dev-model: `dev` + `main`; tackle: tag `*/v*`).
+5. GitHub `release` environment: deployment refs limited to the release refs (main-model: `main`; dev-model: `dev` + `main`; tackle: tag `*/v*`). It holds no secrets: the Apple signing secrets (`APPLE_DEVELOPER_ID_P12`, `APPLE_NOTARY_KEY`, `APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER_ID`) are organisation secrets on `subaud-tools`, so a new tool repo needs none of its own; confirm it sees them with `gh api repos/subaud-tools/<tool>/actions/organization-secrets`.
 6. Add a row to `tools-ops/templates/family/tools.tsv`; add the tool's `download` step to `~/dotfiles/kempt.toml` so `kempt update` installs it.
 7. `check.sh` shows the tool with no FAIL rows.
 8. Its guide: a section in `tools-common/guide/tools/<tool>.md` (when to reach for it, when to skip it, its asks), so its page's Guide button, its empty page and the using-the-tools skill know it; a walk in `guide/walks/` if it has a page a first-time user lands on.
 
 ## Read the real thing
 
-Model a change on kempt and muster (after `git pull`), or read GitHub: `gh api -H "Accept: application/vnd.github.raw" "repos/schuettc/<repo>/contents/<path>?ref=main"`. **galley: always read GitHub**, never its local copies: it is a bare repo whose worktrees (`public-dev`, `rel`, `rel2`, ...) are old branches and whose `origin/*` refs lag.
+Model a change on kempt and muster (after `git pull`), or read GitHub: `gh api -H "Accept: application/vnd.github.raw" "repos/subaud-tools/<repo>/contents/<path>?ref=main"`. **galley: always read GitHub**, never its local copies: it is a bare repo whose worktrees (`public-dev`, `rel`, `rel2`, ...) are old branches and whose `origin/*` refs lag.
 
 ## Lint findings
 
