@@ -35,9 +35,9 @@ shipping is `releasing-a-tools-family-tool`. The why:
    `matrix`. Then a human sets the **3 site secrets** (values from the stack
    outputs `DeployRoleArn` / `ContentBucketName` / `DistributionId`):
    ```sh
-   gh secret set SITE_DEPLOY_ROLE_ARN_<tool> --repo schuettc/tools-ops --body "<DeployRoleArn>"
-   gh secret set <tool>_BUCKET --repo schuettc/tools-ops --body "<ContentBucketName>"
-   gh secret set <tool>_DISTRIBUTION_ID --repo schuettc/tools-ops --body "<DistributionId>"
+   gh secret set SITE_DEPLOY_ROLE_ARN_<tool> --repo subaud-tools/tools-ops --body "<DeployRoleArn>"
+   gh secret set <tool>_BUCKET --repo subaud-tools/tools-ops --body "<ContentBucketName>"
+   gh secret set <tool>_DISTRIBUTION_ID --repo subaud-tools/tools-ops --body "<DistributionId>"
    ```
    Without them the gate silently skips the tool forever. VERIFY per the golden rule.
 3. Content: `tools-ops/sites/<domain>/` (index.html on the standard header, style.css with a
