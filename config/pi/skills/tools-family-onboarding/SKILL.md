@@ -32,14 +32,11 @@ shipping is `releasing-a-tools-family-tool`. The why:
    alias) → `live` (apex A/AAAA cutover). Deploy via a push to `infra/**` (CI
    `infra.yml` runs `cdk deploy --all`); never `cdk deploy` from a laptop.
 2. `tools-ops/.github/workflows/sites.yml`: add the tool to the `changes` filter, the `outputs`, and the
-   `matrix`. Then a human sets the **3 site secrets** (values from the stack
-   outputs `DeployRoleArn` / `ContentBucketName` / `DistributionId`):
+   `matrix`. Nobody sets the site values by hand: they are **organisation variables**, not secrets. `sites.yml` reads `vars.SITE_DEPLOY_ROLE_ARN_<tool>`, `vars.<tool>_BUCKET` and `vars.<tool>_DISTRIBUTION_ID`, where `<tool>` is the site's `varPrefix` in `app.ts` (upper case, e.g. `KEMPT`). `infra.yml`'s deploy job writes them after `cdk deploy` from the stack outputs (`DeployRoleArn` / `ContentBucketName` / `DistributionId`), each visible only to the repos that read it:
    ```sh
-   gh secret set SITE_DEPLOY_ROLE_ARN_<tool> --repo subaud-tools/tools-ops --body "<DeployRoleArn>"
-   gh secret set <tool>_BUCKET --repo subaud-tools/tools-ops --body "<ContentBucketName>"
-   gh secret set <tool>_DISTRIBUTION_ID --repo subaud-tools/tools-ops --body "<DistributionId>"
+   node scripts/org-variables.mjs outputs.json --apply   # in infra/, run by infra.yml
    ```
-   Without them the gate silently skips the tool forever. VERIFY per the golden rule.
+   Only that job runs it with `--apply`: it needs a `GH_TOKEN` with organisation Variables read and write, which is the subaud-tools-bot App's token (the workflow's own `GITHUB_TOKEN` can't). Without `--apply` it prints the names it would set. A site still at stage `zone` gets no variables, and without them the gate silently skips the tool. VERIFY per the golden rule.
 3. Content: `tools-ops/sites/<domain>/` (index.html on the standard header, style.css with a
    distinct accent, site.js, favicon/mark, llms.txt). Add the tool to
    `sites/subaud.tools/` (nav, family card, footer, `icons/<tool>.svg`, meta count).
@@ -56,8 +53,7 @@ Only for tools that ship a binary (npm tools use trusted-publisher instead).
    gh api --method PUT /repos/<owner>/<repo>/actions/oidc/customization/sub -F use_default=false -F use_immutable_subject=true
    ```
    Verify GET → `sub_claim_prefix` = `repo:<owner>@<ownerId>/<repo>@<repoId>`.
-3. **Secrets (human), on the `release` environment:** `<TOOL>_RELEASE_ROLE_ARN`
-   (=ReleaseRoleArn), `<TOOL>_DOWNLOADS_BUCKET` (=DownloadsBucketName).
+3. **Variables (no human step):** the same `infra.yml` deploy writes the organisation variables `<TOOL>_RELEASE_ROLE_ARN` (=ReleaseRoleArn) and `<TOOL>_DOWNLOADS_BUCKET` (=DownloadsBucketName), visible only to the release repo. `release.yml` reads them as `vars.`, not `secrets.`, and they are not on the `release` environment. Only the Apple signing values are secrets (organisation secrets).
 4. **release.yml:** copy kempt's (tools-actions `release-version` + `go-release`
    at the repo's one tools-actions version) and rename; `go-release` builds,
    signs, publishes `/dl/<tool>/<version>/` and moves `latest` only for a
