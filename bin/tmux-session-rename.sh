@@ -18,7 +18,7 @@
 # with the work segment alone, and the rename half re-attaches the project
 # prefix to whatever comes back. The binding used to pre-fill the whole #S
 # instead, which meant clearing the prompt and typing a bare label silently
-# renamed the session OUT of its project — it stopped matching proj's
+# renamed the session OUT of its project — it stopped matching cast's
 # Screen-2 <project>/* scan and rendered differently in status-left. A
 # typed name that already carries a '/' is taken verbatim; that is the
 # escape hatch for re-homing a session under a different project.
@@ -67,7 +67,8 @@ cur=$(tmux display-message -p -t "$TMUX_PANE" '#{session_name}')
 
 # Names are typed naturally but live as addresses (tmux target, muster
 # alias): collapse whitespace runs to hyphens instead of refusing them.
-# Same slug rule as __proj_slug_work in 04-aliases.zsh — change both together.
+# Same slug rule as cast's SlugWork (tackle internal/cast/identity.go) —
+# change both together.
 read -ra __words <<<"$new"
 new=$(IFS='-'; printf '%s' "${__words[*]}")
 

@@ -35,9 +35,9 @@ cmd=${info%%$'\n'*}
 IFS='|' read -r sock_path accent text muted success warning error <<< "${info#*$'\n'}"
 accent="${accent:-default}"; text="${text:-default}"; muted="${muted:-default}"
 success="${success:-default}"; warning="${warning:-default}"; error="${error:-default}"
-# The setting is the only opt-in boundary; missing/older proj stays normal.
+# The setting is the only opt-in boundary; missing/older cast stays normal.
 themed=false
-if proj theme --enabled --json 2>/dev/null | jq -e '.enabled == true' >/dev/null 2>&1; then
+if cast theme --enabled --json 2>/dev/null | jq -e '.enabled == true' >/dev/null 2>&1; then
   themed=true
 fi
 badge_text='#1e1e2e'

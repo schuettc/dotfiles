@@ -120,7 +120,7 @@ ok "quoting preserved"       "ARGV:[-p][two words]"  "$(drive -p 'two words')"
 ok "no channel flag anywhere" "0" "$(grep -c 'dangerously-load-development-channels' "$ZSHDIR/04-aliases.zsh")"
 
 echo "── inside tmux, a bare claude adopts the session name ──"
-# The session name IS the identity, and proj/pt already picked it. A
+# The session name IS the identity, and cast/pt already picked it. A
 # hand-typed `claude` in that pane should not have to be renamed afterwards
 # — prefix T exists for CHANGING the name, not for setting it the first
 # time. This is display-name shaping, not identity seeding: `--name` names

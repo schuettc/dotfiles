@@ -24,8 +24,8 @@ work is verified.
 | Terminal | **Ghostty** | Native, no Electron, GPU-accelerated. Doesn't leak CALayers the way cmux did. |
 | Multiplexer | **tmux** | Splits, detach/reattach, cross-machine portability |
 | File explorer | **yazi** | Three-column TUI in a right-side pane; closest match to cmux's file panel |
-| Session model | One tmux session per project | Spawned on demand by a `proj` fzf picker |
-| Persistence | `proj`'s saved tab | Records sessions + agent conversations via tmux hooks; restores them and the Ghostty layout. (Replaced tmux-resurrect + tmux-continuum, 2026-09-29; the task log below is historical.) |
+| Session model | One tmux session per project | Spawned on demand by the `cast` picker (named `proj` until 2026-11; the task log below uses the old name) |
+| Persistence | `cast`'s saved tab | Records sessions + agent conversations via tmux hooks; restores them and the Ghostty layout. (Replaced tmux-resurrect + tmux-continuum, 2026-09-29; the task log below is historical.) |
 
 ## The cmux postmortem (background)
 

@@ -2,7 +2,7 @@
 # can open new tabs in the same directory.
 #
 # Inside tmux the plain OSC 7 is SWALLOWED by tmux — it feeds tmux's own
-# #{pane_current_path} (which proj/auto-join rely on) but is never forwarded to
+# #{pane_current_path} (which cast/auto-join rely on) but is never forwarded to
 # Ghostty. So Ghostty's per-tab cwd freezes at wherever the client first
 # attached, and ⌘T (new tab) inherits that stale dir instead of the project you
 # switched into. Fix: when in tmux, ALSO emit the sequence wrapped in tmux

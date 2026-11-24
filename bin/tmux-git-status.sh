@@ -28,9 +28,9 @@ branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || \
 # Count uncommitted changes (staged + unstaged + untracked).
 dirty=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
 
-# The setting is the only opt-in boundary; missing/older proj stays normal.
+# The setting is the only opt-in boundary; missing/older cast stays normal.
 themed=false
-if proj theme --enabled --json 2>/dev/null | jq -e '.enabled == true' >/dev/null 2>&1; then
+if cast theme --enabled --json 2>/dev/null | jq -e '.enabled == true' >/dev/null 2>&1; then
   themed=true
 fi
 

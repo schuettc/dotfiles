@@ -1,6 +1,6 @@
 ---
 name: releasing-a-tools-family-tool
-description: Use when shipping, releasing, tagging or cutting a release candidate of a .tools family tool (kempt, muster, galley, hail, tackle's scratch/proj/creel, casebook), when a merged change needs to reach the user's machine, when a release run fails or publishes nothing, or when checking signing credentials or what /dl serves.
+description: Use when shipping, releasing, tagging or cutting a release candidate of a .tools family tool (kempt, muster, galley, hail, tackle's scratch/cast/creel, casebook), when a merged change needs to reach the user's machine, when a release run fails or publishes nothing, or when checking signing credentials or what /dl serves.
 ---
 
 # Releasing a .tools family tool
@@ -17,7 +17,7 @@ Find the change: the merged PR or commit (`gh pr view N --json state,mergeCommit
 |---|---|---|
 | kempt, hail, casebook | **main** | a PR into `main` that raises `VERSION` and adds the `CHANGELOG.md` entry; merging it releases |
 | galley, muster | **dev → main** | features merge into `dev`; then (1) a "release prep" PR into `dev` setting `VERSION` and turning `## Unreleased` into `## X.Y.Z`, (2) a PR `dev` → `main` titled `<tool> X.Y.Z`; merging (2) releases |
-| tackle (scratch, proj, creel, cull, sift, imprint) | **tags** | no `VERSION` file: a `CHANGELOG.md` entry merged to `main` first, then an annotated tag `<tool>/vX.Y.Z` on that commit, pushed **one tag per push** (GitHub drops tag events when more than 3 arrive in one push). tackle's single `CHANGELOG.md` holds one entry per tool release, headed `[<tool> X.Y.Z]` |
+| tackle (scratch, cast, creel, cull, sift, imprint) | **tags** | no `VERSION` file: a `CHANGELOG.md` entry merged to `main` first, then an annotated tag `<tool>/vX.Y.Z` on that commit, pushed **one tag per push** (GitHub drops tag events when more than 3 arrive in one push). tackle's single `CHANGELOG.md` holds one entry per tool release, headed `[<tool> X.Y.Z]` |
 
 The next version comes from the newest release tag and any open PR that already raises `VERSION` (another session's claim), not from memory or muster; that check is enough, so don't announce the version you take. A PR into a release branch that changes no shipped binary carries the `no-release` label; otherwise the version guard fails it until `VERSION` is raised to a newer plain `X.Y.Z`.
 

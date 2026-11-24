@@ -17,9 +17,10 @@
 #
 # That walk used to live here and searched only the default socket, which
 # silently stopped finding anything once every project got its own tmux
-# server ("proj-<project>"): with $TMUX unset, a bare `tmux list-panes -a`
-# fails with "error connecting to …/default" and the bell never rang. The
-# shared helper searches every socket.
+# server ("cast-<project>", or "proj-<project>" from before the rename):
+# with $TMUX unset, a bare `tmux list-panes -a` fails with "error
+# connecting to …/default" and the bell never rang. The shared helper
+# searches every socket.
 
 set -u
 

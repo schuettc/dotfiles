@@ -56,22 +56,22 @@ So `prefix → f` means: press `Ctrl-A`, release both keys, then press `f`.
 ## Starting the day
 
 1. Open **Ghostty** (`⌘ Space` → "Ghostty", or pin it to the Dock).
-2. After a reboot, bring your sessions back from `proj`'s saved tab (see
+2. After a reboot, bring your sessions back from `cast`'s saved tab (see
    [After a reboot](#after-a-reboot)).
 3. To open a workspace for a project:
    ```
-   proj
+   cast
    ```
-   `proj` is a **two-screen picker**:
+   `cast` is a **two-screen picker**:
 
    **Screen 1 — pick a project (or jump to a live session).** The fzf list
    shows every live tmux session (prefixed `[session]`) plus every project
-   directory under your configured roots (`~/.config/proj/roots`; e.g.
+   directory under your configured roots (`~/.config/cast/roots`; e.g.
    `~/GitHub/<account>/`, `~/notes/`), and a
    `[+ add new project root…]` entry. Pick a `[session]` row to jump straight
    back to a running session; pick a project directory to continue to Screen 2.
-   `proj <project>` skips straight to Screen 2 (flags come first: `proj
-   --claude dotfiles`, not `proj dotfiles --claude`).
+   `cast <project>` skips straight to Screen 2 (flags come first: `cast
+   --claude dotfiles`, not `cast dotfiles --claude`).
 
    **Screen 2 — pick a session, or name new work.**
 
@@ -121,10 +121,10 @@ First, the window-vs-tab distinction — they behave differently on purpose
 
 * **⌘N (new *window*)** opens fresh at `$HOME`, *outside* any project
   (`window-inherit-working-directory = false`, `working-directory = home`).
-  A plain shell at `~`. Run `proj` to enter or create a workspace from there.
+  A plain shell at `~`. Run `cast` to enter or create a workspace from there.
 * **⌘T (new *tab*) inside a project window** inherits the project's cwd
   (`tab-inherit-working-directory = true`). The zsh auto-join hook
-  (proj's shell wrapper) sees you're in a project and opens `proj
+  (cast's shell wrapper) sees you're in a project and opens `cast
   <project>` — Screen 2 (live sessions · home base · new work) — so naming
   the tab is always an explicit gesture, never an anonymous slot.
 
@@ -137,14 +137,14 @@ The manual fallback:
   `pt <project> <work>` names both. Either creates or attaches
   `<project>/<work>` directly.
 
-Each session can be restored after a reboot from `proj`'s saved tab.
+Each session can be restored after a reboot from `cast`'s saved tab.
 
 ### Opt-ins / opt-outs
 
 ```bash
 # Auto-launch claude in the left pane instead of leaving it empty:
 pt --claude my-app-2          # one-shot, for a pt tab
-proj --claude                 # one-shot, for the workspace proj creates
+cast --claude                 # one-shot, for the workspace cast creates
 AUTO_CLAUDE=1 zsh             # makes ⌘T auto-join also launch claude
 
 # Skip the auto-join entirely for one shell (get a plain prompt):
@@ -245,7 +245,7 @@ straight back into yazi.
 
 > Under the hood: yazi's `edit` opener runs `nvim` with `block = true`, and
 > the global `$EDITOR` is `nvim` too — one editor everywhere (git commit,
-> crontab, `proj --edit`).
+> crontab, `cast --edit`).
 
 ---
 
@@ -253,7 +253,7 @@ straight back into yazi.
 
 **Closing a Ghostty tab does NOT kill the tmux session** — it only
 detaches. The session keeps running in the background (that's what lets
-you reattach, and `proj` remembers it for restoring after a reboot). The
+you reattach, and `cast` remembers it for restoring after a reboot). The
 side effect: detached sessions accumulate, especially short-lived named
 work.
 
@@ -281,11 +281,11 @@ tmux kill-session -t my-app-2/notes
 
 | Command | Reach for it when… |
 |---|---|
-| `proj` | You want to **jump to a live session, open the home base, or name new work** — the two-screen picker. |
+| `cast` | You want to **jump to a live session, open the home base, or name new work** — the two-screen picker. |
 | `pt <work>` / `pt <project> <work>` | You opened a new ⌘T tab and **auto-join didn't fire**, or you just want to skip the picker — create-or-attach `<project>/<work>` directly. |
 | `proj-clean` | `tmux ls` is cluttered — **reap idle** shell/yazi-only sessions (never Claude/editor/server, never the one you're in). |
 
-The opt-ins/opt-outs (`pt --claude`, `proj --claude`, `AUTO_CLAUDE`,
+The opt-ins/opt-outs (`pt --claude`, `cast --claude`, `AUTO_CLAUDE`,
 `NO_AUTO_TMUX`, `~/.no-auto-tmux`) are covered under
 [Adding terminals to a workspace](#opt-ins--opt-outs).
 
@@ -296,7 +296,7 @@ simultaneously as separate tmux sessions. You don't need to close one to
 use another.
 
 ```
-proj                                 # picker → switch session, or name new work
+cast                                 # picker → switch session, or name new work
 prefix → d                           # detach completely
 tmux ls                              # list every alive session
 tmux kill-session -t my-app-2        # tear down a specific session
@@ -309,8 +309,8 @@ live sessions. Named-work sessions show up as `<project>/<work>`.
 
 ## After a reboot
 
-Open Ghostty, run `proj`, and press `tab` until the title reads
-`proj · saved`. Every session you had is listed, grouped by the Ghostty
+Open Ghostty, run `cast`, and press `tab` until the title reads
+`cast · saved`. Every session you had is listed, grouped by the Ghostty
 window it was in, all checked. `space` unchecks any you want to leave
 behind (they stay saved for next time); `^r` restores the rest.
 
@@ -336,7 +336,7 @@ A session leaves the saved list only when you reap it with `^x`.
   there referencing Ghostty discussion #10099.
 
 - **`prefix → f` does nothing.** You're probably not inside a tmux session.
-  Run `tmux ls` to check. If empty, run `proj` (or `tmux attach`) first.
+  Run `tmux ls` to check. If empty, run `cast` (or `tmux attach`) first.
 
 - **You typed `prefix f` literally and zsh said "command not found".** The
   word "prefix" is shorthand for `Ctrl-A` — see the notation guide at the
