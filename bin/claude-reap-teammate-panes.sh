@@ -53,8 +53,10 @@ teams_dir="$HOME/.claude/teams"
 [ -d "$teams_dir" ] || { echo "no teams dir; nothing to do"; exit 0; }
 
 # Emit candidate teammates as: socket|pane|agentId|name|age_minutes
-# The socket is derived from the team lead's cwd, matching the per-project
-# socket convention (proj-<basename cwd>) used by __proj_srv.
+# The socket is derived from the team lead's cwd, matching cast's per-project
+# socket convention: cast-<basename cwd>, or proj-<basename cwd> for a server
+# started before the rename. Both are emitted; the one with no such pane is
+# skipped by the first sample, and the identity gate guards the other.
 candidates=$(python3 - "$teams_dir" "$now" "$IDLE_MIN" <<'PY'
 import json, os, sys, glob
 teams_dir, now, idle_min = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
@@ -67,7 +69,7 @@ for cfg in glob.glob(os.path.join(teams_dir, '*', 'config.json')):
     lead_cwd = next((m.get('cwd') for m in members if m.get('tmuxPaneId') == 'leader' and m.get('cwd')), None)
     if not lead_cwd:
         continue
-    sock = 'proj-' + os.path.basename(lead_cwd.rstrip('/'))
+    project = os.path.basename(lead_cwd.rstrip('/'))
     for m in members:
         pane = m.get('tmuxPaneId') or ''
         if not pane.startswith('%'):        # excludes 'leader' and 'in-process'
@@ -76,7 +78,8 @@ for cfg in glob.glob(os.path.join(teams_dir, '*', 'config.json')):
         age = int((now - joined) / 60) if joined else 10**6
         if age < idle_min:
             continue
-        print('%s|%s|%s|%s|%d|%d' % (sock, pane, m.get('agentId'), m.get('name'), age, joined))
+        for sock in ('cast-' + project, 'proj-' + project):
+            print('%s|%s|%s|%s|%d|%d' % (sock, pane, m.get('agentId'), m.get('name'), age, joined))
 PY
 )
 

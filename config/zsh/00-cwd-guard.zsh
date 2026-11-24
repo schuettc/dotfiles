@@ -9,7 +9,7 @@
 #   parent directories: No such file or directory
 #
 # …and the prompt collapses to ".". The pane is then effectively unusable until
-# you cd out by hand, and `proj`/split bindings that inherit
+# you cd out by hand, and `cast`/split bindings that inherit
 # #{pane_current_path} propagate the dead dir into new panes.
 #
 # Loads first (sorts before 00-terminal.zsh, which reads $PWD for OSC 7) so

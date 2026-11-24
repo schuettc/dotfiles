@@ -1,10 +1,10 @@
 #!/usr/bin/env zsh
-# Exercise status renderers with a private tmux server and stubbed proj/git.
+# Exercise status renderers with a private tmux server and stubbed cast/git.
 set -eu
 REPO="${0:A:h:h}"
 REAL_TMUX=$(command -v tmux)
 WORK=$(mktemp -d)
-export HOME="$WORK/home" PROJ_HOME="$WORK/proj" PI_CODING_AGENT_DIR="$WORK/pi"
+export HOME="$WORK/home" CAST_HOME="$WORK/cast" PI_CODING_AGENT_DIR="$WORK/pi"
 export XDG_CONFIG_HOME="$WORK/config" XDG_CACHE_HOME="$WORK/cache" TMUX_TMPDIR="$WORK"
 export THEME_CALLS="$WORK/calls" THEME_ENABLED=true
 mkdir -p "$WORK/bin" "$HOME" "$XDG_CACHE_HOME/claude-status"
@@ -15,7 +15,7 @@ cat > "$WORK/bin/tmux" <<'SH'
 printf '%s\n' "$1" >> "$THEME_CALLS"
 exec "$REAL_TMUX" -S "$THEME_SOCKET" "$@"
 SH
-cat > "$WORK/bin/proj" <<'SH'
+cat > "$WORK/bin/cast" <<'SH'
 #!/bin/bash
 printf '%s\n' "$*" >> "$THEME_CALLS"
 [[ "$*" == 'theme --enabled --json' ]] || exit 99
@@ -118,7 +118,7 @@ contains unassigned-git "$(render tmux-git-status "$WORK" example)" '#[fg=defaul
 contains unassigned-context "$(render tmux-claude-context "$pane")" '#[fg=default,bg=default,bold] ⌬ 88% '
 # Load only this worktree config on the private server; no status jobs run without clients.
 tmux source-file "$REPO/.tmux.conf"
-contains refresh "$(tmux show-option -gv status-right)" '#(proj __theme-sync)'
+contains refresh "$(tmux show-option -gv status-right)" '#(cast __theme-sync)'
 contains enabled-format "$(tmux show-option -gv @proj_theme_enabled_format)" 'tmux-session-color.sh --enabled'
 contains native-clock "$(tmux show-option -gv status-right)" '%a %b %d  %H:%M'
 [[ $(tmux show-option -gv status-interval) == 5 ]]

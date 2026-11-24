@@ -12,7 +12,7 @@ the design rationale see [`setup-notes.md`](setup-notes.md).
 - **tmux** — session persistence, splits, detach/reattach, restore-on-reboot
 - **yazi** — a file-explorer pane on the right of each workspace
 - **A workspace workflow** — one Ghostty window per project; each tab is its
-  own tmux session; `proj`/`pt` to spawn them; auto-join on ⌘T
+  own tmux session; `cast`/`pt` to spawn them; auto-join on ⌘T
 - **Claude Code integration** — a cross-session attention indicator (🔔 in the
   tab/Dock title + a SwiftBar menu-bar badge when Claude is waiting on you) and a
   tmux status bar showing git status and Claude's context %
@@ -83,24 +83,24 @@ A few things can't be fully automated:
 
 ### 1. Configure your project roots
 
-The `proj` workflow needs to know which directories contain your projects.
+The `cast` workflow needs to know which directories contain your projects.
 This is **per-machine** (not tracked in git, since paths differ between
-machines). The first time you run `proj`, it prompts you to set this up:
+machines). The first time you run `cast`, it prompts you to set this up:
 
 ```bash
-proj
+cast
 ```
 
 You'll get an interactive picker of common candidates that exist on disk
 (plus an option to enter a custom path). Your selection is written to
-`~/.config/proj/roots` — one absolute path per line. You can edit it any
+`~/.config/cast/roots` — one absolute path per line. You can edit it any
 time with:
 
 ```bash
-proj --edit
+cast --edit
 ```
 
-A typical `~/.config/proj/roots`:
+A typical `~/.config/cast/roots`:
 
 ```
 ~/GitHub/<account>
@@ -118,28 +118,28 @@ Each line is one of two kinds:
 Use `project:` for a repo that lives directly in `$HOME` and so has no root
 to sit under. Do not list bare `~` as a root to reach it: that makes every
 folder in your home directory a project, and opening a shell in `~/Downloads`
-then gets ambushed by the `proj` picker instead of giving you a shell.
+then gets ambushed by the `cast` picker instead of giving you a shell.
 
 `project:` also fits a directory whose children are data rather than code —
 list `~/my-data` as a root and every dated directory inside it
 becomes a separate project in the picker.
 
-The bottom of the `proj` picker carries `[+ add new project root…]` and
+The bottom of the `cast` picker carries `[+ add new project root…]` and
 `[- remove a project root…]`; either one edits the file and drops you back
 into a rebuilt list, so you can fix your roots and pick a project in one
 trip. The same two are available directly as flags.
 
-Edit the file with `proj --add` and `proj --remove` (Tab multi-selects) —
-both rewrite it for you. `proj --edit` opens it in `$EDITOR` for anything
+Edit the file with `cast --add` and `cast --remove` (Tab multi-selects) —
+both rewrite it for you. `cast --edit` opens it in `$EDITOR` for anything
 those two can't express.
 
 ### 2. Open your first workspace
 
 ```bash
-proj                 # two-screen fzf picker
+cast                 # two-screen fzf picker
 ```
 
-`proj` is a two-screen picker: **Screen 1** picks a project (or jumps to a
+`cast` is a two-screen picker: **Screen 1** picks a project (or jumps to a
 live session); **Screen 2** picks a session — jump to a live one, open the
 **home base** (`🏠 <project> — home base`), or name new
 work (`+ new work…`), which creates `<project>/<work>`. Either way you land
@@ -150,21 +150,21 @@ in a tmux session with a shell on the left (~70%) and yazi on the right
 To auto-launch Claude in the left pane instead of an empty shell:
 
 ```bash
-proj --claude
+cast --claude
 ```
 
 ### 3. Add more terminals to the workspace
 
 Inside a project's Ghostty window, press **⌘T**. The new tab inherits the
 project cwd (`tab-inherit-working-directory = true` in the starter's `~/.config/ghostty/config`)
-and the zsh auto-join hook opens `proj <project>` — Screen 2 — so you pick a
+and the zsh auto-join hook opens `cast <project>` — Screen 2 — so you pick a
 live session, the home base, or name new work; naming a tab is always an
 explicit gesture. Each tab is an independent tmux session — run `claude` (or
 anything) in whichever you like.
 
 By contrast, **⌘N (new window)** opens fresh at `$HOME`
 (`window-inherit-working-directory = false`, `working-directory = home`) —
-*outside* any project. Run `proj` there to enter or create a workspace.
+*outside* any project. Run `cast` there to enter or create a workspace.
 
 If ⌘T ever lands at `$HOME` instead of the project (e.g., OSC 7 didn't
 propagate), use the manual fallback: `pt <work>` (from inside the project
@@ -174,7 +174,7 @@ dir) or `pt <project> <work>`.
 
 Run through this checklist:
 
-1. `proj` → pick a project → **two panes** appear (shell + yazi), tmux status
+1. `cast` → pick a project → **two panes** appear (shell + yazi), tmux status
    bar at the top showing the session name.
 2. `Ctrl-A` then `f` → the yazi pane **toggles off**; press again → back.
 3. `Ctrl-A` then `d` → **detach**; `tmux ls` lists the session; `tmux attach`
@@ -188,7 +188,7 @@ Run through this checklist:
    session. (Turn-end still rings the in-terminal bell + `⚠ 1: <project>`.)
 6. Status-right shows the git branch + dirty count, and `⌬ NN%` when the
    focused pane is running Claude.
-7. **Persistence:** `tmux kill-server`, then `proj` → `tab` to the saved tab →
+7. **Persistence:** `tmux kill-server`, then `cast` → `tab` to the saved tab →
    `^r` restores your sessions, their agent conversations and your Ghostty
    windows/tabs.
 
@@ -196,9 +196,9 @@ Run through this checklist:
 
 | Command | What it does |
 |---------|--------------|
-| `proj` | Two-screen picker → jump to a session, open the home base, or name new work |
-| `proj --claude` | Same, but auto-launch claude in the left pane |
-| `proj --edit` | Edit `~/.config/proj/roots` |
+| `cast` | Two-screen picker → jump to a session, open the home base, or name new work |
+| `cast --claude` | Same, but auto-launch claude in the left pane |
+| `cast --edit` | Edit `~/.config/cast/roots` |
 | `pt <work>` / `pt <project> <work>` | Create-or-attach `<project>/<work>` without the picker |
 | `pt --claude <work>` | Same, with claude |
 | `tat <name>` | Attach-or-create a named session |
@@ -213,20 +213,20 @@ newline in Claude without submitting. Full reference in
 
 ## Troubleshooting
 
-- **`proj` says "No project roots configured"** — run `proj` interactively to
-  set them up, or `proj --edit`. (The roots file is `~/.config/proj/roots`,
+- **`cast` says "No project roots configured"** — run `cast` interactively to
+  set them up, or `cast --edit`. (The roots file is `~/.config/cast/roots`,
   per-machine, untracked.)
-- **A new shell drops into the `proj` picker instead of a shell** — a root in
-  `~/.config/proj/roots` is too broad, so an ordinary directory looks like a
+- **A new shell drops into the `cast` picker instead of a shell** — a root in
+  `~/.config/cast/roots` is too broad, so an ordinary directory looks like a
   project. Usually a bare `~` line: it makes `~/Downloads`, `~/Library` and
   friends into projects. Replace it with `project:` lines for the specific
-  repos you meant (`proj --edit`).
+  repos you meant (`cast --edit`).
 - **⌘T lands at `$HOME`, not the project** — tmux didn't forward the cwd via
   OSC 7. Reload tmux (`Ctrl-A r`) or `tmux kill-server` + `tmux attach`; then
   use `pt` for the current tab.
 - **tmux config changes not taking effect** — `Ctrl-A r` to reload, or
   `tmux kill-server` (detach first) for a clean restart, then restore your
-  sessions from `proj`'s saved tab.
+  sessions from `cast`'s saved tab.
 - **Ghostty config changes not applying** — `⌘⇧,` to reload, or quit and
   relaunch Ghostty (some settings need a full restart).
 - **`⌘V` won't paste images into Claude** — use `Ctrl+V`. Known Ghostty

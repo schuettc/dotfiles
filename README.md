@@ -33,7 +33,7 @@ and shows both in the plan before anything is applied.
 
 **2. Open Ghostty, then:**
 ```bash
-proj               # pick a project → spawns a workspace (shell + yazi)
+cast               # pick a project → spawns a workspace (shell + yazi)
 ```
 
 See [`docs/terminal-usage.md`](docs/terminal-usage.md) for the day-to-day
@@ -47,7 +47,7 @@ design rationale behind the migration off cmux.
 | See what would change (nothing runs) | `kempt plan` |
 | Apply the manifest / converge this machine | `kempt apply` |
 | Pull latest + self-update + converge | `kempt update` (aliased `dotup`) |
-| Prompt-safe status line (used by `proj`) | `kempt status` |
+| Prompt-safe status line (used by `cast`) | `kempt status` |
 | Add / drop a package from this machine's selection | `kempt adopt <pkg>` / `kempt drop <pkg>` |
 
 Every kempt run is idempotent and shows its plan first. `developer` selects
@@ -78,7 +78,7 @@ running pi session so it picks up new extensions.
   MonoLisaCode font on top, from Ghostty's macOS config path, which loads
   after the starter's.
 - **tmux**: multiplexer providing splits and detach/reattach (reboot
-  recovery is `proj`'s saved tab). Config in `.tmux.conf`.
+  recovery is `cast`'s saved tab). Config in `.tmux.conf`.
 - **[yazi](https://yazi-rs.github.io)** — TUI file explorer that lives in a
   right-side pane. Config in `config/yazi/` (with a MarkEdit opener for
   Markdown), linked to `~/.config/yazi-user` beside the starter's and chosen
@@ -88,7 +88,7 @@ running pi session so it picks up new extensions.
 
 ### The workspace workflow
 
-One **project workspace = one Ghostty window**. `proj` is a two-screen
+One **project workspace = one Ghostty window**. `cast` is a two-screen
 picker: Screen 1 picks a project (or jumps to a live session); Screen 2
 picks a session — or names new work. **The session name is the identity**:
 sessions are born `<project>/<work>` (home base: bare `<project>`), every
@@ -96,28 +96,28 @@ surface aligns to that name — Claude included, which is launched with
 `--name <session>` — and renames go through one gesture (`prefix T`,
 where you type only the work half) so no surface is left behind.
 Isolation is the agent's job —
-proj opens everything in the primary clone and coding agents make their
+cast opens everything in the primary clone and coding agents make their
 own worktrees when they need them.
 
 Shell helpers (in `config/zsh/04-aliases.zsh`; flags come before the
-positional project — `proj --claude dotfiles` works, `proj dotfiles
+positional project — `cast --claude dotfiles` works, `cast dotfiles
 --claude` silently drops the flag):
 
 | Command | What it does |
 |---------|--------------|
-| `proj` | two-screen picker → jump to a session, open the home base, or name new work |
-| `proj <project>` | skip Screen 1 |
-| `proj --claude` | same, but auto-launch `claude` in the left pane |
-| `proj --cursor` | same, but auto-launch Cursor Agent in the left pane |
-| `proj --add` / `--remove` | add or delete an entry in `~/.config/proj/roots` |
+| `cast` | two-screen picker → jump to a session, open the home base, or name new work |
+| `cast <project>` | skip Screen 1 |
+| `cast --claude` | same, but auto-launch `claude` in the left pane |
+| `cast --cursor` | same, but auto-launch Cursor Agent in the left pane |
+| `cast --add` / `--remove` | add or delete an entry in `~/.config/cast/roots` |
 | `pt <work>` / `pt <project> <work>` | create-or-attach `<project>/<work>` without the picker |
 | `tat <name>` | attach-or-create a named session |
 | `proj-clean` | reap idle sessions (shell/yazi only — no Claude/editor/server) |
 
 ⌘T in a project window auto-joins a new tmux session for that project (via
-proj's shell wrapper, fired by `config/zsh/06-proj.zsh`); ⌘N opens a fresh window at `$HOME`, outside
-any project. Project roots are configured per-machine in `~/.config/proj/roots`
-(not tracked; first `proj` run sets it up). See
+cast's shell wrapper, fired by `config/zsh/06-cast.zsh`); ⌘N opens a fresh window at `$HOME`, outside
+any project. Project roots are configured per-machine in `~/.config/cast/roots`
+(not tracked; first `cast` run sets it up). See
 [`docs/terminal-usage.md`](docs/terminal-usage.md) for the day-to-day walkthrough.
 
 ### Shell Configuration
@@ -175,7 +175,7 @@ The `claude` package installs [Claude Code](https://claude.ai/code) (the `claude
 
 This repo does not select Cursor. If you use the
 [Cursor Agent CLI](https://cursor.com/cli) yourself, `muster setup --force
---agent cursor` wires it onto the muster bus and `proj --cursor` launches it. See
+--agent cursor` wires it onto the muster bus and `cast --cursor` launches it. See
 [`docs/cursor-bridge.md`](docs/cursor-bridge.md).
 
 ### muster — cross-terminal agent bus
@@ -187,7 +187,7 @@ other — no copy/paste, subscription-only. The `muster` package installs the
 checksummed binary from muster.tools to `~/.local/bin/muster`, and its release
 setup adds the Claude Code plugin and session hooks, and the Codex hooks and
 MCP server. No service is installed: `muster serve` starts when the first agent
-needs it, or from proj, and serves a page listing the agents. This
+needs it, or from cast, and serves a page listing the agents. This
 repo adds the pi side: the MCP server in `~/.config/mcp/mcp.json` and, with
 `pi-channels`, the mail channel. Don't want muster? Leave it out of your
 selection (the install-wizard skill walks through each package).
@@ -208,14 +208,14 @@ muster repo's README.
 
 The tmux session name (`#S`) is the identity (spec:
 `docs/superpowers/specs/2026-08-08-proj-session-identity-design.md`). A
-session is born named for its work (`<project>/<work>`, via the proj
+session is born named for its work (`<project>/<work>`, via the cast
 picker or `pt`), and every surface aligns to that one name: tab titles,
 the picker, Claude's own conversation name, and — when muster is
 installed — the bus alias, which its SessionStart hook seeds from the
 session name.
 
 Claude gets that name at launch, via `claude --name <session>`. Both
-launch paths carry it: `proj --claude` / `pt --claude` type it into the
+launch paths carry it: `cast --claude` / `pt --claude` type it into the
 pane (`__claude_launch_cmd`), and a hand-typed bare `claude` picks up
 `#S` through the wrapper in `04-aliases.zsh`. Nothing is injected and
 nothing waits for the agent to boot. `--name` writes a transcript
@@ -273,10 +273,10 @@ retired.
 │   │   ├── 01-paths.zsh        # PATH + EDITOR (nvim) + YAZI_CONFIG_HOME
 │   │   ├── 02-nvm-lazy.zsh     # Lazy NVM loading
 │   │   ├── 03-tools.zsh        # Atuin, zoxide, fzf init
-│   │   ├── 03-proj-roots.zsh   # project-roots loader (proj/pt)
-│   │   ├── 04-aliases.zsh      # aliases + proj/pt/tat/proj-clean
+│   │   ├── 03-proj-roots.zsh   # project-roots loader (cast/pt)
+│   │   ├── 04-aliases.zsh      # aliases + cast/pt/tat/proj-clean
 │   │   ├── 05-completions.zsh  # Shell completions
-│   │   └── 06-proj.zsh         # ⌘T → fires proj's auto-join once PATH is set
+│   │   └── 06-cast.zsh         # ⌘T → fires cast's auto-join once PATH is set
 │   ├── starship.toml      # Prompt configuration
 │   ├── atuin/config.toml  # History sync settings
 │   └── claude/
@@ -295,7 +295,7 @@ retired.
 | To change… | Edit |
 |------------|------|
 | Aliases / workspace commands | `config/zsh/04-aliases.zsh` |
-| Project root directories | `proj --add` / `--remove` / `--edit` (writes `~/.config/proj/roots`) |
+| Project root directories | `cast --add` / `--remove` / `--edit` (writes `~/.config/cast/roots`) |
 | The prompt | `config/starship.toml` ([starship.rs/config](https://starship.rs/config/)) |
 | Terminal font | `config/ghostty/config.mac` (the rest of Ghostty's config is the starter's) |
 | tmux behavior / status bar | `.tmux.conf` |

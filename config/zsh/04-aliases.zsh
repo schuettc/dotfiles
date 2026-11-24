@@ -69,7 +69,7 @@ export AWS_PAGER=""
 unalias claude 2> /dev/null
 
 # The name a bare `claude` adopts: this tmux session's name, which IS the
-# identity proj/pt already chose. Silent and empty outside tmux, or when the
+# identity cast/pt already chose. Silent and empty outside tmux, or when the
 # server can't answer (detached pane, server gone) — callers fall back to the
 # unnamed form rather than passing `--name ''`, which claude rejects.
 __claude_session_name() {
@@ -85,7 +85,7 @@ __claude_session_name() {
 # The rule used to be a whitelist: channels rode a launch only when $1 was
 # literally --resume/-r/--continue/-c. That silently dropped channels from
 # every OTHER interactive form — `--name foo`, `--model …`, `-w`, and crucially
-# `--name foo --resume <id>`, which is how a proj/pt-born NAMED session resumes.
+# `--name foo --resume <id>`, which is how a cast/pt-born NAMED session resumes.
 # So plain `claude --resume` woke on a Revise but a resumed named session never
 # did. The shape of an interactive launch is open-ended (any session flag can
 # lead), so we now detect the CLOSED set that must NOT get channels instead.

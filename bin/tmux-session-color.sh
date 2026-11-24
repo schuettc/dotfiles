@@ -1,6 +1,6 @@
 #!/bin/bash
 # Render session identity, or the opt-in indicator used by native status formats.
-# Opt-in uses proj roles; normal rendering retains the stable name hash.
+# Opt-in uses cast roles; normal rendering retains the stable name hash.
 #
 # Usage: tmux-session-color.sh [--enabled] <session_name>
 
@@ -10,9 +10,9 @@ mode="${1:-}"
 name="${2:-$mode}"
 [[ -z "$name" ]] && exit 0
 
-# The setting is the only opt-in boundary; missing/older proj stays normal.
+# The setting is the only opt-in boundary; missing/older cast stays normal.
 themed=false
-if proj theme --enabled --json 2>/dev/null | jq -e '.enabled == true' >/dev/null 2>&1; then
+if cast theme --enabled --json 2>/dev/null | jq -e '.enabled == true' >/dev/null 2>&1; then
   themed=true
 fi
 if [[ "$mode" == --enabled ]]; then

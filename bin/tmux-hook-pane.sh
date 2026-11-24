@@ -13,9 +13,9 @@
 #         nothing, exit 1, when no pane owns this process.
 #
 # EVERY socket is searched, not just the default one. Each project gets its
-# own tmux server ("proj-<project>", see 04-aliases.zsh), and with $TMUX
-# unset a bare `tmux list-panes -a` talks to a "default" socket that on this
-# setup does not exist — it fails with "error connecting to …/default" and
+# own tmux server ("cast-<project>", or "proj-<project>" from before the
+# rename), and with $TMUX unset a bare `tmux list-panes -a` talks to a
+# "default" socket that on this setup does not exist — it fails with "error connecting to …/default" and
 # finds nothing at all. A single-socket lookup is therefore not a partial
 # answer here, it is always an empty one.
 #

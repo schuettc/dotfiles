@@ -1,6 +1,6 @@
 ---
 name: building-a-tools-family-tool
-description: Use when creating a new .tools family tool (kempt, muster, galley, hail, tackle's scratch/proj/creel/casebook, or a new one) or changing any family repo's build, CI, lint, git hooks, justfile, release workflow, installer or layout; when a family CI gate or lint finding disagrees with local; or when a shared gate/action needs a change.
+description: Use when creating a new .tools family tool (kempt, muster, galley, hail, tackle's scratch/cast/creel/casebook, or a new one) or changing any family repo's build, CI, lint, git hooks, justfile, release workflow, installer or layout; when a family CI gate or lint finding disagrees with local; or when a shared gate/action needs a change.
 ---
 
 # Building a .tools family tool

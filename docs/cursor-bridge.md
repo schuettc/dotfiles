@@ -28,7 +28,7 @@ That:
 ## Start a peer workspace
 
 ```bash
-proj --cursor
+cast --cursor
 # or:
 pt --cursor my-project
 ```

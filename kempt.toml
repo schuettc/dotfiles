@@ -95,7 +95,7 @@ description = "Shell foundation: Homebrew CLI tools, zsh config, Starship prompt
 # ---------------------------------------------------------------------------
 # terminal — tmux config and helpers, build tools, and the
 # personal Ghostty font and yazi config on top of the starter's. tmux itself,
-# Ghostty, yazi, FiraCode Nerd Font and proj/scratch/creel come from the
+# Ghostty, yazi, FiraCode Nerd Font and cast/scratch/creel come from the
 # starter.
 # ---------------------------------------------------------------------------
 [packages.terminal]
@@ -173,11 +173,11 @@ needs = ["core"]
 description = "Optional persistent terminal session themes"
 needs = ["terminal"]
 
-  # A Mac's only: a workspace links config/proj/config.workspace.toml to the
+  # A Mac's only: a workspace links config/cast/config.workspace.toml to the
   # same path, from workspace-linux.
   [[packages.session-themes.symlink]]
-  from = "config/proj/config.toml"
-  to = "~/.config/proj/config.toml"
+  from = "config/cast/config.toml"
+  to = "~/.config/cast/config.toml"
   backup = true
   only = { os = "darwin" }
 
@@ -478,7 +478,7 @@ notes = ["download whisper.cpp's ggml-small.en.bin model to ~/.cache/whisper-cpp
 # workspace-linux — what a Linux workspace adds to the packages above: claude
 # from npm (a cask on a Mac), Ubuntu's bat and fd under the names the
 # zsh config and FZF_DEFAULT_COMMAND use, and checks for what billet's first
-# boot installs (Node 24, the AWS CLI, uv), and proj's config without the
+# boot installs (Node 24, the AWS CLI, uv), and cast's config without the
 # sidebar. Linux only; in the workspace profile alone.
 # ---------------------------------------------------------------------------
 [packages.workspace-linux]
@@ -512,10 +512,10 @@ only = { os = "linux" }
   to = "~/.local/bin/fd"
   backup = false
 
-  # proj without the sidebar: a workspace session is the agent's pane alone.
+  # cast without the sidebar: a workspace session is the agent's pane alone.
   [[packages.workspace-linux.symlink]]
-  from = "config/proj/config.workspace.toml"
-  to = "~/.config/proj/config.toml"
+  from = "config/cast/config.workspace.toml"
+  to = "~/.config/cast/config.toml"
   backup = true
 
   [[packages.workspace-linux.verify]]
